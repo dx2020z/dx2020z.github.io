@@ -1,0 +1,1876 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 军团 · 指挥中枢</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&display=swap');
+:root{--bg:#020d14;--bg2:#031520;--cmd:#00ffcc;--cmd-dim:rgba(0,255,204,0.35);--cmd-faint:rgba(0,255,204,0.08);--danger:#ff3c3c;--gold:#ffd700;--blue:#00aaff;--purple:#aa55ff;--orange:#ff7700;--border:rgba(0,255,204,0.15);--border-bright:rgba(0,255,204,0.35);--panel:rgba(0,255,204,0.03)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);font-family:'Share Tech Mono',monospace;color:var(--cmd);overflow-x:auto;overflow-y:auto;height:100vh;width:100vw;cursor:crosshair}
+#bg-grid{position:fixed;inset:-100px;z-index:0;background:linear-gradient(rgba(0,255,204,0.018) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,204,0.018) 1px,transparent 1px);background-size:40px 40px;transition:transform 0.1s ease-out}
+#bg-radial{position:fixed;inset:-100px;z-index:0;background:radial-gradient(ellipse 60% 50% at 50% 50%,rgba(0,40,30,0.5) 0%,transparent 100%);transition:transform 0.1s ease-out}
+#scanlines{position:fixed;inset:0;z-index:1;pointer-events:none;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.04) 2px,rgba(0,0,0,0.04) 4px)}
+#vignette{position:fixed;inset:0;z-index:2;pointer-events:none;background:radial-gradient(ellipse at center,transparent 30%,rgba(2,13,20,0.9) 100%)}
+#boot-overlay{position:fixed;inset:0;z-index:1000;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity 1s ease-out;pointer-events:none}
+.boot-line{width:300px;height:2px;background:var(--cmd);box-shadow:0 0-15px var(--cmd);margin-top:20px;transform:scaleX(0);animation:bootLoad 2s forwards}
+.boot-text{font-family:'Orbitron',sans-serif;font-size:14px;letter-spacing:5px;color:var(--cmd);text-shadow:0 0 10px var(--cmd)}
+@keyframes bootLoad{0%{transform:scaleX(0)}100%{transform:scaleX(1)}}
+
+/* Holographic UI Glitch Effect */
+.card {
+  position: relative;
+  overflow: hidden;
+}
+.card::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: linear-gradient(rgba(0,255,204,0) 0%, rgba(0,255,204,0.02) 50%, rgba(0,255,204,0) 100%);
+  background-size: 100% 4px;
+  pointer-events: none;
+  animation: holoScan 6s linear infinite;
+  opacity: 0.3;
+}
+@keyframes holoScan {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+
+#shell{position:relative;z-index:10;width:100%;min-width:1280px;height:100vh;display:grid;grid-template-columns:380px 1fr 420px;grid-template-rows:64px 1fr 44px;filter:contrast(1.1) brightness(1.1)}
+/* TOPBAR */
+#topbar{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;padding:0 28px;border-bottom:1px solid var(--border);background:linear-gradient(90deg,rgba(0,255,204,0.05),rgba(0,255,204,0.015),rgba(0,255,204,0.05))}
+.top-brand{font-family:'Orbitron',sans-serif;font-weight:900;font-size:34px;letter-spacing:9px;color:var(--gold);text-shadow:0 0 35px rgba(255,215,0,0.65)}
+.top-sub{font-size:18px;color:rgba(0,255,204,0.6);letter-spacing:6px;margin-top:4px}
+.pill{display:flex;align-items:center;gap:10px;background:rgba(0,255,204,0.12);border:1px solid rgba(0,255,204,0.28);padding:10px 22px;font-size:18px;letter-spacing:2px;font-family:'Orbitron',sans-serif}
+.dot{width:10px;height:10px;border-radius:50%;animation:blink 1.5s ease-in-out infinite}
+.dot.g{background:var(--cmd);box-shadow:0 0 10px var(--cmd)}.dot.r{background:var(--danger);box-shadow:0 0 10px var(--danger);animation-delay:.3s}.dot.y{background:var(--gold);box-shadow:0 0 10px var(--gold);animation-delay:.6s}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+/* PANELS */
+#left-panel{grid-row:2;border-right:1px solid rgba(0,255,204,0.08);padding:18px 16px;display:block;overflow-y:auto;overflow-x:hidden;z-index:20;scrollbar-width:thin}
+#center-stage{grid-row:2;position:relative;overflow:hidden;z-index:15}
+#right-panel{grid-row:2;border-left:1px solid rgba(0,255,204,0.08);padding:18px 16px;display:block;overflow-y:auto;overflow-x:hidden;z-index:20;scrollbar-width:thin}
+#left-panel > .card, #right-panel > .card { margin-bottom: 18px; flex: none; width: 100%; }
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-thumb{background:rgba(0,255,204,0.3);border-radius:3px}
+#botbar{grid-column:1/-1;display:flex;align-items:center;gap:28px;padding:0 28px;border-top:1px solid var(--border);background:rgba(0,255,204,0.09);overflow:hidden;font-size:18px;z-index:20}
+#ticker{white-space:nowrap;animation:ticker 80s linear infinite;color:rgba(0,255,204,0.85);font-weight:800;letter-spacing:2.8px;text-shadow:0 0 14px rgba(0,255,204,0.35)}
+@keyframes ticker{from{transform:translateX(100vw)}to{transform:translateX(-100%)}}
+/* CARD */
+.card{background:var(--panel);border:1px solid rgba(0,255,204,0.22);padding:0;position:relative;transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1);display:flex;flex-direction:column}
+.card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,rgba(0,255,204,0.4),transparent)}
+.ct{font-family:'Orbitron',sans-serif;font-size:18px;font-weight:900;letter-spacing:4px;color:rgba(0,255,204,0.8);padding:18px 22px;text-transform:uppercase;display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;user-select:none;background:rgba(0,255,204,0.02)}
+.ct:hover{background:rgba(0,255,204,0.08)}
+.ct-left{display:flex;align-items:center;gap:10px}
+.ct-arrow{font-size:12px;transition:transform 0.3s;color:var(--cmd-dim)}
+.card.collapsed .ct-arrow{transform:rotate(-90deg)}
+.card-content{padding:0 22px 18px 22px;overflow:hidden;transition:max-height 0.4s ease-out, opacity 0.3s;max-height:1200px;opacity:1}
+.card.collapsed .card-content{max-height:0;padding-bottom:0;opacity:0;pointer-events:none}
+.ct-dot{width:8px;height:8px;border-radius:50%;background:var(--cmd);box-shadow:0 0 8px var(--cmd)}
+/* SLIDER */
+.param-row{margin-bottom:18px}
+.param-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.param-name{font-size:18px;color:rgba(0,255,204,0.95);letter-spacing:1.2px;font-weight:700}
+.param-val{font-family:'Orbitron',sans-serif;font-size:20px;font-weight:900;min-width:70px;text-align:right;transition:color .3s}
+.slider-wrap{position:relative;height:24px;display:flex;align-items:center}
+.slider{-webkit-appearance:none;width:100%;height:5px;background:rgba(0,255,204,0.22);outline:none;cursor:pointer;border-radius:2.5px;position:relative;z-index:2}
+.slider::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--cmd);box-shadow:0 0 12px var(--cmd);cursor:pointer}
+.slider-track{position:absolute;left:0;height:5px;background:var(--cmd);border-radius:2.5px;box-shadow:0 0 10px var(--cmd);pointer-events:none;z-index:1;transition:width .1s}
+.param-desc{font-size:15px;color:rgba(0,255,204,0.6);margin-top:8px;letter-spacing:1px;font-style:italic}
+/* TOGGLE */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.toggle-label{font-size:18px;color:rgba(0,255,204,0.9);font-weight:700}
+.toggle{width:48px;height:24px;background:rgba(0,255,204,0.12);border:1px solid rgba(0,255,204,0.3);border-radius:12px;cursor:pointer;position:relative;transition:background .3s}
+.toggle.on{background:rgba(0,255,204,0.25);border-color:var(--cmd)}
+.toggle-knob{position:absolute;top:4px;left:4px;width:14px;height:14px;border-radius:50%;background:rgba(0,255,204,0.5);transition:transform .3s,background .3s}
+.toggle.on .toggle-knob{transform:translateX(24px);background:var(--cmd);box-shadow:0 0 10px var(--cmd)}
+/* BUTTONS */
+.btn-group{display:flex;gap:8px;flex-wrap:wrap}
+.fmn-btn{flex:1;min-width:0;background:rgba(0,255,204,0.06);border:1px solid rgba(0,255,204,0.3);color:rgba(0,255,204,0.85);font-family:'Orbitron',sans-serif;font-size:16px;font-weight:800;letter-spacing:1.8px;padding:12px 8px;cursor:pointer;transition:all .2s;text-align:center}
+.fmn-btn:hover,.fmn-btn.active{background:rgba(0,255,204,0.2);border-color:var(--cmd);color:var(--cmd);box-shadow:0 0 15px rgba(0,255,204,0.3)}
+.fmn-btn.active{box-shadow:inset 0 0 12px rgba(0,255,204,0.2),0 0 15px rgba(0,255,204,0.4)}
+.danger-btn{width:100%;background:rgba(255,60,60,0.1);border:1px solid rgba(255,60,60,0.5);color:var(--danger);font-family:'Orbitron',sans-serif;font-size:16px;font-weight:900;letter-spacing:2.5px;padding:14px;cursor:pointer;transition:all .2s;text-transform:uppercase}
+.danger-btn:hover{background:rgba(255,60,60,0.18);box-shadow:0 0 15px rgba(255,60,60,0.3)}
+.gold-btn{width:100%;background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.45);color:var(--gold);font-family:'Orbitron',sans-serif;font-size:16px;font-weight:900;letter-spacing:2.5px;padding:14px;cursor:pointer;transition:all .2s;text-transform:uppercase}
+.gold-btn:hover{background:rgba(255,215,0,0.18);box-shadow:0 0 15px rgba(255,215,0,0.3)}
+/* LOG */
+.log-line{font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;padding:8px 0;border-bottom:1px solid rgba(0,255,204,0.08);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:rgba(0,255,204,0.85);animation:logIn .25s ease;letter-spacing:.5px}
+.log-line.danger{color:var(--danger)}.log-line.gold{color:var(--gold)}.log-line.blue{color:var(--blue)}.log-line.purple{color:var(--purple)}
+@keyframes logIn{from{opacity:0;transform:translateX(5px)}to{opacity:1;transform:none}}
+/* KPI */
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.kpi-box{background:rgba(0,0,0,0.4);border:1px solid rgba(0,255,204,0.18);padding:14px 16px;text-align:center}
+.kpi-val{font-family:'Orbitron',sans-serif;font-weight:900;font-size:26px;line-height:1;margin-bottom:8px;transition:all .4s}
+.kpi-label{font-size:14px;color:rgba(0,255,204,0.55);letter-spacing:2px;font-weight:700}
+/* METRIC BAR */
+.metric-bar-row{display:flex;justify-content:space-between;font-size:16px;font-weight:700;margin-bottom:8px;color:rgba(0,255,204,0.85)}
+.metric-bar{height:9px;background:rgba(0,255,204,0.18);border-radius:4.5px;overflow:hidden;margin-bottom:14px}
+.metric-fill{height:100%;border-radius:4px;transition:width .8s ease}
+/* NEURAL */
+.neural-wrap{display:flex;gap:4px;align-items:flex-end;height:50px}
+.n-col{flex:1;border-radius:2px;min-height:4px;transition:height .2s ease,background .3s}
+/* SPAWN */
+.spawn-controls{display:flex;align-items:center;gap:14px}
+.spawn-btn{width:44px;height:44px;background:rgba(0,255,204,0.12);border:1px solid rgba(0,255,204,0.45);color:var(--cmd);font-size:30px;line-height:1;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center}
+.spawn-btn:hover{background:rgba(0,255,204,0.22);box-shadow:0 0 15px rgba(0,255,204,0.3)}
+.spawn-count{font-family:'Orbitron',sans-serif;font-size:34px;font-weight:900;color:var(--gold);text-shadow:0 0 20px rgba(255,215,0,0.55);min-width:48px;text-align:center}
+/* CANVAS */
+#main-canvas{position:absolute;inset:0;width:100%;height:100%}
+/* MODEL ROSTER */
+.model-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border:1px solid transparent;cursor:pointer;transition:all .2s}
+.model-row:hover{background:rgba(0,255,204,0.1);border-color:rgba(0,255,204,0.3)}
+.model-row.selected{background:rgba(0,255,204,0.15);border-color:rgba(0,255,204,0.5)}
+.model-row.offline{opacity:.35}
+.model-icon{width:42px;height:42px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.model-meta{flex:1;min-width:0}
+.model-name-lbl{font-size:16px;font-family:'Orbitron',sans-serif;letter-spacing:1.2px;font-weight:900}
+.model-sub{font-size:14px;color:rgba(0,255,204,0.55);margin-top:2px;font-weight:600}
+.model-hp-bar{height:7px;background:rgba(0,255,204,0.18);border-radius:3.5px;overflow:hidden;width:70px}
+.model-hp-fill{height:100%;border-radius:3px;transition:width .5s}
+.country-tag{font-size:12px;padding:5px 12px;letter-spacing:1px;font-family:'Orbitron',sans-serif;font-weight:800}
+.tag-us{border:1px solid rgba(0,170,255,.5);color:var(--blue);background:rgba(0,170,255,.12)}
+.tag-cn{border:1px solid rgba(255,60,60,.5);color:#ff9999;background:rgba(255,60,60,.12)}
+/* ALERT */
+#alert-banner{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:rgba(255,60,60,0.1);border:1px solid rgba(255,60,60,0.5);color:var(--danger);font-family:'Orbitron',sans-serif;font-size:12px;letter-spacing:3px;padding:8px 20px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:200;text-align:center;box-shadow:0 0 20px rgba(255,60,60,0.2)}
+#alert-banner.show{opacity:1}
+/* RIPPLE */
+.ripple{position:absolute;border-radius:50%;border:1px solid var(--cmd);pointer-events:none;z-index:50;animation:rippleOut 1s ease-out forwards}
+@keyframes rippleOut{from{opacity:.7;transform:scale(.2)}to{opacity:0;transform:scale(1)}}
+
+/* ===== TASK POPUP ===== */
+#task-popup{
+  position:fixed;inset:0;z-index:400;
+  display:none;align-items:center;justify-content:center;
+  background:rgba(2,13,20,0.85);backdrop-filter:blur(5px)
+}
+#task-popup.show{display:flex}
+.task-popup-box{
+  background:rgba(3,21,32,0.99);
+  border:1px solid var(--border-bright);
+  box-shadow:0 0 60px rgba(0,255,204,0.15);
+  width:420px;position:relative
+}
+.task-popup-box::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--cmd),transparent)}
+.tpop-head{padding:14px 18px;border-bottom:1px solid rgba(0,255,204,0.12);display:flex;align-items:center;justify-content:space-between}
+.tpop-title{font-family:'Orbitron',sans-serif;font-size:13px;letter-spacing:3px;color:var(--gold)}
+.tpop-close{background:none;border:none;color:rgba(0,255,204,0.5);cursor:pointer;font-size:18px}
+.tpop-close:hover{color:var(--cmd)}
+.tpop-agent-info{padding:12px 18px;border-bottom:1px solid rgba(0,255,204,0.08);display:flex;align-items:center;gap:12px}
+.tpop-agent-name{font-family:'Orbitron',sans-serif;font-size:14px;font-weight:900;letter-spacing:2.5px}
+.tpop-agent-model{font-size:11px;color:rgba(0,255,204,0.45)}
+.tpop-body{padding:14px 18px}
+.task-type-label{font-size:10px;color:rgba(0,255,204,0.45);letter-spacing:2.5px;margin-bottom:10px}
+.task-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.task-btn{
+  background:rgba(0,255,204,0.04);border:1px solid rgba(0,255,204,0.2);
+  color:rgba(0,255,204,0.75);font-family:'Orbitron',sans-serif;
+  font-size:11px;letter-spacing:1px;padding:10px 8px;cursor:pointer;
+  transition:all .2s;text-align:center;position:relative
+}
+.task-btn:hover{background:rgba(0,255,204,0.12);border-color:var(--cmd);color:var(--cmd);box-shadow:0 0 15px rgba(0,255,204,0.2)}
+.task-btn .task-cost{display:block;font-size:9px;color:rgba(0,255,204,0.4);margin-top:4px;letter-spacing:.8px}
+
+/* ===== THINKING STATE ===== */
+#thinking-overlay{
+  position:fixed;inset:0;z-index:500;
+  display:none;align-items:center;justify-content:center;
+  background:rgba(2,13,20,0.9);backdrop-filter:blur(6px)
+}
+#thinking-overlay.show{display:flex}
+.thinking-box{
+  background:rgba(3,21,32,0.99);border:1px solid rgba(0,255,204,0.4);
+  padding:32px 48px;text-align:center;position:relative;min-width:320px
+}
+.thinking-box::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--cmd),transparent)}
+.thinking-model{font-family:'Orbitron',sans-serif;font-size:16px;font-weight:900;letter-spacing:3px;margin-bottom:8px}
+.thinking-task{font-size:12px;color:rgba(0,255,204,0.55);letter-spacing:1.5px;margin-bottom:20px}
+.thinking-dots{display:flex;gap:10px;justify-content:center;margin-bottom:14px}
+.th-dot{width:10px;height:10px;border-radius:50%;background:var(--cmd);box-shadow:0 0 12px var(--cmd);animation:thinkPulse 1s ease-in-out infinite}
+.th-dot:nth-child(2){animation-delay:.2s}.th-dot:nth-child(3){animation-delay:.4s}
+@keyframes thinkPulse{0%,100%{opacity:.2;transform:scale(.7)}50%{opacity:1;transform:scale(1)}}
+.thinking-status{font-size:11px;color:rgba(0,255,204,0.4);letter-spacing:2px}
+
+/* ===== COMPLETION POPUP ===== */
+#completion-popup{
+  position:fixed;inset:0;z-index:600;
+  display:none;align-items:center;justify-content:center;
+  background:rgba(2,13,20,0.8)
+}
+#completion-popup.show{display:flex}
+.completion-box{
+  background:rgba(3,21,32,0.99);border:1px solid rgba(255,215,0,0.6);
+  box-shadow:0 0 80px rgba(255,215,0,0.2);
+  padding:40px 60px;text-align:center;position:relative;
+  animation:completionIn .4s cubic-bezier(0.175,0.885,0.32,1.275)
+}
+.completion-box::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+.completion-box::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+@keyframes completionIn{from{opacity:0;transform:scale(.8) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.comp-check{font-size:48px;margin-bottom:12px;animation:checkBounce .5s ease .1s both}
+@keyframes checkBounce{0%{transform:scale(0)}70%{transform:scale(1.2)}100%{transform:scale(1)}}
+.comp-done{font-family:'Orbitron',sans-serif;font-size:24px;font-weight:900;letter-spacing:6px;color:var(--gold);text-shadow:0 0 30px rgba(255,215,0,0.6);margin-bottom:10px}
+.comp-model{font-size:12px;color:rgba(0,255,204,0.5);letter-spacing:2px;margin-bottom:20px}
+.comp-token-label{font-size:12px;color:rgba(0,255,204,0.45);letter-spacing:3px;margin-bottom:8px}
+.comp-tokens{font-family:'Orbitron',sans-serif;font-size:42px;font-weight:900;color:var(--cmd);text-shadow:0 0 35px rgba(0,255,204,0.6);line-height:1;animation:tokenCount .6s ease .3s both}
+@keyframes tokenCount{from{opacity:0;transform:scale(1.3)}to{opacity:1;transform:scale(1)}}
+.comp-token-unit{font-size:13px;color:rgba(0,255,204,0.5);letter-spacing:3px;margin-top:6px;margin-bottom:24px}
+.comp-dismiss{background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.4);color:var(--gold);font-family:'Orbitron',sans-serif;font-size:11px;letter-spacing:3px;padding:10px 32px;cursor:pointer;transition:all .2s}
+.comp-dismiss:hover{background:rgba(255,215,0,0.2);box-shadow:0 0 20px rgba(255,215,0,0.3)}
+
+#clock-display{font-family:'Orbitron',sans-serif;font-size:14px;color:rgba(0,255,204,0.55);letter-spacing:3px}
+</style>
+</head>
+<body>
+<div id="boot-overlay">
+  <div class="boot-text" id="boot-text">INITIALIZING NEXUS...</div>
+  <div class="boot-line"></div>
+</div>
+<div id="bg-grid"></div><div id="bg-radial"></div><div id="scanlines"></div><div id="vignette"></div>
+<div id="alert-banner"></div>
+
+<!-- TASK POPUP -->
+<div id="task-popup">
+  <div class="task-popup-box">
+    <div class="tpop-head">
+      <div class="tpop-title">◈ 选择任务类型</div>
+      <button class="tpop-close" id="tpop-close">✕</button>
+    </div>
+    <div class="tpop-agent-info">
+      <div id="tpop-icon"></div>
+      <div>
+        <div class="tpop-agent-name" id="tpop-agent-name">—</div>
+        <div class="tpop-agent-model" id="tpop-agent-model">—</div>
+      </div>
+    </div>
+    <div class="tpop-body">
+      <div class="task-type-label">选择要执行的任务</div>
+      <div class="task-grid" id="task-grid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- THINKING OVERLAY -->
+<div id="thinking-overlay">
+  <div class="thinking-box">
+    <div class="thinking-model" id="think-model">GPT-4o</div>
+    <div class="thinking-task" id="think-task">正在执行任务...</div>
+    <div class="thinking-dots"><div class="th-dot"></div><div class="th-dot"></div><div class="th-dot"></div></div>
+    <div class="thinking-status">推理引擎运行中...</div>
+  </div>
+</div>
+
+<!-- COMPLETION POPUP -->
+<div id="completion-popup" id="completion-popup">
+  <div class="completion-box">
+    <div class="comp-check">✓</div>
+    <div class="comp-done">已完成</div>
+    <div class="comp-model" id="comp-model-label">GPT-4o · 写文章</div>
+    <div class="comp-token-label">消耗了</div>
+    <div class="comp-tokens" id="comp-token-num">0</div>
+    <div class="comp-token-unit">个 TOKEN</div>
+    <button class="comp-dismiss" id="comp-dismiss">确认</button>
+  </div>
+</div>
+
+<div id="shell">
+<!-- TOPBAR -->
+<div id="topbar">
+  <div style="display:flex;gap:7px;align-items:center">
+    <div class="pill"><div class="dot g"></div>节点在线</div>
+    <div class="pill"><div class="dot y"></div>GPU×128</div>
+    <div class="pill"><div class="dot r"></div>战斗模式</div>
+  </div>
+  <div style="text-align:center">
+    <div class="top-brand">AI 军团 · 指挥中枢</div>
+    <div class="top-sub">多智能体协同作战系统 · 第七代 · NEXUS COMMAND</div>
+  </div>
+  <div style="display:flex;gap:7px;align-items:center">
+    <div id="clock-display"></div>
+    <div class="pill" style="font-size:16px;color:rgba(0,255,204,0.38);font-weight:900">任务: THETA-9</div>
+  </div>
+</div>
+
+<!-- LEFT PANEL -->
+<div id="left-panel">
+  <div class="card">
+    <div class="ct"><div class="ct-left"><div class="ct-dot"></div>智能体部署</div><div class="ct-arrow">▼</div></div>
+    <div class="card-content">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div>
+          <div style="font-size:13px;color:rgba(0,255,204,0.4);letter-spacing:1.5px;margin-bottom:4px;font-weight:600">在线单元</div>
+          <div class="spawn-controls">
+            <button class="spawn-btn" id="btn-remove">−</button>
+            <div class="spawn-count" id="spawn-count">8</div>
+            <button class="spawn-btn" id="btn-add">+</button>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:13px;color:rgba(255,60,60,0.5);letter-spacing:1.5px;margin-bottom:4px;font-weight:600">已离线</div>
+          <div style="font-family:'Orbitron',sans-serif;font-size:24px;font-weight:900;color:var(--danger);text-shadow:0 0 15px rgba(255,60,60,0.4)" id="kill-count">0</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="gold-btn" style="flex:1;padding:10px" id="btn-activate-all">全体激活</button>
+        <button class="danger-btn" style="flex:1;padding:10px" id="btn-deactivate-all">全体离线</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ct"><div class="ct-left"><div class="ct-dot"></div>战术编队</div><div class="ct-arrow">▼</div></div>
+    <div class="card-content">
+      <div class="btn-group" id="formation-btns">
+        <button class="fmn-btn active" data-f="orbit">环绕</button>
+        <button class="fmn-btn" data-f="attack">进攻</button>
+        <button class="fmn-btn" data-f="defend">防御</button>
+        <button class="fmn-btn" data-f="scatter">分散</button>
+        <button class="fmn-btn" data-f="grid">网格</button>
+        <button class="fmn-btn" data-f="swarm">蜂群</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ct"><div class="ct-left"><div class="ct-dot"></div>模型参数调节</div><div class="ct-arrow">▼</div></div>
+    <div class="card-content">
+      <div class="param-row">
+        <div class="param-header"><span class="param-name">温度系数 τ</span><span class="param-val" id="pv-temperature" style="color:var(--cmd)">0.70</span></div>
+        <div class="slider-wrap"><div class="slider-track" id="pt-temperature"></div><input type="range" class="slider" id="ps-temperature" min="0" max="2" step="0.01" value="0.7"></div>
+        <div class="param-desc">↑ 高 → 输出随机化，创意增强</div>
+      </div>
+      <div class="param-row">
+        <div class="param-header"><span class="param-name">学习率 α</span><span class="param-val" id="pv-learning_rate" style="color:var(--blue)">3e-3</span></div>
+        <div class="slider-wrap"><div class="slider-track" id="pt-learning_rate" style="background:var(--blue);box-shadow:0 0 5px var(--blue)"></div><input type="range" class="slider" id="ps-learning_rate" min="0.0001" max="0.01" step="0.0001" value="0.003"></div>
+        <div class="param-desc">↑ 高 → 快速收敛，编队协同紧密</div>
+      </div>
+      <div class="param-row">
+        <div class="param-header"><span class="param-name">注意力头数</span><span class="param-val" id="pv-attention" style="color:var(--purple)">8</span></div>
+        <div class="slider-wrap"><div class="slider-track" id="pt-attention" style="background:var(--purple);box-shadow:0 0 5px var(--purple)"></div><input type="range" class="slider" id="ps-attention" min="1" max="32" step="1" value="8"></div>
+        <div class="param-desc">↑ 高 → 连接密度增加</div>
+      </div>
+      <div class="param-row">
+        <div class="param-header"><span class="param-name">奖励倍率 ρ</span><span class="param-val" id="pv-reward" style="color:var(--gold)">1.0×</span></div>
+        <div class="slider-wrap"><div class="slider-track" id="pt-reward" style="background:var(--gold);box-shadow:0 0 5px var(--gold)"></div><input type="range" class="slider" id="ps-reward" min="0.1" max="5" step="0.1" value="1.0"></div>
+        <div class="param-desc">↑ 高 → 推理吞吐量提升</div>
+      </div>
+      <div class="param-row" style="margin-bottom:0">
+        <div class="param-header"><span class="param-name">随机丢弃率 δ</span><span class="param-val" id="pv-dropout" style="color:var(--orange)">0.10</span></div>
+        <div class="slider-wrap"><div class="slider-track" id="pt-dropout" style="background:var(--orange);box-shadow:0 0 5px var(--orange)"></div><input type="range" class="slider" id="ps-dropout" min="0" max="0.9" step="0.01" value="0.1"></div>
+        <div class="param-desc">↑ 高 → 节点随机失活</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ct"><div class="ct-left"><div class="ct-dot"></div>系统模式</div><div class="ct-arrow">▼</div></div>
+    <div class="card-content">
+      <div class="toggle-row"><span class="toggle-label">自主决策</span><div class="toggle on" id="t-auto"><div class="toggle-knob"></div></div></div>
+      <div class="toggle-row"><span class="toggle-label">联邦学习</span><div class="toggle on" id="t-fed"><div class="toggle-knob"></div></div></div>
+      <div class="toggle-row"><span class="toggle-label">对抗防御</span><div class="toggle" id="t-adv"><div class="toggle-knob"></div></div></div>
+      <div class="toggle-row"><span class="toggle-label">量子加密</span><div class="toggle on" id="t-qkd"><div class="toggle-knob"></div></div></div>
+      <div class="toggle-row" style="margin-bottom:0"><span class="toggle-label">多模态融合</span><div class="toggle" id="t-mm"><div class="toggle-knob"></div></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ct"><div class="ct-left"><div class="ct-dot" style="background:var(--danger);box-shadow:0 0 5px var(--danger)"></div>威胁注入</div><div class="ct-arrow">▼</div></div>
+    <div class="card-content">
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <button class="danger-btn" id="btn-threat-adv">⚡ 对抗样本攻击</button>
+        <button class="danger-btn" id="btn-threat-dos">🌊 推理洪泛 DDoS</button>
+        <button class="danger-btn" id="btn-threat-poison">☠ 数据投毒攻击</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CENTER -->
+<div id="center-stage">
+  <canvas id="main-canvas"></canvas>
+  <div style="position:absolute;bottom:12px;left:50%;transform:translateX(-50%);font-family:'Orbitron',sans-serif;font-size:14px;color:rgba(0,255,204,0.45);letter-spacing:3px;white-space:nowrap;pointer-events:none;font-weight:700">
+    点击任意 AI 大模型单元 · 分配任务
+  </div>
+</div>
+
+<!-- RIGHT PANEL -->
+<div id="right-panel">
+
+  <div class="card">
+    <div class="ct"><div class="ct-left"><div class="ct-dot" style="background:var(--gold);box-shadow:0 0 5px var(--gold)"></div>作战效能指标</div><div class="ct-arrow">▼</div></div>
+    <div class="card-content">
+      <div class="kpi-grid">
+        <div class="kpi-box"><div class="kpi-val" id="kpi-throughput" style="color:var(--cmd)">0</div><div class="kpi-label">请求/秒</div></div>
+        <div class="kpi-box"><div class="kpi-val" id="kpi-latency" style="color:var(--blue)">0ms</div><div class="kpi-label">平均延迟</div></div>
+        <div class="kpi-box"><div class="kpi-val" id="kpi-accuracy" style="color:var(--gold)">0%</div><div class="kpi-label">推理精度</div></div>
+        <div class="kpi-box"><div class="kpi-val" id="kpi-cost" style="color:var(--purple)">$0</div><div class="kpi-label">千Token成本</div></div>
+      </div>
+      <div style="margin-top:10px;display:flex;justify-content:space-between;font-size:16px;color:rgba(0,255,204,0.5);font-weight:900">
+        <span>总Token消耗</span><span id="total-tokens" style="color:var(--gold);font-family:'Orbitron',sans-serif;font-size:22px">0</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ct"><div class="ct-left"><div class="ct-dot"></div>系统资源</div><div class="ct-arrow">▼</div></div>
+    <div class="card-content">
+      <div class="metric-bar-row"><span>Transformer 推理</span><span id="mr-v1">0%</span></div>
+      <div class="metric-bar"><div class="metric-fill" id="mr-b1" style="background:linear-gradient(90deg,var(--cmd),var(--blue))"></div></div>
+      <div class="metric-bar-row"><span>RL 策略网络</span><span id="mr-v2">0%</span></div>
+      <div class="metric-bar"><div class="metric-fill" id="mr-b2" style="background:linear-gradient(90deg,var(--gold),var(--orange))"></div></div>
+      <div class="metric-bar-row"><span>多智能体协调</span><span id="mr-v3">0%</span></div>
+      <div class="metric-bar"><div class="metric-fill" id="mr-b3" style="background:linear-gradient(90deg,var(--purple),var(--blue))"></div></div>
+      <div class="metric-bar-row" style="margin-bottom:2px"><span>向量数据库检索</span><span id="mr-v4">0%</span></div>
+      <div class="metric-bar" style="margin-bottom:0"><div class="metric-fill" id="mr-b4" style="background:linear-gradient(90deg,var(--danger),var(--orange))"></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ct"><div class="ct-left"><div class="ct-dot" style="background:var(--purple);box-shadow:0 0 5px var(--purple)"></div>神经活动</div><div class="ct-arrow">▼</div></div>
+    <div class="card-content">
+      <div style="display:flex;justify-content:space-between;font-size:16px;color:rgba(0,255,204,0.6);margin-bottom:8px;letter-spacing:1px;font-weight:900">
+        <span>注意力头激活</span><span id="attn-active" style="color:var(--purple);font-size:18px">0/0</span>
+      </div>
+      <div class="neural-wrap" id="neural-bars"></div>
+    </div>
+  </div>
+
+  <div class="card" style="min-height:120px">
+    <div class="ct"><div class="ct-left"><div class="ct-dot"></div>实时情报</div><div class="ct-arrow">▼</div></div>
+    <div class="card-content">
+      <div id="intel-feed" style="overflow:auto;max-height:40vh;padding-right:6px"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ct"><div class="ct-left"><div class="ct-dot" style="background:var(--gold);box-shadow:0 0 5px var(--gold)"></div>指令队列</div><div class="ct-arrow">▼</div></div>
+    <div class="card-content">
+      <div id="cmd-queue"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ct"><div class="ct-left"><div class="ct-dot" style="background:var(--blue);box-shadow:0 0 5px var(--blue)"></div>AI 大模型名录</div><div class="ct-arrow">▼</div></div>
+    <div class="card-content">
+      <div id="agent-roster" style="max-height:400px;overflow-y:auto"></div>
+    </div>
+  </div>
+
+</div>
+
+<div id="botbar">
+  <div style="white-space:nowrap;font-size:13px;color:rgba(0,255,204,0.6);font-weight:bold;letter-spacing:3px">SYSTEM MONITOR ◈</div>
+  <div style="flex:1;overflow:hidden">
+    <div id="ticker">◈ ChatGPT-5.4 架构就绪 — 128头 Transformer 注意力同步 ◈ Claude opus 4.6 实时推理链路 Δ=0.0012 ◈ deepseek v3.2 向量检索延迟 <0.8ms ◈ Gemini 3.1 pro 多模态融合引擎在线 ◈ Qwen 3.6 plus 联邦学习聚合 round=52 ◈ GLM-5 思维链推理深度 L=64 ◈ MiniMax-M2.7 强化学习策略梯度校准 ◈ Doubao Seed 2.0 pro 扩散模型去噪步数 T=2000 ◈ PaddleOCR-VL-1.5 视觉理解精度提升 ◈ Grok4.2 实时情报流接入 ◈ Kimi K2.5 上下文窗口扩展至 1M tokens ◈ Hunyuanlmage-3.0 图像生成指令遵循强化 ◈ Baichuan-M3-235B 行业领域知识图谱对齐 ◈ Llama 4 Behemoth Instruct 开源生态权重同步 ◈ Gemma 4 E4B 终端侧部署推理优化 ◈ XVERSE-Ent-A4.2B 知识密度增强 ◈ 对抗性防御 F1-Score=0.999 ◈</div>
+  </div>
+</div>
+</div>
+
+<script>
+const canvas = document.getElementById('main-canvas');
+const ctx = canvas.getContext('2d');
+const stage = document.getElementById('center-stage');
+function resize(){ canvas.width = stage.clientWidth; canvas.height = stage.clientHeight; }
+resize(); window.addEventListener('resize', resize);
+const W = () => canvas.width, H = () => canvas.height;
+const CX = () => W()/2, CY = () => H()/2;
+
+/* ── PARAMS ── */
+const P = { temperature:0.70, learning_rate:0.003, attention:8, reward:1.0, dropout:0.1,
+  autonomous:true, federated:true, adversarial:false, quantum:true, multimodal:false, formation:'orbit' };
+
+/* ── TASK DEFINITIONS ── */
+// Each task has base token range [min, max] and a complexity multiplier per model tier
+const TASKS = [
+  { id:'code',    label:'写代码',   emoji:'💻', baseMin:800,  baseMax:2200  },
+  { id:'article', label:'写文章',   emoji:'📝', baseMin:1500, baseMax:4000  },
+  { id:'poster',  label:'画海报',   emoji:'🎨', baseMin:3000, baseMax:7500  },
+  { id:'data',    label:'数据分析', emoji:'📊', baseMin:1200, baseMax:3200  },
+  { id:'trans',   label:'翻译文档', emoji:'🌐', baseMin:600,  baseMax:1800  },
+  { id:'summary', label:'视频摘要', emoji:'🎬', baseMin:2500, baseMax:6000  },
+  { id:'debug',   label:'调试修复', emoji:'🔧', baseMin:900,  baseMax:2800  },
+  { id:'plan',    label:'制定方案', emoji:'📋', baseMin:1800, baseMax:4500  },
+];
+
+/* ── AGENT DEFS ── */
+const FIXED_DEFS = [
+  { id:'ChatGPT-5.4', role:'OpenAI · 旗舰推理', type:'humanoid', color:'#00ffcc', country:'us', tier:3, params:'500B+', logo:'https://openai.com/favicon.ico' },
+  { id:'Claude opus 4.6', role:'Anthropic · 对话助手', type:'mech', color:'#ff7700', country:'us', tier:3, params:'400B+', logo:'https://www.anthropic.com/favicon.ico' },
+  { id:'Gemini 3.1 pro', role:'Google · 多模态AI', type:'humanoid', color:'#aa55ff', country:'us', tier:3, params:'2T MoE', logo:'https://www.gstatic.com/lamda/images/favicon_v1_150160d1396965646.google_terminal.ico' },
+  { id:'deepseek v3.2', role:'深度求索 · 深度推理', type:'drone', color:'#00aaff', country:'cn', tier:3, params:'671B', logo:'https://www.deepseek.com/favicon.ico' },
+  { id:'Qwen 3.6 plus', role:'阿里 · 通用大模型', type:'mech', color:'#00ffcc', country:'cn', tier:3, params:'1.5T', logo:'https://b.alicdn.com/S00006767/300006767/favicon.ico' },
+  { id:'GLM-5', role:'智谱 · 认知大模型', type:'spider', color:'#ffd700', country:'cn', tier:3, params:'500B', logo:'https://zhipuai.cn/favicon.ico' },
+];
+
+const RANDOM_POOL = [
+  { id:'MiniMax-M2.7', role:'稀宇科技 · 文本模型', type:'humanoid', color:'#ff3c3c', country:'cn', tier:2, params:'100B', logo:'https://www.minimaxi.com/favicon.ico' },
+  { id:'Doubao Seed 2.0 pro', role:'字节跳动 · 智能助手', type:'drone', color:'#00aaff', country:'cn', tier:2, params:'未公开', logo:'https://www.doubao.com/favicon.ico' },
+  { id:'PaddleOCR-VL-1.5', role:'百度 · 视觉语言', type:'spider', color:'#ff3c3c', country:'cn', tier:2, params:'80B', logo:'https://www.baidu.com/favicon.ico' },
+  { id:'Grok4.2', role:'xAI · 实时推理', type:'drone', color:'#00ffcc', country:'us', tier:2, params:'400B', logo:'https://x.ai/favicon.ico' },
+  { id:'Kimi K2.5', role:'月之暗面 · 长上下文', type:'mech', color:'#ff7700', country:'cn', tier:2, params:'未公开', logo:'https://www.moonshot.cn/favicon.ico' },
+  { id:'Hunyuanlmage-3.0-Instruct', role:'腾讯 · 视觉理解', type:'spider', color:'#00aaff', country:'cn', tier:2, params:'110B', logo:'https://www.tencent.com/favicon.ico' },
+  { id:'Baichuan-M3-235B', role:'百川智能 · 行业应用', type:'humanoid', color:'#aa55ff', country:'cn', tier:2, params:'235B', logo:'https://www.baichuan-ai.com/favicon.ico' },
+  { id:'Llama 4 Behemoth Instruct', role:'Meta · 开源基座', type:'drone', color:'#ffd700', country:'us', tier:3, params:'1.2T', logo:'https://meta.com/favicon.ico' },
+  { id:'Gemma 4 E4B', role:'Google · 轻量级模型', type:'mech', color:'#aa55ff', country:'us', tier:1, params:'4B', logo:'https://www.gstatic.com/lamda/images/favicon_v1_150160d1396965646.google_terminal.ico' },
+  { id:'XVERSE-Ent-A4.2B', role:'元象 · 企业级模型', type:'spider', color:'#00ffcc', country:'cn', tier:1, params:'4.2B', logo:'https://www.xverse.cn/favicon.ico' },
+];
+
+// Shuffle random pool once
+for (let i = RANDOM_POOL.length - 1; i > 0; i--) {
+  const j = Math.floor(Math.random() * (i + 1));
+  [RANDOM_POOL[i], RANDOM_POOL[j]] = [RANDOM_POOL[j], RANDOM_POOL[i]];
+}
+
+const AGENT_DEFS = [...FIXED_DEFS, ...RANDOM_POOL];
+
+// Brand icon mapping via Iconify (CORS-friendly). Fallback will be applied if missing.
+const ICON_URLS = {
+  'ChatGPT-5.4': 'https://openai.com/favicon.ico',
+  'Claude opus 4.6': 'https://cdn-1.webcatalog.io/catalog/claude/claude-icon-filled-256.png?v=1689487592595',
+  'Gemini 3.1 pro': 'https://imgs.logonews.cn/uploads/2025/07/202507020909256.png',
+  'deepseek v3.2': 'https://s1.aigei.com/src/img/png/90/900409bc3d4c428eb9f11531bc75fbf4.png?imageMogr2/auto-orient/thumbnail/!500x474r/gravity/Center/crop/500x474/quality/85/%7CimageView2/2/w/500&e=2051020800&token=P7S2Xpzfz11vAkASLTkfHN7Fw-oOZBecqeJaxypL:nSOgaAW8JoVxxvM8cVkbp4Ohqoo=',
+  'Qwen 3.6 plus': 'https://aiproducthub.cn/wp-content/uploads/2025/11/1764500145-%E5%8D%83%E9%97%AEAPP-logo.png',
+  'GLM-5': 'https://ts1.tc.mm.bing.net/th/id/R-C.dddfdf1ccddca3e4f09311fa0396771d?rik=%2bQvcGqI3UYDx8A&riu=http%3a%2f%2fpic.3673.com%2fupload%2f2023-9%2f20239251944435359.png&ehk=thQSFwrWDeZC1b8JyrltCiVZlv%2fyU%2fJGPpgX6eACdpM%3d&risl=&pid=ImgRaw&r=0',
+  'MiniMax-M2.7': 'https://img-blog.csdnimg.cn/img_convert/62b0cf1d9f363314b191de5acc1e5acc.png',
+  'Doubao Seed 2.0 pro': 'https://s1.aigei.com/src/img/png/cc/cc21c5d3f09343599d57e7cbbdd61d6a.png?imageMogr2/auto-orient/thumbnail/!282x320r/gravity/Center/crop/282x320/quality/85/%7CimageView2/2/w/282&e=2051020800&token=P7S2Xpzfz11vAkASLTkfHN7Fw-oOZBecqeJaxypL:xcg4hwRkN5-ou8Hfx2BbgheC63s=',
+  'Grok4.2': 'https://pic.7po.com/7po/imgfile/20250513/13171312qx6k.png',
+  'Kimi K2.5': 'https://img-blog.csdnimg.cn/img_convert/5155766e8cbbd4c52de1e00637397faa.png',
+  'Hunyuanlmage-3.0-Instruct': 'https://s1.aigei.com/src/img/png/45/457398a05a6f4d5b80f86645f0c4cf06.png?imageMogr2/auto-orient/thumbnail/!282x282r/gravity/Center/crop/282x282/quality/85/%7CimageView2/2/w/282&e=2051020800&token=P7S2Xpzfz11vAkASLTkfHN7Fw-oOZBecqeJaxypL:-KS_BEnYtuA4eER68bG11QeQc3c=',
+  'Baichuan-M3-235B': 'https://ai-kit.cn/wp-content/uploads/2023/08/baichuan-ai-icon.png',
+  'Llama 4 Behemoth Instruct': 'https://ts1.tc.mm.bing.net/th/id/R-C.a137c0fa7e931f407c1407df01765c71?rik=htg6GeITbCMV9g&riu=http%3a%2f%2fn.sinaimg.cn%2fsinakd20230225s%2f697%2fw1287h1010%2f20230225%2f4956-f1cf5352d4f7f1586b89994a7ff5631e.jpg&ehk=Dgf5UX%2bqA83iR1B%2frVVvrqWuLNrvIuvr53CWYQud8L4%3d&risl=&pid=ImgRaw&r=0',
+  'Gemma 4 E4B': 'https://ts1.tc.mm.bing.net/th/id/OIP-C.-yLI6npbyk3WtDhWSBgilgAAAA?rs=1&pid=ImgDetMain&o=7&rm=3',
+  'XVERSE-Ent-A4.2B': 'https://ts1.tc.mm.bing.net/th/id/OIP-C.3X7jojy7GMyVYhdFKAreeQAAAA?rs=1&pid=ImgDetMain&o=7&rm=3',
+  'PaddleOCR-VL-1.5': 'https://paddlepaddle-org-cn.cdn.bcebos.com/paddle-site-front/static/media/paddlelogo.0b483fa7.png'
+};
+// Preload logos with error handling and ensure roster uses the same
+const LOGO_IMAGES = {};
+AGENT_DEFS.forEach(def => {
+  const finalUrl = ICON_URLS[def.id] || def.logo;
+  def.logo = finalUrl;
+  const img = new Image();
+  img.src = finalUrl; // avoid crossOrigin to提升兼容性
+  img.onerror = () => {
+    img.src = `https://api.iconify.design/material-symbols:smart-toy-outline-rounded.svg?color=${encodeURIComponent(def.color)}`;
+    def.logo = img.src;
+  };
+  LOGO_IMAGES[def.id] = img;
+});
+
+/* ── TOKEN CALCULATION ── */
+// Returns a unique token count based on model tier, task, and randomness
+function calcTokens(agentDef, task) {
+  const tierMult = { 1: 0.6, 2: 1.0, 3: 1.5 }[agentDef.tier] || 1.0;
+  const base = task.baseMin + Math.random() * (task.baseMax - task.baseMin);
+  // Add time-based noise so same model+task gives different results each click
+  const timeNoise = 0.85 + (Math.sin(Date.now() * 0.001337) * 0.5 + 0.5) * 0.3;
+  const paramNoise = 1 + (P.temperature - 0.7) * 0.2 + (P.reward - 1.0) * 0.1;
+  return Math.round(base * tierMult * timeNoise * paramNoise);
+}
+
+/* ── AGENTS STATE ── */
+let agents = [], targetCount = 8, selectedAgent = null;
+let kills = 0, frame = 0, totalTokens = 0;
+let pulses = [], dataPackets = [], threatWaves = [];
+let currentTaskAgent = null;
+let isCodeFull = false;
+let currentFormationPositions = [];
+let agentSpeeches = []; // 存储 Agent 对话
+let screenShake = 0; // 屏幕震动强度
+let glitchIntensity = 0; // 故障效果强度
+let particles = []; // 粒子系统
+let beams = []; // MoE Expert Beams
+let scanlinePos = 0; // Cinematic Scanline
+let isBooting = true;
+
+function createAgent(def, index) {
+  const angle = (index / 16) * Math.PI * 2;
+  const radius = 160 + Math.random() * 45;
+  return {
+    ...def,
+    x: CX() + Math.cos(angle) * radius, y: CY() + Math.sin(angle) * radius,
+    vx:0, vy:0,
+    hp: 80 + Math.floor(Math.random()*20), maxHp:100,
+    active:true, selected:false,
+    floatOffset: Math.random()*Math.PI*2,
+    floatSpeed: 0.4 + Math.random()*0.3,
+    pulsePhase: Math.random()*Math.PI*2,
+    accuracy: 88 + Math.floor(Math.random()*12),
+    latency: 10 + Math.floor(Math.random()*35),
+    throughput: 800 + Math.floor(Math.random()*2000),
+    hitFlash: 0,
+    taskBusy: false,
+    taskProgress: 0,
+  };
+}
+
+function refreshFormationPositions() {
+  currentFormationPositions = getFormationPositions(agents.length, P.formation);
+}
+refreshFormationPositions();
+
+function rebuildAgents(count) {
+  const newAgents = [];
+  for (let i = 0; i < count; i++) {
+    if (agents[i]) newAgents.push(agents[i]);
+    else newAgents.push(createAgent(AGENT_DEFS[i % AGENT_DEFS.length], i));
+  }
+  agents = newAgents;
+  refreshFormationPositions();
+  updateRoster();
+}
+rebuildAgents(targetCount);
+
+/* ── FORMATION ── */
+function getFormationPositions(count, formation) {
+  const cx = CX(), cy = CY();
+  let positions = [];
+  if (formation === 'orbit') {
+    const r1 = Math.min(W(),H())*0.25, r2 = Math.min(W(),H())*0.35;
+    for (let i=0;i<count;i++) { const r=i%2===0?r1:r2,a=(i/count)*Math.PI*2; positions.push({x:cx+Math.cos(a)*r,y:cy+Math.sin(a)*r}); }
+  } else if (formation==='attack') {
+    // V-formation (wedge)
+    const spread = 36;
+    for (let i=0;i<count;i++) {
+      const side = i%2===0?1:-1;
+      const step = Math.floor(i/2);
+      positions.push({x:cx + side*step*spread, y:cy + step*28});
+    }
+  } else if (formation==='defend') {
+    // multi-ring
+    const perRing = 6;
+    for (let i=0;i<count;i++) { const ring=Math.floor(i/perRing),pos=i%perRing,r=60+ring*70,a=(pos/perRing)*Math.PI*2+ring*0.35; positions.push({x:cx+Math.cos(a)*r,y:cy+Math.sin(a)*r}); }
+  } else if (formation==='scatter') {
+    for (let i=0;i<count;i++) { const a=(i/count)*Math.PI*2+0.5,r=90+Math.random()*Math.min(W(),H())*0.27; positions.push({x:cx+Math.cos(a)*r,y:cy+Math.sin(a)*r}); }
+  } else if (formation==='grid') {
+    const cols=Math.ceil(Math.sqrt(count)),sp=72;
+    for (let i=0;i<count;i++) positions.push({x:cx+(i%cols-cols/2+.5)*sp,y:cy+(Math.floor(i/cols)-Math.ceil(count/cols)/2+.5)*sp});
+  } else if (formation==='swarm') {
+    // noisy spiral swarm
+    for (let i=0;i<count;i++) { const a=(i/count)*Math.PI*6,r=24+i*14; positions.push({x:cx+Math.cos(a)*r+(Math.random()-.5)*20,y:cy+Math.sin(a)*r+(Math.random()-.5)*20}); }
+  }
+  
+  // Shuffle positions to ensure randomness for each agent
+  for (let i = positions.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [positions[i], positions[j]] = [positions[j], positions[i]];
+  }
+  
+  return positions;
+}
+
+function hexToRgb(hex) {
+  const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  return `${r},${g},${b}`;
+}
+
+/* ── DRAW COMMANDER ── */
+/* ── DRAW COMMANDER (AI CORE) ── */
+function drawCommander(cx, cy, t) {
+  // System load factor based on totalTokens
+  const loadFactor = Math.min(1.0, totalTokens / 200000);
+  const coreHue = loadFactor * 60; // 0 (Cyan) to 60 (Gold/Orange)
+  const spinSpeed = 0.01 + loadFactor * 0.04;
+  
+  const glow = 0.5 + 0.5 * Math.sin(t * 0.02);
+  const coreSize = 50 + Math.sin(t * 0.05) * 5;
+  ctx.save(); ctx.translate(cx, cy);
+
+  // Outer Atmosphere (Changes color based on load)
+  const aura = ctx.createRadialGradient(0, 0, 0, 0, 0, 150 + loadFactor * 50);
+  aura.addColorStop(0, `hsla(${180 - coreHue}, 100%, 50%, ${0.15 * glow})`);
+  aura.addColorStop(1, 'transparent');
+  ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(0, 0, 200, 0, Math.PI * 2); ctx.fill();
+
+  // Orbital Rings
+  for (let i = 0; i < 3; i++) {
+    ctx.save();
+    ctx.rotate(t * spinSpeed * (i + 1) + i * Math.PI / 3);
+    ctx.strokeStyle = `hsla(${180 - coreHue}, 100%, 50%, ${0.2 + 0.2 * glow})`;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 100 + i * 20, 40 + i * 10, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    // Orbital Nodes
+    const nodeA = t * (spinSpeed * 2) * (i + 1);
+    const nx = Math.cos(nodeA) * (100 + i * 20);
+    const ny = Math.sin(nodeA) * (40 + i * 10);
+    ctx.fillStyle = `hsla(${180 - coreHue}, 100%, 50%, 1)`;
+    ctx.shadowBlur = 10; ctx.shadowColor = `hsla(${180 - coreHue}, 100%, 50%, 0.8)`;
+    ctx.beginPath(); ctx.arc(nx, ny, 3, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+
+  // Central Core - Hexagon Structure
+  ctx.save();
+  ctx.rotate(t * spinSpeed * 0.5);
+  ctx.shadowBlur = (25 + loadFactor * 30) * glow; 
+  ctx.shadowColor = `hsla(${180 - coreHue}, 100%, 50%, 0.8)`;
+  ctx.strokeStyle = `hsla(${180 - coreHue}, 100%, 50%, 1)`; ctx.lineWidth = 2 + loadFactor * 2;
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * Math.PI * 2;
+    const x = Math.cos(a) * coreSize;
+    const y = Math.sin(a) * coreSize;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.closePath(); ctx.stroke();
+  
+  // Inner Core Pulse
+  const innerGrd = ctx.createRadialGradient(0, 0, 0, 0, 0, coreSize * 0.8);
+  innerGrd.addColorStop(0, `hsla(${180 - coreHue}, 100%, 50%, ${0.8 * glow})`);
+  innerGrd.addColorStop(1, `rgba(0,170,255,0.1)`);
+  ctx.fillStyle = innerGrd; ctx.fill();
+  
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = `bold ${Math.round(18 + loadFactor * 8)}px "Segoe UI Symbol","Segoe UI Emoji",sans-serif`;
+  ctx.fillStyle = `hsla(${180 - coreHue}, 100%, 70%, ${0.85 + 0.1 * glow})`;
+  ctx.shadowBlur = 14 * glow;
+  ctx.shadowColor = `hsla(${180 - coreHue}, 100%, 60%, 0.9)`;
+  ctx.fillText('🔯', 0, 0);
+  ctx.shadowBlur = 0;
+  ctx.restore();
+  ctx.restore();
+
+  // Digital Data Streams (Vertical)
+  ctx.font = '9px Share Tech Mono';
+  ctx.fillStyle = `hsla(${180 - coreHue}, 100%, 50%, ${0.4 * glow})`;
+  for (let i = 0; i < 8; i++) {
+    const x = -80 + i * 20;
+    const yOff = (t * (2 + loadFactor * 5) + i * 50) % 160 - 80;
+    ctx.fillText(Math.random() > 0.5 ? '1' : '0', x, yOff);
+  }
+
+  // Label
+  ctx.fillStyle = loadFactor > 0.7 ? '#ff3c3c' : '#ffd700';
+  ctx.font = 'bold 20px Orbitron';
+  ctx.textAlign = 'center';
+  ctx.fillText('AI Agent🦞', 0, 95);
+  if (loadFactor > 0.5) {
+    ctx.font = '10px Orbitron';
+    ctx.fillStyle = '#ff3c3c';
+    ctx.fillText('SYSTEM HIGH LOAD', 0, 115);
+  }
+
+  ctx.restore();
+}
+
+/* ── DRAW AGENTS ── */
+function drawAgent(agent, t) {
+  if (!agent.active) return;
+  const float = Math.sin(t*agent.floatSpeed*0.02+agent.floatOffset)*5;
+  const pulse = 0.5+0.5*Math.sin(t*0.03+agent.pulsePhase);
+  const c = agent.color, sel = agent.selected;
+  ctx.save(); ctx.translate(agent.x, agent.y+float);
+  
+  if (sel) {
+    ctx.strokeStyle=`rgba(255,215,0,${0.4+0.4*pulse})`; ctx.lineWidth=2.5;
+    ctx.setLineDash([5,10]); ctx.beginPath(); ctx.arc(0,0,42,0,Math.PI*2); ctx.stroke(); ctx.setLineDash([]);
+  }
+  
+  if (agent.taskBusy) {
+    ctx.strokeStyle=`rgba(255,215,0,${0.5+0.5*pulse})`; ctx.lineWidth=2.5;
+    ctx.beginPath(); ctx.arc(0,0,48,t*0.05,t*0.05+Math.PI*1.5); ctx.stroke();
+    
+    // Task Progress Ring (New)
+    ctx.strokeStyle = '#ffd700';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(0, 0, 48, -Math.PI/2, -Math.PI/2 + agent.taskProgress * Math.PI * 2);
+    ctx.stroke();
+    
+    // Progress % text
+    ctx.fillStyle = '#ffd700';
+    ctx.font = 'bold 10px Orbitron';
+    ctx.fillText(Math.round(agent.taskProgress * 100) + '%', 0, -55);
+  }
+
+  // Self-Refine Animation
+  if (agent.isRefining) {
+    ctx.save();
+    ctx.strokeStyle = '#00ffcc';
+    ctx.lineWidth = 2;
+    const scanY = -22 + (t % 40) / 40 * 44;
+    ctx.beginPath();
+    ctx.moveTo(-22, scanY); ctx.lineTo(22, scanY);
+    ctx.stroke();
+    
+    ctx.fillStyle = 'rgba(0, 255, 204, 0.1)';
+    ctx.fillRect(-22, -22, 44, 44);
+    ctx.restore();
+  }
+
+  // Round badge icon (no robot/mech forms)
+  ctx.save();
+  const logo = LOGO_IMAGES[agent.id];
+  if (logo && logo.complete && logo.naturalWidth !== 0) {
+    // Fill background with subtle dark for transparency contrast
+    ctx.fillStyle = 'rgba(255,255,255,0.05)';
+  } else {
+    const grd = ctx.createRadialGradient(0,0,0,0,0,22);
+    grd.addColorStop(0, `rgba(${hexToRgb(c)},0.9)`);
+    grd.addColorStop(1, `rgba(${hexToRgb(c)},0.4)`);
+    ctx.fillStyle = grd;
+  }
+  
+  // No outer ring glow - shadowBlur removed previously
+  ctx.beginPath(); ctx.arc(0,0,22,0,Math.PI*2); ctx.fill();
+  
+  // Adversarial Defense Shield (Visual Improvement)
+  if (P.adversarial) {
+    ctx.save();
+    ctx.strokeStyle = `rgba(0, 255, 204, ${0.1 + 0.2 * pulse})`;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([2, 4]);
+    ctx.beginPath();
+    ctx.arc(0, 0, 32 + 2 * pulse, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // Subtle border instead of glowy ring
+  ctx.strokeStyle = `rgba(255,255,255,0.15)`; ctx.lineWidth=1.2;
+  ctx.beginPath(); ctx.arc(0,0,22,0,Math.PI*2); ctx.stroke();
+
+  // Center emblem: model initials or loaded logo (Larger for native feel)
+  if (logo && logo.complete && logo.naturalWidth !== 0) {
+    const isGemini = agent.id.includes('Gemini');
+    // Gemini 放大 40% 以上 (20 -> 28+)
+    const radius = isGemini ? 29 : 20; 
+    ctx.save(); 
+    if (isGemini) {
+        // Gemini 特殊发光
+        ctx.shadowBlur = 15; ctx.shadowColor = agent.color;
+    }
+    ctx.beginPath(); ctx.arc(0,0,radius,0,Math.PI*2); ctx.clip();
+    const drawSize = radius * 2;
+    ctx.drawImage(logo,-radius,-radius,drawSize,drawSize); 
+    ctx.restore();
+  } else {
+    const initials = (agent.id.match(/[A-Za-z0-9]+/g)||[]).slice(0,2).map(s=>s[0]).join('').slice(0,3).toUpperCase();
+    ctx.fillStyle = '#021016';
+    ctx.font='bold 14px Orbitron';
+    ctx.textAlign='center';
+    ctx.fillText(initials,0,5);
+  }
+  ctx.restore();
+
+  ctx.shadowBlur=0;
+  ctx.fillStyle=`rgba(${hexToRgb(c)},${sel?1:.9})`; ctx.font=sel?'bold 14px Orbitron':'13px Orbitron'; ctx.textAlign='center';
+  ctx.fillText(agent.id,0,55);
+  
+  const hW=60, hH=6;
+  ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(-hW/2,62,hW,hH);
+  const hpc=agent.hp>70?c:agent.hp>40?'#ffd700':'#ff3c3c';
+  ctx.fillStyle=hpc; ctx.shadowBlur=8; ctx.shadowColor=hpc;
+  ctx.fillRect(-hW/2,62,hW*(agent.hp/agent.maxHp),hH); ctx.shadowBlur=0;
+
+  // Agent Speech Bubbles
+  const speech = agentSpeeches.find(s => s.agentId === agent.id);
+  if (speech && speech.timer > 0) {
+    ctx.save();
+    ctx.translate(0, -65);
+    const padding = 8, textWidth = ctx.measureText(speech.text).width;
+    const bw = textWidth + padding * 2, bh = 24;
+    
+    // Bubble
+    ctx.fillStyle = 'rgba(0,0,0,0.85)';
+    ctx.strokeStyle = agent.color;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(-bw/2, -bh, bw, bh, 4);
+    ctx.fill(); ctx.stroke();
+    
+    // Pointer
+    ctx.beginPath();
+    ctx.moveTo(-5, 0); ctx.lineTo(5, 0); ctx.lineTo(0, 5);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    
+    // Text
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '11px Share Tech Mono';
+    ctx.textAlign = 'center';
+    ctx.fillText(speech.text, 0, -bh/2 + 4);
+    ctx.restore();
+    speech.timer--;
+  }
+
+  ctx.restore();
+}
+
+function drawHumanoid(ctx,c,p) {
+  ctx.globalAlpha=.85+.15*p; ctx.strokeStyle=c; ctx.lineWidth=1.2;
+  ctx.fillStyle=`rgba(${hexToRgb(c)},0.1)`; ctx.beginPath(); ctx.roundRect(-8,-24,16,14,3); ctx.fill(); ctx.stroke();
+  ctx.fillStyle=`rgba(${hexToRgb(c)},${.4+.2*p})`; ctx.fillRect(-6,-21,12,5);
+  ctx.fillStyle=`rgba(${hexToRgb(c)},0.1)`; ctx.beginPath(); ctx.roundRect(-11,-9,22,18,3); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.arc(0,-1,3.5,0,Math.PI*2); ctx.fillStyle=`rgba(${hexToRgb(c)},${.5+.3*p})`; ctx.fill();
+  ctx.fillStyle=`rgba(${hexToRgb(c)},0.1)`;
+  ctx.beginPath(); ctx.roundRect(-19,-8,8,12,2); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.roundRect(11,-8,8,12,2); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.roundRect(-9,9,7,12,2); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.roundRect(2,9,7,12,2); ctx.fill(); ctx.stroke();
+  ctx.globalAlpha=1;
+}
+function drawMech(ctx,c,p) {
+  ctx.globalAlpha=.85+.15*p; ctx.strokeStyle=c; ctx.lineWidth=1.2;
+  ctx.fillStyle=`rgba(${hexToRgb(c)},0.08)`; ctx.beginPath(); ctx.roundRect(-16,-9,32,22,3); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.roundRect(-9,-23,18,15,3); ctx.fill(); ctx.stroke();
+  for (let i=-1;i<=1;i++) {
+    ctx.beginPath(); ctx.arc(i*6,-15,3,0,Math.PI*2); ctx.fillStyle=`rgba(${hexToRgb(c)},${.25+.45*p})`; ctx.fill();
+    ctx.beginPath(); ctx.arc(i*6,-15,1.5,0,Math.PI*2); ctx.fillStyle=c; ctx.fill();
+  }
+  ctx.fillStyle=`rgba(${hexToRgb(c)},0.08)`;
+  ctx.beginPath(); ctx.roundRect(-26,-10,10,10,2); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.roundRect(16,-10,10,10,2); ctx.fill(); ctx.stroke();
+  ctx.fillStyle=`rgba(${hexToRgb(c)},0.4)`; ctx.fillRect(-32,-7,9,4); ctx.fillRect(23,-7,9,4);
+  ctx.fillStyle=`rgba(${hexToRgb(c)},0.1)`; ctx.beginPath(); ctx.roundRect(-14,13,28,10,3); ctx.fill(); ctx.stroke();
+  for (let i=0;i<4;i++) { ctx.fillStyle=`rgba(${hexToRgb(c)},0.25)`; ctx.fillRect(-11+i*6.5,15,4.5,5); }
+  ctx.globalAlpha=1;
+}
+function drawDrone(ctx,c,p,sa) {
+  ctx.globalAlpha=.85+.15*p; ctx.save(); ctx.rotate(sa);
+  [[1,1],[-1,1],[-1,-1],[1,-1]].forEach(([dx,dy])=>{
+    ctx.strokeStyle=`rgba(${hexToRgb(c)},0.45)`; ctx.lineWidth=1.1;
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(dx*18,dy*18); ctx.stroke();
+    ctx.beginPath(); ctx.arc(dx*18,dy*18,7,0,Math.PI*2); ctx.strokeStyle=`rgba(${hexToRgb(c)},0.35)`; ctx.stroke();
+    ctx.strokeStyle=`rgba(${hexToRgb(c)},${.35*p})`; ctx.lineWidth=.6;
+    for (let a=0;a<3;a++){const ba=(a/3)*Math.PI*2+sa*2.5;ctx.beginPath();ctx.moveTo(dx*18,dy*18);ctx.lineTo(dx*18+Math.cos(ba)*6,dy*18+Math.sin(ba)*6);ctx.stroke();}
+  });
+  ctx.restore();
+  ctx.fillStyle=`rgba(${hexToRgb(c)},0.12)`;ctx.strokeStyle=c;ctx.lineWidth=1.4;
+  ctx.beginPath();ctx.roundRect(-8,-8,16,16,2);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.arc(0,0,5,0,Math.PI*2);ctx.fillStyle=`rgba(${hexToRgb(c)},0.25)`;ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.arc(0,0,2.5,0,Math.PI*2);ctx.fillStyle=`rgba(${hexToRgb(c)},${.7+.3*p})`;ctx.fill();
+  ctx.globalAlpha=1;
+}
+function drawSpider(ctx,c,p,sa) {
+  ctx.globalAlpha=.85+.15*p;
+  for (let i=0;i<8;i++){
+    const a=(i/8)*Math.PI*2+Math.sin(sa+i)*.15,len=22;
+    const kx=Math.cos(a)*len*.5,ky=Math.sin(a)*len*.5,ex=Math.cos(a)*len,ey=Math.sin(a)*len;
+    ctx.strokeStyle=`rgba(${hexToRgb(c)},0.45)`;ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(kx,ky);ctx.lineTo(ex,ey);ctx.stroke();
+    ctx.fillStyle=`rgba(${hexToRgb(c)},0.55)`;ctx.beginPath();ctx.arc(ex,ey,1.8,0,Math.PI*2);ctx.fill();
+  }
+  ctx.fillStyle=`rgba(${hexToRgb(c)},0.12)`;ctx.strokeStyle=c;ctx.lineWidth=1.2;
+  ctx.beginPath();ctx.ellipse(0,0,12,10,0,0,Math.PI*2);ctx.fill();ctx.stroke();
+  for (let i=0;i<3;i++){
+    const ea=-0.4+i*0.4;
+    ctx.beginPath();ctx.arc(Math.cos(ea-Math.PI/2)*6,Math.sin(ea-Math.PI/2)*6-2,2.5,0,Math.PI*2);
+    ctx.fillStyle=`rgba(${hexToRgb(c)},${.55+.4*p})`;ctx.fill();
+  }
+  ctx.globalAlpha=1;
+}
+
+/* ── CONNECTIONS ── */
+function drawConnections(t) {
+  const active = agents.filter(a=>a.active);
+  const maxConns = Math.floor(P.attention*0.7);
+  
+  // Federated Learning Ring Effect
+  if (P.federated && t % 180 < 60) {
+    const r = (t % 60) * 8;
+    ctx.save();
+    ctx.strokeStyle = `rgba(0, 255, 204, ${0.4 * (1 - (t % 60) / 60)})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(CX(), CY(), r, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  active.forEach((a,i) => {
+    const float=Math.sin(t*a.floatSpeed*.02+a.floatOffset)*4;
+    const ax=a.x,ay=a.y+float;
+    const alpha=0.07+0.03*Math.sin(t*.02+i);
+    ctx.save();
+    
+    // Base Connection (Neural Synapse Style - Bézier Curve)
+    const midX = (CX() + ax) / 2;
+    const midY = (CY() + ay) / 2;
+    // Elastic control point
+    const cpOffset = Math.sin(t * 0.03 + i) * 25;
+    const nx = -(ay - CY()), ny = (ax - CX()); // perpendicular
+    const len = Math.sqrt(nx*nx + ny*ny);
+    const cpX = midX + (nx/len) * cpOffset;
+    const cpY = midY + (ny/len) * cpOffset;
+
+    ctx.setLineDash([2,9]);ctx.strokeStyle=a.color;ctx.globalAlpha=alpha;ctx.lineWidth=1.2;
+    ctx.beginPath();
+    ctx.moveTo(CX(), CY());
+    ctx.quadraticCurveTo(cpX, cpY, ax, ay);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    
+    // Quantum Photons (Following Curve)
+    if (P.quantum) {
+      const pt = (t * 0.05 + i * 0.5) % 1;
+      const qx = (1-pt)*(1-pt)*CX() + 2*(1-pt)*pt*cpX + pt*pt*ax;
+      const qy = (1-pt)*(1-pt)*CY() + 2*(1-pt)*pt*cpY + pt*pt*ay;
+      ctx.fillStyle = '#aa55ff';
+      ctx.shadowBlur = 8; ctx.shadowColor = '#aa55ff';
+      ctx.beginPath(); ctx.arc(qx, qy, 2, 0, Math.PI * 2); ctx.fill();
+    }
+    
+    if(i<maxConns&&i+1<active.length){
+      const b=active[(i+3)%active.length];
+      const bf=Math.sin(t*b.floatSpeed*.02+b.floatOffset)*4;
+      const bx = b.x, by = b.y + bf;
+      
+      const midX2 = (ax + bx) / 2;
+      const midY2 = (ay + by) / 2;
+      const cpOffset2 = Math.cos(t * 0.04 + i) * 15;
+      const nx2 = -(by - ay), ny2 = (bx - ax);
+      const len2 = Math.sqrt(nx2*nx2 + ny2*ny2);
+      const cpX2 = midX2 + (nx2/len2) * cpOffset2;
+      const cpY2 = midY2 + (ny2/len2) * cpOffset2;
+
+      ctx.strokeStyle=a.color;ctx.globalAlpha=alpha*.4;ctx.lineWidth=.4;
+      ctx.setLineDash([1,14]);
+      ctx.beginPath();
+      ctx.moveTo(ax, ay);
+      ctx.quadraticCurveTo(cpX2, cpY2, bx, by);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    ctx.restore();
+  });
+}
+
+/* ── PULSES ── */
+function addPulse(fx,fy,tx,ty,color,rev=false){pulses.push({t:0,fromX:fx,fromY:fy,toX:tx,toY:ty,color,reverse:rev});}
+function firePulseToRandom(){
+  const active=agents.filter(a=>a.active);if(!active.length)return;
+  const a=active[Math.floor(Math.random()*active.length)];
+  const float=Math.sin(frame*a.floatSpeed*.02+a.floatOffset)*4;
+  addPulse(CX(),CY(),a.x,a.y+float,a.color,Math.random()>.7);
+}
+function drawPulses(){
+  pulses=pulses.filter(p=>{
+    p.t+=0.02+P.reward*.009;if(p.t>1)return false;
+    const t=p.reverse?1-p.t:p.t;
+    const px=p.fromX+(p.toX-p.fromX)*t,py=p.fromY+(p.toY-p.fromY)*t;
+    const alpha=Math.sin(p.t*Math.PI)*.85;
+    ctx.save();ctx.globalAlpha=alpha;ctx.beginPath();ctx.arc(px,py,2.5,0,Math.PI*2);
+    ctx.fillStyle=p.color;ctx.shadowBlur=10;ctx.shadowColor=p.color;ctx.fill();ctx.shadowBlur=0;ctx.restore();
+    return true;
+  });
+}
+function drawDataPackets(){
+  const active=agents.filter(a=>a.active);
+  const freq = Math.max(1, Math.floor((12 - P.attention / 3) / (1 + P.reward * 0.2))); // 奖励越高，发包频率越高
+  if(frame%freq===0&&active.length>1){
+    let a=active[Math.floor(Math.random()*active.length)];
+    let b=active[Math.floor(Math.random()*active.length)];
+    if(P.federated){ // route to commander for aggregation
+      b={x:CX(),y:CY(),active:true,color:'#00ffcc',type:'hub'};
+    }
+    if(a!==b){
+      const fa=Math.sin(frame*a.floatSpeed*.02+a.floatOffset)*5;
+      const fb=b.type==='hub'?0:Math.sin(frame*b.floatSpeed*.02+b.floatOffset)*5;
+      const x1=a.x,y1=a.y+fa,x2=b.x,y2=b.y+fb;
+      const midx=(x1+x2)/2, midy=(y1+y2)/2;
+      const nx=-(y2-y1), ny=(x2-x1); // perpendicular for curve
+      const strength = 0.18 + Math.random()*0.22;
+      const cxp=midx+nx*strength, cyp=midy+ny*strength;
+      
+      // 模式与参数影响
+      const isMM = P.multimodal;
+      const mmLabels = ["图片", "视频", "音频", "3D", "向量"];
+      const label = isMM ? mmLabels[Math.floor(Math.random() * mmLabels.length)] : null;
+      
+      const kind = P.quantum ? 'qkd' : P.adversarial ? 'adv' : isMM ? 'mm' : 'std';
+      const tok = Math.round( (80 + P.temperature*140 + P.reward*90 + P.attention*3) * (0.8+Math.random()*0.6) );
+      dataPackets.push({t:0,x1,y1,x2,y2,cx:cxp,cy:cyp,color:a.color,kind,label,offset:0,tok});
+    }
+  }
+  dataPackets=dataPackets.filter(p=>{
+    // Base speed is now slower but reactive to reward and learning rate
+    const speed = 0.008 + (P.reward * 0.004) + (P.learning_rate * 0.5);
+    p.t += speed; 
+    p.offset += 2.0;
+    if(p.t>1) return false;
+    
+    // draw path
+    ctx.save();
+    const grad=ctx.createLinearGradient(p.x1,p.y1,p.x2,p.y2);
+    if(p.kind==='adv'){ grad.addColorStop(0,'rgba(255,60,60,0.6)'); grad.addColorStop(1,'rgba(255,120,120,0.4)'); }
+    else if(p.kind==='qkd'){ grad.addColorStop(0,'rgba(170,85,255,0.7)'); grad.addColorStop(1,'rgba(0,255,204,0.5)'); }
+    else if(p.kind==='mm'){ grad.addColorStop(0,'rgba(0,170,255,0.8)'); grad.addColorStop(1,'rgba(170,85,255,0.8)'); }
+    else { grad.addColorStop(0, p.color); grad.addColorStop(1,'rgba(255,255,255,0.6)'); }
+    ctx.strokeStyle=grad;
+    ctx.lineWidth = p.kind==='adv'?2.2 : p.kind==='qkd'?1.8 : 1.6;
+    if(p.kind==='qkd'){ ctx.setLineDash([6,6]); ctx.lineDashOffset = -p.offset; }
+    ctx.beginPath(); ctx.moveTo(p.x1,p.y1); ctx.quadraticCurveTo(p.cx,p.cy,p.x2,p.y2); ctx.stroke(); ctx.setLineDash([]);
+    
+    // moving packet
+    const t=p.t;
+    const qx=(1-t)*(1-t)*p.x1 + 2*(1-t)*t*p.cx + t*t*p.x2;
+    const qy=(1-t)*(1-t)*p.y1 + 2*(1-t)*t*p.cy + t*t*p.y2;
+    ctx.shadowBlur=10; ctx.shadowColor=p.kind==='adv'?'#ff3c3c':p.kind==='qkd'?'#aa55ff':p.kind==='mm'?'#00aaff':p.color;
+    ctx.fillStyle=p.kind==='adv'?'#ff3c3c':p.kind==='qkd'?'#aa55ff':p.kind==='mm'?'#00aaff':p.color;
+    ctx.beginPath(); ctx.arc(qx,qy, p.kind==='adv'?3.2:2.4, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur=0;
+    
+    // Token Transfer Sparks
+    if (frame % 4 === 0) {
+      for(let i=0; i<2; i++) {
+        const sx = qx + (Math.random()-0.5)*10;
+        const sy = qy + (Math.random()-0.5)*10;
+        ctx.fillStyle = '#00ffcc';
+        ctx.beginPath(); ctx.arc(sx, sy, 1, 0, Math.PI*2); ctx.fill();
+      }
+    }
+
+    // Modal Label (Multimodal)
+    if(p.label){
+      ctx.fillStyle='rgba(0,0,0,0.7)'; ctx.fillRect(qx-25,qy-22,50,16);
+      ctx.strokeStyle='rgba(0,255,204,0.6)'; ctx.lineWidth=.8; ctx.strokeRect(qx-25,qy-22,50,16);
+      ctx.fillStyle='#00ffcc'; ctx.font='bold 10px Share Tech Mono'; ctx.textAlign='center'; ctx.fillText(p.label,qx,qy-10);
+    }
+    // tokens tag
+    // More visible by default
+    ctx.fillStyle='rgba(0,0,0,0.55)'; ctx.fillRect(qx+8,qy-8,54,14);
+    ctx.strokeStyle='rgba(0,255,204,0.35)'; ctx.lineWidth=.8; ctx.strokeRect(qx+8,qy-8,54,14);
+    ctx.fillStyle='#00ffcc'; ctx.font='10px Share Tech Mono'; ctx.textAlign='left';
+    ctx.fillText(`${p.tok} TOK`, qx+12, qy+2);
+    
+    // API tag (models communicate through APIs)
+    const apiW = 34, apiH = 14;
+    const apiX = qx - apiW / 2;
+    const apiY = qy + 10;
+    const apiPulse = 0.25 + 0.25 * Math.sin(frame * 0.06 + p.t * 10);
+    ctx.fillStyle = `rgba(0,0,0,${0.55 + apiPulse})`;
+    ctx.fillRect(apiX, apiY, apiW, apiH);
+    ctx.strokeStyle = `rgba(0,255,204,${0.25 + apiPulse})`;
+    ctx.lineWidth = 0.8;
+    ctx.strokeRect(apiX, apiY, apiW, apiH);
+    ctx.fillStyle = '#00ffcc';
+    ctx.font = 'bold 10px Orbitron';
+    ctx.textAlign = 'center';
+    ctx.fillText('API', qx, apiY + 11);
+
+    // adversarial marker
+    if(p.kind==='adv'){
+      ctx.strokeStyle='rgba(255,60,60,0.6)'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(qx-4,qy-4); ctx.lineTo(qx+4,qy+4); ctx.moveTo(qx+4,qy-4); ctx.lineTo(qx-4,qy+4); ctx.stroke();
+    }
+    ctx.restore();
+    return true;
+  });
+}
+
+/* ── THREAT WAVES ── */
+function launchThreatWave(type){
+  threatWaves.push({t:0,type,r:0});
+  const msgs={adv:'⚠ 对抗样本注入 — 置信度下降 -34%',dos:'⚠ 推理洪泛攻击 — 速率限制启动',poison:'⚠ 数据投毒 — 梯度异常 +4.7σ'};
+  showAlert(msgs[type]);addLog(msgs[type],'danger');
+  
+  const active=agents.filter(a=>a.active);
+  const dmg=Math.floor(active.length*0.4);
+  
+  if (type === 'adv') {
+    screenShake = 15;
+    glitchIntensity = 0.8;
+  } else if (type === 'dos') {
+    // Generate many small red packets towards core
+    for (let i = 0; i < 40; i++) {
+      setTimeout(() => {
+        const a = active[Math.floor(Math.random() * active.length)];
+        if (a) {
+          const x1 = a.x + (Math.random()-0.5)*100;
+          const y1 = a.y + (Math.random()-0.5)*100;
+          dataPackets.push({
+            t: 0, x1, y1, x2: CX(), y2: CY(), 
+            cx: (x1 + CX()) / 2 + (Math.random()-0.5)*200, 
+            cy: (y1 + CY()) / 2 + (Math.random()-0.5)*200,
+            color: '#ff3c3c', kind: 'adv', tok: Math.floor(Math.random()*50)
+          });
+        }
+      }, i * 30);
+    }
+  } else if (type === 'poison') {
+    active.forEach(a => {
+      for(let i=0; i<15; i++) {
+        particles.push({
+          x: a.x, y: a.y, 
+          vx: (Math.random()-0.5)*4, vy: (Math.random()-0.5)*4,
+          life: 1.0, color: '#8800ff', size: 2 + Math.random()*3
+        });
+      }
+    });
+  }
+
+  for(let i=0;i<dmg;i++){
+    const a=active[Math.floor(Math.random()*active.length)];
+    a.hp=Math.max(10,a.hp-12-Math.random()*18);
+    a.hitFlash=1;
+  }
+  updateRoster();
+}
+function drawThreatWaves(){
+  threatWaves=threatWaves.filter(w=>{
+    w.t+=0.01;w.r=w.t*Math.max(W(),H())*.75;if(w.t>1)return false;
+    const alpha=(1-w.t)*.35;
+    ctx.save();ctx.strokeStyle=`rgba(255,60,60,${alpha})`;ctx.lineWidth=1.8;
+    ctx.shadowBlur=12;ctx.shadowColor='#ff3c3c';
+    ctx.beginPath();ctx.arc(CX(),CY(),w.r,0,Math.PI*2);ctx.stroke();ctx.shadowBlur=0;ctx.restore();
+    return true;
+  });
+}
+
+/* ── RADAR ── */
+const radarCanvas=document.createElement('canvas');radarCanvas.width=140;radarCanvas.height=140;
+let radarAngle=0;
+const radarDots=Array.from({length:12},()=>({r:.1+Math.random()*.85,a:Math.random()*Math.PI*2,enemy:Math.random()>.65}));
+// Code panel that simulates internal thinking instead of radar
+const codeStreams = Array.from({length:60},(_,i)=>({x:8+i*15,y:Math.random()*1200,s:0.9+Math.random()*2.8}));
+const BASE_CODE_TOKENS = ['if','for','while','await','async','lambda','map','reduce','from','import','fn','def','var','let','const','try','catch','throw','return','yield','Σ','∇','∂','θ','μ','β','log','exp','relu','sig','attn','qkv','kv','rope','softmax','tok','tensor','grad','backprop','optimizer','weights','bias','layer','head','norm'];
+function getCodeRainConfig(isFull){
+  const t = P.temperature;
+  const lr = P.learning_rate;
+  const attn = P.attention;
+  const rw = P.reward;
+  const dp = P.dropout;
+  const tokens = [...BASE_CODE_TOKENS];
+  if (t > 1.2) tokens.push('dream','imagine','render','shader','noise','sample','remix','style');
+  if (lr > 0.004) tokens.push('adam','momentum','update','step','lr','warmup','decay');
+  if (attn > 14) tokens.push('multihead','flashattn','cache','kvstore','chunk','window');
+  if (rw > 2.0) tokens.push('policy','value','advantage','rlhf','reward','ppo');
+  if (dp > 0.25) tokens.push('mask','dropout','prune','stochastic','sparsity');
+  if (P.adversarial) tokens.push('sanitize','guardrail','detox','filter','robust');
+  if (P.quantum) tokens.push('qkd','qubit','entangle','phase','measure');
+  if (P.multimodal) tokens.push('img','video','audio','embed','clip','ocr');
+  const baseSpeed = 0.7 + t * 0.9 + rw * 0.25 + lr * 60 + attn / 40;
+  const speedMul = baseSpeed * (1 - dp * 0.25);
+  const density = (isFull ? 1.15 : 1.0) * (0.85 + attn / 28);
+  const glitch = Math.min(0.65, dp * 0.9 + (P.adversarial ? 0.15 : 0));
+  return { tokens, speedMul, density, glitch };
+}
+function drawRadar(cx,cy,radius,isFull=false){
+  const rc=radarCanvas.getContext('2d');
+  const rw = isFull ? W() : 160;
+  const rh = isFull ? H() : 120;
+  radarCanvas.width=rw;radarCanvas.height=rh;
+  rc.clearRect(0,0,rw,rh);
+  
+  const cfg = getCodeRainConfig(isFull);
+  const headerH = isFull ? 46 : 18;
+  const lineGap = isFull ? 22 : 14;
+  const padX = isFull ? 20 : 8;
+  const padTop = isFull ? 22 : 10;
+  const usableH = rh - (isFull ? 40 : 14);
+  const streamCount = Math.max(14, Math.floor((rw / (isFull ? 18 : 22)) * cfg.density));
+  const spacing = rw / streamCount;
+
+  // panel/background
+  if (!isFull) {
+    rc.fillStyle='rgba(5,20,28,0.95)';
+    rc.strokeStyle='rgba(0,255,204,0.35)';rc.lineWidth=1;
+    rc.beginPath();rc.roundRect(0,0,rw,rh,8);rc.fill();rc.stroke();
+    rc.fillStyle='rgba(0,255,204,0.6)';rc.font='10px Orbitron';
+    rc.fillText('INTERNAL THOUGHT STREAM',8,14);
+    rc.strokeStyle='rgba(0,255,204,0.12)';rc.beginPath();rc.moveTo(6,18);rc.lineTo(rw-6,18);rc.stroke();
+  } else {
+    const bg = rc.createLinearGradient(0,0,0,rh);
+    bg.addColorStop(0,'rgba(0,0,0,0.10)');
+    bg.addColorStop(1,'rgba(0,0,0,0.35)');
+    rc.fillStyle = bg;
+    rc.fillRect(0,0,rw,rh);
+    rc.fillStyle='rgba(0,255,204,0.45)';rc.font='18px Orbitron';
+    rc.fillText('INTERNAL THOUGHT STREAM',20,30);
+  }
+  
+  // streams
+  codeStreams.forEach((st,si)=>{
+    if(si >= streamCount) return;
+    const drift = st.s * cfg.speedMul;
+    st.y += drift; 
+    if(st.y > usableH) st.y = -Math.random() * 120;
+    const xPos = padX + si * spacing;
+    const rows = isFull ? 18 : 7;
+    for(let k=0;k<rows;k++){
+      if (Math.random() < cfg.glitch * 0.08) continue;
+      const yy = padTop + headerH + st.y - k * lineGap;
+      if(yy < 0 || yy > rh - 6) continue;
+      const tok = cfg.tokens[(si*11+k+Math.floor(radarAngle*(12+P.temperature*6)))%cfg.tokens.length];
+      const a = Math.max(0.08, (0.62 - k * (isFull ? 0.03 : 0.08)));
+      rc.fillStyle = k===0 ? `rgba(0,255,204,${0.95})` : `rgba(0,255,204,${a})`;
+      rc.font = k===0 ? (isFull ? 'bold 16px Share Tech Mono' : 'bold 11px Share Tech Mono') : (isFull ? '13px Share Tech Mono' : '10px Share Tech Mono');
+      rc.fillText(tok, xPos, yy);
+    }
+  });
+  
+  // footer metrics
+  rc.fillStyle='rgba(0,255,204,0.45)';rc.font=isFull ? '14px Share Tech Mono' : '9px Share Tech Mono';
+  rc.fillText(`temp=${P.temperature.toFixed(2)}  lr=${P.learning_rate.toExponential(1)}  attn=${P.attention}  reward=${P.reward.toFixed(1)}  drop=${P.dropout.toFixed(2)}`,isFull ? 20 : 8,rh - (isFull ? 20 : 10));
+  
+  radarAngle+=0.02;
+  if(isFull) {
+    ctx.drawImage(radarCanvas, 0, 0);
+  } else {
+    ctx.drawImage(radarCanvas,cx-80,cy-60);
+  }
+}
+
+/* ── KPI ── */
+function updateKPIs(){
+  const active=agents.filter(a=>a.active).length;
+  const thr=Math.round(active*115*P.reward*(1-P.temperature*.08)+Math.random()*40);
+  const lat=Math.round((18+(1/(P.learning_rate*900))*1.8+P.temperature*12)*10)/10;
+  const acc=Math.round(Math.min(99.8,84+active*.85-P.temperature*7+P.attention*.25)*10)/10;
+  const cost=Math.round((.4+P.temperature*.25+(1/(P.learning_rate*450)))*100)/100;
+  document.getElementById('kpi-throughput').textContent=thr.toLocaleString();
+  document.getElementById('kpi-latency').textContent=lat+'ms';
+  document.getElementById('kpi-accuracy').textContent=acc+'%';
+  document.getElementById('kpi-cost').textContent='$'+cost;
+  document.getElementById('total-tokens').textContent=totalTokens.toLocaleString();
+  [['mr-b1','mr-v1',Math.min(97,Math.round(58+active*2+P.temperature*9))],
+   ['mr-b2','mr-v2',Math.min(97,Math.round(48+P.reward*11+P.learning_rate*1800))],
+   ['mr-b3','mr-v3',Math.min(97,Math.round(38+P.attention*2.2+active*1.4))],
+   ['mr-b4','mr-v4',Math.min(97,Math.round(28+active*2.8+Math.random()*12))]
+  ].forEach(([bid,vid,val])=>{document.getElementById(bid).style.width=val+'%';document.getElementById(vid).textContent=val+'%';});
+  Array.from(document.getElementById('neural-bars').children).forEach(col=>{
+    const h=3+Math.random()*(3+P.attention*.7);
+    col.style.height=Math.round(h)+'px';
+    const hue=P.attention>16?'#aa55ff':'#00ffcc';
+    col.style.background=hue;col.style.boxShadow=`0 0 3px ${hue}`;
+  });
+  document.getElementById('attn-active').textContent=`${Math.min(P.attention,active*P.attention)}/${P.attention*agents.length}`;
+}
+
+/* ── INIT NEURAL BARS ── */
+const nbEl=document.getElementById('neural-bars');
+for(let i=0;i<18;i++){const c=document.createElement('div');c.className='n-col';c.style.height='7px';nbEl.appendChild(c);}
+
+/* ── INTEL FEED ── */
+const INTEL=[
+  {m:'[GPT-4o] Transformer 推理完成 confidence=0.97',c:''},
+  {m:'[DeepSeek-R1] 深度思考链激活 步骤=42',c:'blue'},
+  {m:'[文心4.0] 中文语义理解完成 BLEU=0.943',c:''},
+  {m:'[通义千问] 代码生成任务 pass@1=96.4%',c:'purple'},
+  {m:'★ 编队重构 协同效率 +23%',c:'gold'},
+  {m:'[Claude 3.5] RLHF 奖励模型对齐完成',c:'blue'},
+  {m:'[Llama 3.1] 开源权重加载 量化8bit',c:''},
+  {m:'★ 指挥官神经链路带宽 99.7%',c:'gold'},
+  {m:'[Kimi k1.5] 长上下文 200K tokens 激活',c:'purple'},
+  {m:'[混元T1] 视觉-语言桥接 CrossAttn在线',c:'blue'},
+  {m:'[GLM-4] 对话轮次>100轮 连续性稳定',c:''},
+  {m:'★ 联邦学习聚合 round=48 精度+1.3%',c:'gold'},
+  {m:'[Mistral] MoE专家路由 8of64激活',c:''},
+  {m:'[Yi-34B] 中英双语评测 C-Eval=91.2',c:'purple'},
+];
+const CMD_MSGS=['▶ 部署 LoRA 适配器 → GPT-4o','▶ 执行 Beam Search 宽度=32','▶ 路由 MoE Expert#3 → 北翼','▶ 同步 联邦梯度 round=48','▶ 注入 5-shot 提示词','▶ 校准 温度 τ→0.7','▶ 微调 RLHF 奖励模型','▶ 扩容 副本 ×2 → MCH集群','▶ 激活 思维链 CoT 模式'];
+let intelIdx=0,cmdIdx=0;
+function addLog(msg,cls=''){
+  const feed=document.getElementById('intel-feed');
+  const d=document.createElement('div');d.className='log-line'+(cls?' '+cls:'');d.textContent=msg;
+  feed.insertBefore(d,feed.firstChild);
+  while(feed.children.length>40)feed.removeChild(feed.lastChild);
+}
+function addCmd(){
+  const q=document.getElementById('cmd-queue');
+  const d=document.createElement('div');d.className='log-line gold';d.style.fontSize='16px';d.style.fontWeight='800';
+  d.textContent=CMD_MSGS[cmdIdx++%CMD_MSGS.length];
+  q.insertBefore(d,q.firstChild);while(q.children.length>4)q.removeChild(q.lastChild);
+}
+for(let i=0;i<5;i++){const m=INTEL[intelIdx++%INTEL.length];addLog(m.m,m.c);}
+for(let i=0;i<3;i++)addCmd();
+
+/* ── ROSTER ── */
+function updateRoster(){
+  const roster=document.getElementById('agent-roster');roster.innerHTML='';
+  agents.forEach((a,i)=>{
+    const row=document.createElement('div');
+    row.className='model-row'+(a.selected?' selected':'')+(a.active?'':' offline');
+    const hpc=a.hp>70?a.color:a.hp>40?'#ffd700':'#ff3c3c';
+    // circular badge with initials
+    const initials = (a.id.match(/[A-Za-z0-9]+/g)||[]).slice(0,2).map(s=>s[0]).join('').slice(0,3).toUpperCase();
+    row.innerHTML=`
+      <div class="model-icon">
+        <svg width="36" height="36" viewBox="0 0 36 36">
+          <defs>
+            <radialGradient id="g${i}" cx="50%" cy="50%" r="60%">
+              <stop offset="0%" stop-color="${a.color}" stop-opacity="0.9"/>
+              <stop offset="100%" stop-color="${a.color}" stop-opacity="0.4"/>
+            </radialGradient>
+          </defs>
+          <circle cx="18" cy="18" r="16" fill="url(#g${i})" stroke="${a.color}" stroke-width="1.5"/>
+          <text x="18" y="22" text-anchor="middle" font-family="Orbitron, sans-serif" font-size="12" font-weight="900" fill="#021016">${initials}</text>
+        </svg>
+      </div>
+      <div class="model-meta">
+        <div class="model-name-lbl" style="color:${a.active?a.color:'rgba(255,255,255,0.25)'}">${a.id}</div>
+        <div class="model-sub">${a.params}</div>
+      </div>
+      <span class="country-tag ${a.country==='us'?'tag-us':'tag-cn'}">${a.country==='us'?'美国':'中国'}</span>
+      <div><div style="font-size:12px;text-align:right;color:rgba(0,255,204,0.6);margin-bottom:4px">${a.hp}%</div>
+      <div class="model-hp-bar"><div class="model-hp-fill" style="width:${a.hp}%;background:${hpc}"></div></div></div>`;
+    row.addEventListener('click',()=>{ if(!a.active)return; openTaskPopup(i); });
+    roster.appendChild(row);
+  });
+}
+
+
+/* ── TASK POPUP ── */
+function openTaskPopup(idx) {
+  currentTaskAgent = agents[idx];
+  agents.forEach((a,i)=>a.selected=(i===idx));
+  updateRoster();
+  // populate popup
+  document.getElementById('tpop-agent-name').textContent = currentTaskAgent.id;
+  document.getElementById('tpop-agent-model').textContent = currentTaskAgent.role + ' · ' + currentTaskAgent.params;
+  document.getElementById('tpop-agent-name').style.color = currentTaskAgent.color;
+  // icon
+  document.getElementById('tpop-icon').innerHTML = `<img src="${currentTaskAgent.logo}" style="width:48px;height:48px;border-radius:8px;background:rgba(255,255,255,0.1);padding:4px;border:1px solid ${currentTaskAgent.color}">`;
+  // task grid
+  const grid = document.getElementById('task-grid');
+  grid.innerHTML = '';
+  TASKS.forEach(task => {
+    const btn = document.createElement('button');
+    btn.className = 'task-btn';
+    const estMin = Math.round(task.baseMin * ({1:.6,2:1,3:1.5}[currentTaskAgent.tier]||1));
+    const estMax = Math.round(task.baseMax * ({1:.6,2:1,3:1.5}[currentTaskAgent.tier]||1));
+    btn.innerHTML = `${task.emoji} ${task.label}<span class="task-cost">~${(estMin/1000).toFixed(1)}K–${(estMax/1000).toFixed(1)}K tokens</span>`;
+    btn.addEventListener('click', () => {
+      document.getElementById('task-popup').classList.remove('show');
+      executeTask(currentTaskAgent, task);
+    });
+    grid.appendChild(btn);
+  });
+  document.getElementById('task-popup').classList.add('show');
+}
+
+document.getElementById('tpop-close').addEventListener('click', () => {
+  document.getElementById('task-popup').classList.remove('show');
+  agents.forEach(a=>a.selected=false);
+  currentTaskAgent=null;
+  updateRoster();
+});
+
+/* ── EXECUTE TASK ── */
+function executeTask(agent, task) {
+  agent.taskBusy = true;
+  agent.taskProgress = 0;
+  const duration = 1500 + Math.random()*800; // Slower for visualization
+  agent.taskTargetDuration = duration;
+  agent.taskStartTime = Date.now();
+
+  // Show thinking overlay
+  document.getElementById('think-model').textContent = agent.id;
+  document.getElementById('think-model').style.color = agent.color;
+  document.getElementById('think-task').textContent = `正在执行: ${task.emoji} ${task.label}`;
+  document.getElementById('thinking-overlay').classList.add('show');
+  
+  // 1. MoE Expert Routing (Beams)
+  const otherActive = agents.filter(a => a.active && a !== agent);
+  const experts = otherActive.sort(() => 0.5 - Math.random()).slice(0, 3);
+  experts.forEach((exp, i) => {
+    setTimeout(() => {
+      beams.push({
+        x1: CX(), y1: CY(), x2: exp.x, y2: exp.y, 
+        life: 1.0, color: exp.color, width: 4
+      });
+      addPulse(CX(), CY(), exp.x, exp.y, exp.color);
+      addLog(`[MoE] 路由至专家: ${exp.id}`, 'purple');
+    }, i * 200);
+  });
+
+  // 2. RAG Knowledge Retrieval
+  setTimeout(() => {
+    addPulse(CX(), CY(), agent.x, agent.y, '#ffd700');
+    addLog(`[RAG] 检索核心知识库...`, 'gold');
+    screenShake = 5;
+  }, 600);
+
+  // 3. CoT Chain Burst
+  setTimeout(() => {
+    for(let i=0; i<8; i++) {
+      const angle = (i / 8) * Math.PI * 2;
+      particles.push({
+        x: agent.x, y: agent.y,
+        vx: Math.cos(angle) * 5, vy: Math.sin(angle) * 5,
+        life: 1.0, color: agent.color, size: 4
+      });
+    }
+    addLog(`[CoT] 思维链条爆发！`, 'blue');
+  }, 1000);
+
+  addLog(`◈ [${agent.id}] 开始执行: ${task.label}...`,'blue');
+  
+  // After thinking
+  setTimeout(() => {
+    // Chance for Self-Refine (25%)
+    if (Math.random() < 0.25) {
+      addLog(`[Self-Refine] 检测到输出瑕疵，正在进行二次优化...`, 'gold');
+      agent.isRefining = true;
+      agentSpeeches.push({ agentId: agent.id, text: "Wait, I can do better...", timer: 100 });
+      
+      setTimeout(() => {
+        agent.isRefining = false;
+        completeExecution(agent, task);
+      }, 800);
+    } else {
+      completeExecution(agent, task);
+    }
+  }, duration); 
+}
+
+function completeExecution(agent, task) {
+  document.getElementById('thinking-overlay').classList.remove('show');
+  agent.taskBusy = false;
+  agent.taskProgress = 0;
+  // Compute tokens
+  const tokens = calcTokens(agent, task);
+  totalTokens += tokens;
+  // Show completion
+  showCompletion(agent, task, tokens);
+  addLog(`✓ [${agent.id}] ${task.label} 完成 — 消耗 ${tokens.toLocaleString()} Tokens`, 'gold');
+  addCmd();
+  // pulses outward
+  for(let i=0; i<4; i++) setTimeout(()=>addPulse(agent.x,agent.y,CX(),CY(),agent.color,true),i*80);
+  agents.forEach(a=>a.selected=false);
+  updateRoster();
+}
+
+/* ── COMPLETION POPUP ── */
+function showCompletion(agent, task, tokens) {
+  document.getElementById('comp-model-label').textContent = `${agent.id} · ${task.emoji} ${task.label}`;
+  document.getElementById('comp-model-label').style.color = agent.color;
+  document.getElementById('comp-token-num').textContent = tokens.toLocaleString();
+  document.getElementById('completion-popup').classList.add('show');
+}
+document.getElementById('comp-dismiss').addEventListener('click', () => {
+  document.getElementById('completion-popup').classList.remove('show');
+});
+// Click outside to dismiss completion
+document.getElementById('completion-popup').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('completion-popup')) {
+    document.getElementById('completion-popup').classList.remove('show');
+  }
+});
+
+/* ── CANVAS CLICK (click agent on canvas too) ── */
+canvas.addEventListener('click', e => {
+  const rect=stage.getBoundingClientRect(),mx=e.clientX-rect.left,my=e.clientY-rect.top;
+  let hit=false;
+  agents.forEach((a,i)=>{
+    if(!a.active||a.taskBusy)return;
+    const float=Math.sin(frame*a.floatSpeed*.02+a.floatOffset)*4;
+    const dx=mx-a.x,dy=my-(a.y+float);
+    if(Math.sqrt(dx*dx+dy*dy)<28){openTaskPopup(i);hit=true;}
+  });
+  if(!hit){agents.forEach(a=>a.selected=false);updateRoster();}
+});
+
+canvas.addEventListener('dblclick', e => {
+  isCodeFull = !isCodeFull;
+});
+
+/* ── ACCORDION TOGGLE ── */
+document.querySelectorAll('.ct').forEach(header => {
+  header.addEventListener('click', () => {
+    const card = header.parentElement;
+    card.classList.toggle('collapsed');
+  });
+});
+
+// Auto-collapse some cards by default to save space
+const cardsToCollapse = ['模型参数调节', '系统资源', '神经活动', '指令队列'];
+document.querySelectorAll('.card').forEach(card => {
+  const title = card.querySelector('.ct-left').textContent.trim();
+  if (cardsToCollapse.includes(title)) {
+    card.classList.add('collapsed');
+  }
+});
+
+/* ── TOOLTIP ── */
+const tooltip=document.createElement('div');
+tooltip.style.cssText='position:absolute;background:rgba(2,13,20,0.98);border:1px solid rgba(0,255,204,0.4);padding:18px 24px;font-size:16px;z-index:100;pointer-events:none;opacity:0;transition:opacity .15s;min-width:300px;font-family:Share Tech Mono,monospace;color:#00ffcc;box-shadow:0 0 40px rgba(0,0,0,0.9)';
+stage.appendChild(tooltip);
+canvas.addEventListener('mousemove',e=>{
+  const rect=stage.getBoundingClientRect(),mx=e.clientX-rect.left,my=e.clientY-rect.top;
+  let hov=null;
+  agents.forEach(a=>{if(!a.active)return;const float=Math.sin(frame*a.floatSpeed*.02+a.floatOffset)*5;const dx=mx-a.x,dy=my-(a.y+float);if(Math.sqrt(dx*dx+dy*dy)<45)hov=a;});
+  if(hov){
+    const hpc=hov.hp>70?hov.color:hov.hp>40?'#ffd700':'#ff3c3c';
+    const tag=hov.country==='us'?'🇺🇸 美国':'🇨🇳 中国';
+    const logoImg = LOGO_IMAGES[hov.id];
+    const logoSrc = (logoImg && logoImg.complete && logoImg.naturalWidth !== 0) ? hov.logo : 'https://api.iconify.design/material-symbols:smart-toy-outline-rounded.svg?color=%2300ffcc';
+    
+    tooltip.innerHTML=`
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px">
+        <img src="${logoSrc}" style="width:40px;height:40px;border-radius:6px;background:rgba(255,255,255,0.1);padding:3px;border:1px solid ${hov.color}">
+        <div>
+          <div style="font-family:Orbitron,sans-serif;font-size:20px;font-weight:900;color:${hov.color};letter-spacing:2px">${hov.id}</div>
+          <div style="color:rgba(0,255,204,0.5);font-size:14px;font-weight:600">${hov.role}</div>
+        </div>
+      </div>
+      <div style="font-size:15px;color:rgba(0,255,204,0.4);margin-bottom:12px;border-top:1px solid rgba(0,255,204,0.15);padding-top:10px;font-weight:600">${tag} · 规模: ${hov.params}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:15px">
+        <div>生命值: <span style="color:${hpc};font-weight:900">${hov.hp}%</span></div>
+        <div>推理精度: <span style="color:#00aaff;font-weight:900">${hov.accuracy}%</span></div>
+      </div>
+      <div style="margin-top:14px;font-size:14px;color:rgba(255,215,0,0.8);text-align:center;border-top:1px solid rgba(255,215,0,0.2);padding-top:10px;font-weight:700;letter-spacing:1px">点击以分配战斗任务</div>`;
+    tooltip.style.left=(mx+25)+'px';tooltip.style.top=(my-15)+'px';tooltip.style.opacity='1';
+  } else tooltip.style.opacity='0';
+});
+
+/* ── 3D PARALLAX BACKGROUND ── */
+document.addEventListener('mousemove', e => {
+  const x = (e.clientX / window.innerWidth - 0.5) * 20; // max 10deg
+  const y = (e.clientY / window.innerHeight - 0.5) * -20;
+  
+  const grid = document.getElementById('bg-grid');
+  const radial = document.getElementById('bg-radial');
+  
+  const transform = `perspective(1000px) rotateX(${y}deg) rotateY(${x}deg) scale(1.1)`;
+  grid.style.transform = transform;
+  radial.style.transform = transform;
+});
+
+/* ── ALERTS ── */
+const alertBanner=document.getElementById('alert-banner');let alertTimer;
+function showAlert(msg){alertBanner.textContent=msg;alertBanner.classList.add('show');clearTimeout(alertTimer);alertTimer=setTimeout(()=>alertBanner.classList.remove('show'),3000);}
+
+/* ── SPAWN ── */
+document.getElementById('btn-add').addEventListener('click',()=>{
+  if(targetCount>=AGENT_DEFS.length)return;
+  targetCount++;document.getElementById('spawn-count').textContent=targetCount;
+  rebuildAgents(targetCount);
+  const newAgent = agents[targetCount-1];
+  // Randomize initial position
+  newAgent.x = Math.random() * W();
+  newAgent.y = Math.random() * H();
+  addLog(`★ 单元 ${newAgent.id} 已部署 — 同步至编队`,'gold');
+  addPulse(CX(),CY(),newAgent.x,newAgent.y,newAgent.color);
+});
+document.getElementById('btn-remove').addEventListener('click',()=>{
+  if(targetCount<=1)return;
+  addLog(`[${agents[targetCount-1].id}] 单元召回 — 编队调整`,'blue');
+  targetCount--;document.getElementById('spawn-count').textContent=targetCount;
+  rebuildAgents(targetCount);
+});
+document.getElementById('btn-activate-all').addEventListener('click',()=>{
+  agents.forEach(a=>a.active=true);addLog('★ 全体激活 — 军团满员在线','gold');updateRoster();
+  agents.forEach(a=>setTimeout(()=>addPulse(CX(),CY(),a.x,a.y,a.color),Math.random()*700));
+});
+document.getElementById('btn-deactivate-all').addEventListener('click',()=>{
+  agents.forEach(a=>a.active=false);addLog('⚠ 全体离线 — 军团待机','danger');updateRoster();
+});
+
+/* ── FORMATION ── */
+document.getElementById('formation-btns').addEventListener('click',e=>{
+  const btn=e.target.closest('.fmn-btn');if(!btn)return;
+  document.querySelectorAll('.fmn-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');P.formation=btn.dataset.f;
+  refreshFormationPositions();
+  addLog(`★ 编队变更 → ${btn.textContent} — 重新部署中`,'gold');
+  agents.forEach((a,i)=>setTimeout(()=>addPulse(CX(),CY(),a.x,a.y,a.color),i*45));
+});
+
+/* ── SLIDERS ── */
+function initSlider(id,onChange){
+  const slider=document.getElementById(`ps-${id}`),track=document.getElementById(`pt-${id}`),valEl=document.getElementById(`pv-${id}`);
+  function update(){const min=parseFloat(slider.min),max=parseFloat(slider.max),val=parseFloat(slider.value);track.style.width=((val-min)/(max-min)*100)+'%';onChange(val,valEl);}
+  slider.addEventListener('input',()=>{update();agents.filter(a=>a.active).forEach(a=>setTimeout(()=>addPulse(CX(),CY(),a.x,a.y,a.color),Math.random()*500));});
+  update();
+}
+initSlider('temperature',v=>{P.temperature=v;const el=document.getElementById('pv-temperature');const col=v<.5?'#00ffcc':v<1.2?'#ffd700':'#ff3c3c';el.textContent=v.toFixed(2);el.style.color=col;});
+initSlider('learning_rate',v=>{P.learning_rate=v;const el=document.getElementById('pv-learning_rate');el.textContent=v<.001?v.toExponential(1):(v*1000).toFixed(1)+'e-3';});
+initSlider('attention',v=>{P.attention=Math.round(v);document.getElementById('pv-attention').textContent=Math.round(v);});
+initSlider('reward',v=>{P.reward=v;const el=document.getElementById('pv-reward');el.textContent=v.toFixed(1)+'×';el.style.color=v>3?'#ff3c3c':v>2?'#ffd700':'#00ffcc';});
+initSlider('dropout',v=>{P.dropout=v;const el=document.getElementById('pv-dropout');el.textContent=v.toFixed(2);el.style.color=v>.5?'#ff3c3c':v>.3?'#ffd700':'#ff7700';});
+
+/* ── TOGGLES ── */
+function initToggle(id,key){
+  const el=document.getElementById(`t-${id}`);
+  el.addEventListener('click',()=>{el.classList.toggle('on');P[key]=el.classList.contains('on');addLog(`◈ 模块 ${key} → ${P[key]?'已启用':'已关闭'}`,P[key]?'gold':'blue');});
+}
+initToggle('auto','autonomous');initToggle('fed','federated');initToggle('adv','adversarial');initToggle('qkd','quantum');initToggle('mm','multimodal');
+
+/* ── THREATS ── */
+document.getElementById('btn-threat-adv').addEventListener('click',()=>launchThreatWave('adv'));
+document.getElementById('btn-threat-dos').addEventListener('click',()=>launchThreatWave('dos'));
+document.getElementById('btn-threat-poison').addEventListener('click',()=>launchThreatWave('poison'));
+
+/* ── CLOCK ── */
+function updateClock(){document.getElementById('clock-display').textContent=new Date().toLocaleTimeString('zh',{hour12:false})+' CST';}
+updateClock();setInterval(updateClock,1000);
+
+/* ── AGENT PHYSICS ── */
+function updateAgents(){
+  const positions=currentFormationPositions;
+  const speed=(0.025+P.learning_rate*4.5)*P.reward;
+  const jitter=P.temperature*1.2;
+  agents.forEach((a,i)=>{
+    if(!a.active)return;
+    
+    // Update Task Progress
+    if (a.taskBusy) {
+      const elapsed = Date.now() - a.taskStartTime;
+      a.taskProgress = Math.min(1, elapsed / a.taskTargetDuration);
+    }
+
+    if(P.dropout>0.1&&frame%60===0&&Math.random()<P.dropout*0.15){
+      a.hitFlash=Math.min(1,a.hitFlash+0.25);
+    }
+    const target=positions[i]||{x:CX(),y:CY()};
+    const noiseX=(Math.random()-.5)*jitter*3.5;
+    const noiseY=(Math.random()-.5)*jitter*3.5;
+    const dx=target.x+noiseX-a.x,dy=target.y+noiseY-a.y;
+    a.vx=a.vx*.86+dx*speed;a.vy=a.vy*.86+dy*speed;
+    const sm=0.45+P.reward*.45;a.x+=a.vx*sm;a.y+=a.vy*sm;
+    if(frame%100===0&&a.hp<a.maxHp)a.hp=Math.min(a.maxHp,a.hp+1);
+  });
+}
+
+const SPEECHES = [
+  "正在优化 Transformer 注意力层...",
+  "检测到联邦学习梯度偏移，正在校准。",
+  "多模态数据对齐中...",
+  "思维链推理深度已达 64 层。",
+  "量子加密链路已建立。",
+  "正在处理复杂的逻辑分支...",
+  "向量检索延迟降低至 0.4ms。",
+  "指令遵循度达到 99.8%。",
+  "正在同步开源权重...",
+  "执行强化学习策略更新。",
+  "检测到对抗性干扰，启动防御模块。",
+  "上下文窗口扩展至 1M tokens。"
+];
+
+function randomAgentSpeech() {
+  if (!P.autonomous) { // 仅在自主决策开启时生效
+    agentSpeeches = [];
+    return;
+  }
+  const active = agents.filter(a => a.active);
+  const speechChance = 0.02 + (P.temperature * 0.04); // 温度越高，废话越多
+  if (active.length > 0 && Math.random() < speechChance) {
+    const agent = active[Math.floor(Math.random() * active.length)];
+    const text = SPEECHES[Math.floor(Math.random() * SPEECHES.length)];
+    
+    // Remove existing speech for this agent
+    agentSpeeches = agentSpeeches.filter(s => s.agentId !== agent.id);
+    agentSpeeches.push({ agentId: agent.id, text, timer: 120 }); // 显示 120 帧 (约 2秒)
+  }
+}
+
+/* ── MAIN LOOP ── */
+function mainLoop(){
+  if (isBooting) {
+    if (frame > 120) {
+      isBooting = false;
+      const overlay = document.getElementById('boot-overlay');
+      overlay.style.opacity = '0';
+      setTimeout(() => overlay.remove(), 1000); // 彻底移除
+      screenShake = 30;
+      glitchIntensity = 1.0;
+    }
+    const bt = document.getElementById('boot-text');
+    if (frame % 20 === 0) bt.textContent = "LOADING " + (frame * 0.8).toFixed(0) + "%";
+    frame++;
+    requestAnimationFrame(mainLoop);
+    return;
+  }
+
+  ctx.save();
+  
+  // Screen Shake & Glitch Effect
+  if (screenShake > 0.1) {
+    ctx.translate((Math.random()-0.5)*screenShake, (Math.random()-0.5)*screenShake);
+    screenShake *= 0.9;
+  }
+  if (glitchIntensity > 0.01) {
+    if (Math.random() < glitchIntensity * 0.2) {
+      ctx.translate((Math.random()-0.5)*20, 0);
+      ctx.globalAlpha = 0.8;
+    }
+    glitchIntensity *= 0.95;
+  }
+
+  ctx.clearRect(0,0,W(),H());
+  updateAgents();
+  randomAgentSpeech();
+  drawConnections(frame);
+  
+  // Draw Code Background first if full, or radar small if not
+  drawRadar(W()-78, H()-78, 58, isCodeFull);
+  
+  // Then draw units on top
+  drawCommander(CX(), CY(), frame);
+  agents.forEach(a => drawAgent(a, frame));
+  
+  // Particles System
+  particles = particles.filter(p => {
+    p.x += p.vx; p.y += p.vy;
+    p.life -= 0.015;
+    if (p.life <= 0) return false;
+    ctx.fillStyle = p.color;
+    ctx.globalAlpha = p.life;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1.0;
+    return true;
+  });
+
+  // Beams System (MoE experts)
+  beams = beams.filter(b => {
+    b.life -= 0.02;
+    if (b.life <= 0) return false;
+    ctx.save();
+    ctx.strokeStyle = b.color;
+    ctx.lineWidth = b.width * b.life;
+    ctx.globalAlpha = b.life;
+    ctx.shadowBlur = 20 * b.life; ctx.shadowColor = b.color;
+    ctx.beginPath(); ctx.moveTo(b.x1, b.y1); ctx.lineTo(b.x2, b.y2); ctx.stroke();
+    ctx.restore();
+    return true;
+  });
+
+  drawThreatWaves(); drawPulses(); drawDataPackets();
+  if(frame%40===0) updateKPIs();
+  if(frame%85===0) { const m=INTEL[intelIdx++%INTEL.length]; addLog(m.m,m.c); }
+  if(frame%125===0) addCmd();
+  if(frame%20===0) firePulseToRandom();
+  if(frame%35===0) firePulseToRandom();
+  
+  // Swarm Sync: If someone is busy, others support
+  const busy = agents.find(a => a.taskBusy);
+  if (busy && frame % 45 === 0) {
+    const idle = agents.filter(a => a.active && !a.taskBusy);
+    if (idle.length > 0) {
+      const helper = idle[Math.floor(Math.random() * idle.length)];
+      addPulse(helper.x, helper.y, busy.x, busy.y, helper.color, false, 0.8);
+    }
+  }
+
+  // Cinematic Scanline
+  scanlinePos = (scanlinePos + 4) % H();
+  ctx.fillStyle = 'rgba(0, 255, 204, 0.03)';
+  ctx.fillRect(0, scanlinePos, W(), 2);
+
+  // Random Scenario Events
+  if (frame % 300 === 0 && agents.filter(a=>a.active).length > 0) {
+    const eventType = Math.random();
+    const active = agents.filter(a=>a.active);
+    const target = active[Math.floor(Math.random()*active.length)];
+    
+    if (eventType < 0.3) { // Hallucination
+      target.hitFlash = 1.0;
+      agentSpeeches.push({ agentId: target.id, text: "⚠ 幻觉检测：正在生成虚构事实...", timer: 100 });
+      glitchIntensity = 0.5;
+    } else if (eventType < 0.6) { // Safety Filter
+      addLog(`[Safety] 拦截敏感指令：${target.id}`, 'danger');
+      target.hp = Math.max(10, target.hp - 5);
+      particles.push({ x: target.x, y: target.y, vx: 0, vy: -2, life: 1, color: '#ff3c3c', size: 10 });
+    }
+  }
+  
+  ctx.restore();
+  frame++; requestAnimationFrame(mainLoop);
+}
+
+mainLoop();updateRoster();updateKPIs();
+</script>
+</body>
+</html>

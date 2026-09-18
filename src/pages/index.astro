@@ -1,0 +1,34 @@
+---
+import { getCollection } from 'astro:content';
+import Layout from '../layouts/Layout.astro';
+import WorkCard from '../components/WorkCard.astro';
+import { withBase } from '../lib/paths.mjs';
+const works = await getCollection('works');
+const featured = works.filter(w => w.data.featured > 0).sort((a,b) => a.data.featured - b.data.featured).slice(0,4);
+const path = (p: string) => withBase(p, import.meta.env.BASE_URL);
+---
+<Layout>
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="hero-copy">
+      <span class="eyebrow hero-eyebrow"><span class="live-dot"></span> DUAN XIAO / PERSONAL INDEX</span>
+      <h1 id="hero-title">把想法，<br/>做成一点<span class="accent">真实。</span></h1>
+      <p class="hero-description">我是段骁。用 AI，把抽象的想法变成<br class="desktop-break"/>可以打开、可以体验、可以继续生长的东西。</p>
+      <div class="hero-actions"><a class="button primary" href="#selected">看看我的作品 <span aria-hidden="true">↗</span></a><a class="text-link" href={path('/about/')}>认识我 <span aria-hidden="true">→</span></a></div>
+      <div class="hero-footnote"><span class="small-cross" aria-hidden="true">+</span><span>工具 / 交互 / 视觉 / 文字<br/><span class="muted">一个持续更新的个人创作现场。</span></span></div>
+    </div>
+    <a class="hero-exhibit" href={path('/works/cyanotype/')} aria-label="探索作品：蓝晒图谱">
+      <div class="exhibit-top"><span>FIELD NOTES — 001</span><span>视觉探索</span></div>
+      <div class="exhibit-image"><img src={path('/covers/cyanotype.webp')} width="1200" height="900" alt="蓝晒图谱中以蓝色为底、白色线条呈现的生成艺术" fetchpriority="high" /><span class="exhibit-caption">一张图谱，<br/>六个生长的世界。</span><span class="exhibit-coordinate">CYANOTYPE<br/>ATLAS / 2026</span></div>
+      <div class="exhibit-bottom"><span>蓝晒图谱 <small>Cyanotype Atlas</small></span><span class="exhibit-arrow" aria-hidden="true">↗</span></div>
+    </a>
+  </section>
+  <div class="index-strip"><span>好奇心是起点，作品是回答。</span><span class="strip-right">INDEPENDENT EXPLORATIONS <span aria-hidden="true">↓</span></span></div>
+  <section class="selected-section" id="selected" aria-labelledby="selected-title">
+    <div class="section-heading"><div><div class="section-label"><span class="number">01 /</span> SELECTED WORKS</div><h2 id="selected-title">从这些作品，认识我。</h2></div><a class="text-link" href={path('/works/')}>全部 {works.length} 件作品 <span aria-hidden="true">↗</span></a></div>
+    <div class="selected-grid">{featured.map((work,index) => <WorkCard work={work} index={index} />)}</div>
+  </section>
+  <section class="about-teaser" aria-labelledby="about-teaser-title">
+    <div><div class="section-label"><span class="number">02 /</span> A LITTLE ABOUT ME</div><h2 id="about-teaser-title">在想法与现实之间，<br/>多走一步。</h2></div>
+    <div class="about-teaser-copy"><p>我对工具感兴趣，也对工具背后的人感兴趣。一个问题能不能换一种方式理解？一个想法能不能先做出一个小版本？</p><p>这里有实用工具，有关于颜色的文字，也有暂时说不清用途的交互实验。它们共同记录了我用 AI 探索和创作的过程。</p><a class="text-link" href={path('/about/')}>更多关于我 <span aria-hidden="true">↗</span></a></div>
+  </section>
+</Layout>

@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>语义空间编辑器 v2</title>
+<style>
+  /* ── Reset ─────────────────────────────────────── */
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;background:#F5F4F2;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;font-size:13px;color:#1A1917}
+
+  /* ── Layout ─────────────────────────────────────── */
+  #app{max-width:860px;margin:24px auto;padding:0 16px 40px}
+  h1{font-size:15px;font-weight:600;color:#1A1917;margin-bottom:12px;letter-spacing:.01em}
+
+  /* ── Toolbar ─────────────────────────────────────── */
+  #toolbar{display:flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid #DDDBD7;border-radius:10px 10px 0 0;background:#FFFFFF}
+  .lbl{font-size:12px;color:#6B6966;margin-left:4px}
+  .tb-btn{padding:4px 10px;font-size:12px;border:1px solid #DDDBD7;border-radius:6px;background:none;color:#6B6966;cursor:pointer;white-space:nowrap;transition:background .12s}
+  .tb-btn:hover{background:#F0EFED}
+  .tb-btn.active{background:#F0EFED;color:#1A1917;font-weight:500}
+  .tb-sep{width:1px;height:18px;background:#DDDBD7;margin:0 2px;flex-shrink:0}
+  .tb-hint{flex:1;font-size:11px;color:#A09D99}
+  .btn-reset{color:#B03030;border-color:#E8AAAA}
+  .btn-reset:hover{background:#FDF0F0}
+
+  /* ── Canvas ─────────────────────────────────────── */
+  #canvas-wrap{position:relative;width:100%;height:500px;border:1px solid #DDDBD7;border-top:none;overflow:hidden;background:#EBEBEA;cursor:default}
+  #canvas-svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+
+  /* ── Nodes ─────────────────────────────────────── */
+  .node-el{position:absolute;transform:translate(-50%,-50%);user-select:none;display:flex;flex-direction:column;align-items:center}
+  .node-wrap{position:relative;display:inline-block}
+  .node-circle{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;border:1.5px solid #DDDBD7;background:#FFFFFF;transition:box-shadow .15s,opacity .2s;text-align:center;padding:6px;word-break:break-all;line-height:1.25;cursor:grab}
+  .node-circle:active{cursor:grabbing}
+  .node-circle.selected{box-shadow:0 0 0 3px #7F77DD}
+  .node-circle.dimmed{opacity:0.22}
+  .node-circle.highlighted{box-shadow:0 0 0 3px #378ADD;opacity:1}
+  .node-tags{display:flex;flex-wrap:wrap;justify-content:center;gap:2px;max-width:112px;margin-top:4px;pointer-events:none}
+  .tag-pill{font-size:10px;padding:1px 6px;border-radius:10px;background:#FFFFFF;border:1px solid #DDDBD7;color:#6B6966;white-space:nowrap}
+
+  /* ── Anchors ─────────────────────────────────────── */
+  .anchor{position:absolute;width:13px;height:13px;border-radius:50%;background:#378ADD;opacity:0;transform:translate(-50%,-50%);cursor:crosshair;transition:opacity .15s;z-index:10}
+  .anchor:hover{opacity:0.95 !important}
+  .node-el:hover .anchor{opacity:0.5}
+
+  /* ── Divider ─────────────────────────────────────── */
+  .dp-divider{height:3px;background:#DDDBD7;border-top:1px solid #DDDBD7}
+
+  /* ── Detail panel ─────────────────────────────────────── */
+  #detail-panel{border:1px solid #DDDBD7;border-top:none;border-radius:0 0 10px 10px;background:#FFFFFF}
+  .dp-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #EBEBEA;font-size:13px;font-weight:500}
+  .dp-body{padding:12px 14px}
+  .dp-edge-del{font-size:12px;color:#B03030;cursor:pointer}
+  .dp-edge-del:hover{text-decoration:underline}
+
+  /* ── Inputs inside panel ─────────────────────────────────────── */
+  .dp-body input,.dp-body textarea,.dp-body select{font-family:inherit;font-size:12px;padding:5px 8px;border:1px solid #DDDBD7;border-radius:6px;background:#F5F4F2;color:#1A1917;width:100%}
+  .dp-body input:focus,.dp-body textarea:focus,.dp-body select:focus{outline:none;border-color:#7F77DD}
+  .dp-body textarea{resize:vertical;min-height:54px;line-height:1.5}
+  .row2{display:flex;gap:8px;margin-bottom:8px}
+  .row2>div{flex:1}
+  .field-lbl{font-size:11px;color:#A09D99;margin-bottom:3px}
+
+  /* ── Attr chips ─────────────────────────────────────── */
+  .attr-chip{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:14px;font-size:11px;border:1px solid #DDDBD7;margin:2px;background:#F5F4F2;color:#6B6966}
+  .attr-chip .x{cursor:pointer;opacity:.5;font-size:10px;line-height:1}
+  .attr-chip .x:hover{opacity:1;color:#B03030}
+  .add-row{display:flex;gap:6px;margin-top:7px}
+  .add-row input{flex:1}
+  .add-row button{padding:5px 10px;font-size:12px;border:1px solid #DDDBD7;border-radius:6px;background:none;color:#6B6966;cursor:pointer;white-space:nowrap}
+  .add-row button:hover{background:#F0EFED}
+
+  /* ── Delete node button ─────────────────────────────────────── */
+  .del-btn{width:100%;margin-top:12px;padding:7px;font-size:12px;border:1px solid #E8AAAA;border-radius:6px;background:none;color:#B03030;cursor:pointer;text-align:center;font-family:inherit}
+  .del-btn:hover{background:#FDF0F0}
+  .del-btn.disabled{opacity:.45;cursor:not-allowed;color:#A09D99;border-color:#DDDBD7;background:none}
+
+  /* ── Modal ─────────────────────────────────────── */
+  .overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:200}
+  .overlay-scrim{position:absolute;inset:0;background:rgba(0,0,0,0.28)}
+  .modal{position:relative;z-index:1;background:#FFFFFF;border:1px solid #DDDBD7;border-radius:10px;padding:18px 20px;min-width:260px;max-width:310px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.12)}
+  .modal h3{font-size:14px;font-weight:500;margin-bottom:12px;color:#1A1917}
+  .modal input,.modal textarea,.modal select{font-family:inherit;font-size:13px;padding:6px 9px;border:1px solid #DDDBD7;border-radius:6px;background:#F5F4F2;color:#1A1917;width:100%;line-height:1.5}
+  .modal input:focus,.modal textarea:focus,.modal select:focus{outline:none;border-color:#7F77DD}
+  .modal textarea{min-height:60px;resize:vertical}
+  .modal-row{margin-bottom:10px}
+  .modal-lbl{font-size:11px;color:#A09D99;margin-bottom:4px}
+  .modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+  .modal-btns button{padding:5px 14px;font-size:12px;border:1px solid #DDDBD7;border-radius:6px;background:none;color:#6B6966;cursor:pointer;font-family:inherit}
+  .modal-btns button:hover{background:#F0EFED}
+  .modal-btns .btn-primary{background:#1A1917;color:#FFFFFF;border-color:transparent}
+  .modal-btns .btn-primary:hover{opacity:0.85}
+  .rel-types{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:8px}
+  .rt-btn{padding:6px 8px;border:1px solid #DDDBD7;border-radius:6px;cursor:pointer;font-size:12px;background:none;color:#6B6966;text-align:left;font-family:inherit;transition:background .1s}
+  .rt-btn:hover,.rt-btn.sel{background:#F0EFED;color:#1A1917;border-color:#A09D99}
+  .dot-i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;vertical-align:middle}
+
+  /* ── Axis labels (draggable HTML divs) ─────────────────────────────────────── */
+  .ax-label{
+    position:absolute;transform:translate(-50%,-50%);
+    font-size:11px;color:#5A5855;font-weight:500;
+    background:rgba(255,255,255,0.82);
+    border:1px solid #C8C6C2;border-radius:5px;
+    padding:2px 8px;cursor:move;user-select:none;
+    white-space:nowrap;z-index:5;
+    box-shadow:0 1px 4px rgba(0,0,0,0.08);
+    transition:box-shadow .12s;
+  }
+  .ax-label:hover{box-shadow:0 2px 8px rgba(0,0,0,0.14);border-color:#8A8784}
+  .ax-label.editing{cursor:text;border-color:#534AB7;outline:none}
+  .ax-label-hint{
+    position:absolute;font-size:9px;color:#A09D99;
+    white-space:nowrap;pointer-events:none;
+    background:rgba(255,255,255,0.7);border-radius:3px;padding:1px 4px;
+  }
+
+  /* ── Placeholder ─────────────────────────────────────── */
+  .placeholder{font-size:12px;color:#A09D99}
+</style>
+</head>
+<body>
+<div id="app">
+  <h1>语义空间编辑器</h1>
+
+  <div id="toolbar">
+    <span class="lbl">模式</span>
+    <button class="tb-btn active" id="btn-coord" onclick="setMode('coord')">坐标</button>
+    <button class="tb-btn" id="btn-free" onclick="setMode('free')">自由</button>
+    <div class="tb-sep"></div>
+    <span class="tb-hint">双击画布新增节点 &nbsp;·&nbsp; 悬停节点拖锚点连线 &nbsp;·&nbsp; 坐标模式：拖拽轴标签移位，双击编辑文字</span>
+    <button class="tb-btn btn-reset" onclick="resetAll()">清空重置</button>
+  </div>
+
+  <div id="canvas-wrap">
+    <svg id="canvas-svg" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="marrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <pattern id="gpat" width="28" height="28" patternUnits="userSpaceOnUse">
+          <path d="M28 0L0 0L0 28" fill="none" stroke="#DDDBD7" stroke-width="0.5"/>
+        </pattern>
+      </defs>
+      <rect id="grid-bg" x="0" y="0" width="100%" height="100%" fill="url(#gpat)" opacity="0" pointer-events="none"/>
+      <defs>
+        <marker id="ax-arrow" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="8" markerHeight="8" orient="auto">
+          <path d="M1 2L10 6L1 10" fill="none" stroke="#8A8784" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <marker id="ax-arrow-rev" viewBox="0 0 12 12" refX="2" refY="6" markerWidth="8" markerHeight="8" orient="auto">
+          <path d="M11 2L2 6L11 10" fill="none" stroke="#8A8784" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+      <g id="axes-g">
+        <line id="ax-x" stroke="#8A8784" stroke-width="1.2" marker-end="url(#ax-arrow)" marker-start="url(#ax-arrow-rev)"/>
+        <line id="ax-y" stroke="#8A8784" stroke-width="1.2" marker-end="url(#ax-arrow)" marker-start="url(#ax-arrow-rev)"/>
+      </g>
+      <!-- draggable axis labels (HTML divs, managed by JS) -->
+      <g id="edges-g"></g>
+      <g id="edge-labels-g"></g>
+      <line id="drag-preview" x1="0" y1="0" x2="0" y2="0" stroke="#378ADD" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#marrow)" opacity="0" pointer-events="none"/>
+    </svg>
+    <div id="axis-labels-layer"></div>
+    <div id="nodes-layer"></div>
+    <div id="canvas-overlay-slot"></div>
+  </div>
+
+  <div class="dp-divider"></div>
+  <div id="detail-panel">
+    <div class="dp-header">
+      <span id="dp-title">点击节点或连线以编辑</span>
+      <span id="dp-edge-del" class="dp-edge-del" style="display:none" onclick="deleteSelected()">删除连线</span>
+    </div>
+    <div class="dp-body" id="dp-body">
+      <span class="placeholder">选中元素后可编辑属性</span>
+    </div>
+  </div>
+</div>
+
+<script>
+const SK = 'sem_space_v2';
+const RT = [
+  {id:'depend',    label:'依赖', color:'#378ADD', dash:'',          dir:'one',  width:1.5},
+  {id:'conflict',  label:'冲突', color:'#E24B4A', dash:'4 3 1 3',  dir:'both', width:1.5},
+  {id:'complement',label:'互补', color:'#1D9E75', dash:'',          dir:'both', width:1.5},
+  {id:'contain',   label:'包含', color:'#BA7517', dash:'',          dir:'one',  width:3},
+  {id:'transform', label:'转化', color:'#7F77DD', dash:'5 4',       dir:'one',  width:1.5},
+  {id:'custom',    label:'自定义',color:'#888780', dash:'5 4',       dir:'custom',width:1.5},
+];
+
+let S = {
+  mode: 'coord',
+  axisLabels: {xLeft:'←', xRight:'→', yTop:'↑', yBottom:'↓'},
+  axisLabelPos: {
+    xLeft:  {xPct:5,  yPct:50},
+    xRight: {xPct:95, yPct:50},
+    yTop:   {xPct:50, yPct:4},
+    yBottom:{xPct:50, yPct:96}
+  },
+  nodes: [
+    {id:'me',    name:'我',   x:30, y:50, attrs:[], note:''},
+    {id:'other', name:'对方', x:70, y:50, attrs:[], note:''}
+  ],
+  edges: []
+};
+let selected = null, nextId = 10;
+let nodeDrag = null, ndOx=0, ndOy=0, ndNx=0, ndNy=0;
+let anchorDrag = null;
+let mStack = [];
+
+/* ── Persistence ── */
+const DEFAULT_POS = {
+  xLeft:  {xPct:5,  yPct:50},
+  xRight: {xPct:95, yPct:50},
+  yTop:   {xPct:50, yPct:4},
+  yBottom:{xPct:50, yPct:96}
+};
+function load() {
+  try {
+    const raw = localStorage.getItem(SK);
+    if (raw) {
+      S = JSON.parse(raw);
+      // migrate: ensure axisLabelPos exists
+      if (!S.axisLabelPos) S.axisLabelPos = JSON.parse(JSON.stringify(DEFAULT_POS));
+      const allIds = [...S.nodes.map(n=>parseInt(n.id)||0), ...S.edges.map(e=>parseInt(e.id)||0)];
+      nextId = Math.max(9, ...allIds) + 1;
+    }
+  } catch(e) {}
+}
+function save() { try { localStorage.setItem(SK, JSON.stringify(S)); } catch(e) {} }
+
+/* ── Geometry helpers ── */
+const CW = () => document.getElementById('canvas-wrap');
+function toC(pct, axis) {
+  const r = CW().getBoundingClientRect();
+  return axis === 'x' ? pct/100*r.width : pct/100*r.height;
+}
+function toP(px, axis) {
+  const r = CW().getBoundingClientRect();
+  return axis === 'x' ? px/r.width*100 : px/r.height*100;
+}
+function escH(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ── Node colors ── */
+function nColor(id) {
+  if (id==='me')    return {border:'#534AB7', bg:'#EEEDFE', text:'#3C3489'};
+  if (id==='other') return {border:'#0F6E56', bg:'#E1F5EE', text:'#085041'};
+  const palette = ['#378ADD','#D85A30','#D4537E','#BA7517','#639922','#888780'];
+  const c = palette[(parseInt(id.replace(/\D/g,''))||0) % palette.length];
+  return {border:c, bg:'#FFFFFF', text:c};
+}
+
+/* ════════════════════════════════════════
+   RENDER
+═══════════════════════════════════════ */
+function render() { renderAxes(); renderEdges(); renderNodes(); renderDetail(); }
+
+/* ── Axes ── */
+function renderAxes() {
+  const wrap = CW(), W = wrap.offsetWidth, H = wrap.offsetHeight;
+  const isC = S.mode === 'coord';
+  const gb = document.getElementById('grid-bg');
+  gb.style.display = isC ? 'none' : '';
+  gb.setAttribute('opacity', isC ? 0 : 0.7);
+  document.getElementById('axes-g').style.display = isC ? '' : 'none';
+  document.getElementById('axis-labels-layer').style.display = isC ? '' : 'none';
+  if (isC) {
+    const cx = W/2, cy = H/2, PAD = 14;
+    // X axis: full width with arrow markers
+    const ax = document.getElementById('ax-x');
+    ax.setAttribute('x1', PAD); ax.setAttribute('y1', cy);
+    ax.setAttribute('x2', W-PAD); ax.setAttribute('y2', cy);
+    // Y axis: full height with arrow markers
+    const ay = document.getElementById('ax-y');
+    ay.setAttribute('x1', cx); ay.setAttribute('y1', PAD);
+    ay.setAttribute('x2', cx); ay.setAttribute('y2', H-PAD);
+  }
+  renderAxisLabels();
+}
+
+/* ── Axis label divs (draggable, editable) ── */
+const AX_KEYS = ['xLeft','xRight','yTop','yBottom'];
+const AX_DEFAULT_TEXT = {xLeft:'←', xRight:'→', yTop:'↑', yBottom:'↓'};
+let axLabelDrag = null; // {key, ox, oy, startXPct, startYPct}
+
+function renderAxisLabels() {
+  if (S.mode !== 'coord') return;
+  const layer = document.getElementById('axis-labels-layer');
+  const r = CW().getBoundingClientRect();
+  AX_KEYS.forEach(key => {
+    let el = layer.querySelector(`[data-axkey="${key}"]`);
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'ax-label';
+      el.dataset.axkey = key;
+      el.contentEditable = 'false';
+      // Hint tooltip
+      el.title = '拖拽移动位置 · 双击编辑文字';
+      layer.appendChild(el);
+
+      // Drag to move
+      el.addEventListener('mousedown', axLabelMouseDown);
+      // Double-click to edit text inline
+      el.addEventListener('dblclick', e => {
+        e.stopPropagation();
+        el.contentEditable = 'true';
+        el.classList.add('editing');
+        el.focus();
+        // select all
+        const range = document.createRange();
+        range.selectNodeContents(el);
+        window.getSelection().removeAllRanges();
+        window.getSelection().addRange(range);
+      });
+      el.addEventListener('blur', () => {
+        el.contentEditable = 'false';
+        el.classList.remove('editing');
+        S.axisLabels[key] = el.textContent.trim() || AX_DEFAULT_TEXT[key];
+        if (!el.textContent.trim()) el.textContent = S.axisLabels[key];
+        save();
+      });
+      el.addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); el.blur(); }
+        if (e.key === 'Escape') {
+          el.textContent = S.axisLabels[key];
+          el.blur();
+        }
+        e.stopPropagation(); // don't trigger canvas keydown
+      });
+    }
+    // Update position from state (as % of canvas)
+    const pos = S.axisLabelPos[key];
+    el.style.left = pos.xPct + '%';
+    el.style.top  = pos.yPct + '%';
+    el.textContent = S.axisLabels[key] || AX_DEFAULT_TEXT[key];
+  });
+}
+
+function axLabelMouseDown(e) {
+  if (e.target.contentEditable === 'true') return; // in edit mode, don't drag
+  const key = e.currentTarget.dataset.axkey;
+  const r = CW().getBoundingClientRect();
+  axLabelDrag = {
+    key,
+    ox: e.clientX - r.left,
+    oy: e.clientY - r.top,
+    startXPct: S.axisLabelPos[key].xPct,
+    startYPct: S.axisLabelPos[key].yPct,
+  };
+  e.preventDefault();
+  e.stopPropagation();
+}
+
+/* ── Nodes ── */
+function renderNodes() {
+  const layer = document.getElementById('nodes-layer');
+  const existing = new Set([...layer.querySelectorAll('.node-el')].map(e=>e.dataset.id));
+  const stIds = new Set(S.nodes.map(n=>n.id));
+  existing.forEach(id => { if(!stIds.has(id)) layer.querySelector(`[data-id="${id}"]`)?.remove(); });
+
+  S.nodes.forEach(node => {
+    let el = layer.querySelector(`[data-id="${node.id}"]`);
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'node-el'; el.dataset.id = node.id;
+      const ANCHORS = [
+        {dir:'top',    l:'50%', t:'0'},
+        {dir:'right',  l:'100%',t:'50%'},
+        {dir:'bottom', l:'50%', t:'100%'},
+        {dir:'left',   l:'0',   t:'50%'},
+      ];
+      const aHtml = ANCHORS.map(a =>
+        `<div class="anchor" data-nid="${node.id}" style="left:${a.l};top:${a.t}"></div>`
+      ).join('');
+      el.innerHTML = `<div class="node-wrap">${aHtml}<div class="node-circle" id="nc-${node.id}"></div></div><div class="node-tags" id="nt-${node.id}"></div>`;
+      layer.appendChild(el);
+      attachNodeEvents(el, node.id);
+    }
+    el.style.left = node.x + '%';
+    el.style.top  = node.y + '%';
+    const nc  = document.getElementById('nc-' + node.id);
+    const col = nColor(node.id);
+    nc.style.borderColor = col.border;
+    nc.style.color       = col.text;
+    nc.style.background  = col.bg;
+    nc.textContent = node.name;
+    const isSel = selected?.type==='node' && selected.id===node.id;
+    nc.classList.toggle('selected', isSel);
+    nc.classList.remove('dimmed','highlighted');
+    const nt = document.getElementById('nt-' + node.id);
+    nt.innerHTML = node.attrs.slice(0,3).map(a=>`<span class="tag-pill">${escH(a)}</span>`).join('')
+      + (node.attrs.length>3 ? `<span class="tag-pill">+${node.attrs.length-3}</span>` : '');
+  });
+}
+
+function attachNodeEvents(el, id) {
+  const nc = el.querySelector('.node-circle');
+  nc.addEventListener('mousedown', e => {
+    if (e.target.classList.contains('anchor')) return;
+    selected = {type:'node', id};
+    nodeDrag = el;
+    const r = CW().getBoundingClientRect();
+    ndOx = e.clientX - r.left; ndOy = e.clientY - r.top;
+    const node = S.nodes.find(n=>n.id===id);
+    ndNx = toC(node.x,'x'); ndNy = toC(node.y,'y');
+    e.preventDefault();
+    renderDetail(); renderNodes();
+  });
+  nc.addEventListener('click', e => {
+    if (anchorDrag) return;
+    selected = {type:'node', id};
+    renderDetail(); renderNodes(); renderEdges();
+  });
+  el.querySelectorAll('.anchor').forEach(a => {
+    a.addEventListener('mousedown', e => {
+      anchorDrag = {fromId: id};
+      const r = CW().getBoundingClientRect();
+      const node = S.nodes.find(n=>n.id===id);
+      const sx = toC(node.x,'x'), sy = toC(node.y,'y');
+      const dl = document.getElementById('drag-preview');
+      dl.setAttribute('x1',sx); dl.setAttribute('y1',sy);
+      dl.setAttribute('x2',sx); dl.setAttribute('y2',sy);
+      dl.setAttribute('opacity',1);
+      e.stopPropagation(); e.preventDefault();
+    });
+  });
+}
+
+/* ── Global pointer events ── */
+document.addEventListener('mousemove', e => {
+  // axis label drag
+  if (axLabelDrag) {
+    const r = CW().getBoundingClientRect();
+    const cx = e.clientX - r.left, cy = e.clientY - r.top;
+    const dx = cx - axLabelDrag.ox, dy = cy - axLabelDrag.oy;
+    const pos = S.axisLabelPos[axLabelDrag.key];
+    pos.xPct = Math.max(1, Math.min(99, axLabelDrag.startXPct + dx/r.width*100));
+    pos.yPct = Math.max(1, Math.min(99, axLabelDrag.startYPct + dy/r.height*100));
+    renderAxisLabels();
+    return;
+  }
+  if (nodeDrag) {
+    const r = CW().getBoundingClientRect();
+    const cx = e.clientX - r.left, cy = e.clientY - r.top;
+    const node = S.nodes.find(n=>n.id===nodeDrag.dataset.id);
+    if (node) {
+      node.x = Math.max(5, Math.min(95, toP(ndNx+(cx-ndOx),'x')));
+      node.y = Math.max(5, Math.min(95, toP(ndNy+(cy-ndOy),'y')));
+      nodeDrag.style.left = node.x+'%'; nodeDrag.style.top = node.y+'%';
+      renderEdges(); save();
+    }
+  }
+  if (anchorDrag) {
+    const r = CW().getBoundingClientRect();
+    const cx = e.clientX - r.left, cy = e.clientY - r.top;
+    const dl = document.getElementById('drag-preview');
+    dl.setAttribute('x2',cx); dl.setAttribute('y2',cy);
+    const snap = findNodeNear(cx, cy, anchorDrag.fromId);
+    document.querySelectorAll('.node-circle').forEach(nc => {
+      const nid = nc.id.replace('nc-','');
+      nc.classList.remove('highlighted','dimmed');
+      if (snap) {
+        if (nid===anchorDrag.fromId || nid===snap) nc.classList.add('highlighted');
+        else nc.classList.add('dimmed');
+      }
+    });
+  }
+});
+document.addEventListener('mouseup', e => {
+  if (axLabelDrag) { axLabelDrag = null; save(); return; }
+  if (nodeDrag) { nodeDrag = null; save(); return; }
+  if (anchorDrag) {
+    const r = CW().getBoundingClientRect();
+    const cx = e.clientX - r.left, cy = e.clientY - r.top;
+    const target = findNodeNear(cx, cy, anchorDrag.fromId);
+    document.getElementById('drag-preview').setAttribute('opacity',0);
+    document.querySelectorAll('.node-circle').forEach(nc => nc.classList.remove('highlighted','dimmed'));
+    const fromId = anchorDrag.fromId;
+    anchorDrag = null;
+    if (target) openRelModal(fromId, target);
+  }
+});
+function findNodeNear(cx, cy, excludeId) {
+  for (const node of S.nodes) {
+    if (node.id === excludeId) continue;
+    if (Math.hypot(cx-toC(node.x,'x'), cy-toC(node.y,'y')) < 52) return node.id;
+  }
+  return null;
+}
+
+/* ── Double-click canvas → new node ── */
+CW().addEventListener('dblclick', e => {
+  if (e.target.closest('.node-el')) return;
+  const r = CW().getBoundingClientRect();
+  openNewNodeModal((e.clientX-r.left)/r.width*100, (e.clientY-r.top)/r.height*100);
+});
+CW().addEventListener('click', e => {
+  if (e.target === e.currentTarget || e.target.id==='canvas-svg' || e.target.id==='grid-bg') {
+    selected = null; renderDetail(); renderNodes(); renderEdges();
+  }
+});
+
+/* ── Edges ── */
+function renderEdges(previewMode, hlFrom, hlTo) {
+  const g  = document.getElementById('edges-g');
+  const lg = document.getElementById('edge-labels-g');
+  g.innerHTML = ''; lg.innerHTML = '';
+  const r = CW().getBoundingClientRect(); if (!r.width) return;
+  const edges = [...S.edges];
+  if (previewMode && hlFrom && hlTo) {
+    if (!edges.find(e=>(e.from===hlFrom&&e.to===hlTo)||(e.from===hlTo&&e.to===hlFrom)))
+      edges.push({id:'__prev',from:hlFrom,to:hlTo,type:'depend',dir:'one',desc:'',note:''});
+  }
+  edges.forEach(edge => {
+    const fn = S.nodes.find(n=>n.id===edge.from);
+    const tn = S.nodes.find(n=>n.id===edge.to);
+    if (!fn||!tn) return;
+    const rt = RT.find(r=>r.id===edge.type) || RT[5];
+    const x1=toC(fn.x,'x'), y1=toC(fn.y,'y'), x2=toC(tn.x,'x'), y2=toC(tn.y,'y');
+    const dx=x2-x1, dy=y2-y1, len=Math.hypot(dx,dy)||1, R=37;
+    const sx=x1+dx/len*R, sy=y1+dy/len*R, ex=x2-dx/len*R, ey=y2-dy/len*R;
+    const mx=(sx+ex)/2, my=(sy+ey)/2;
+    const isSel = selected?.type==='edge' && selected.id===edge.id;
+    const isPrev = edge.id==='__prev';
+    const color = isPrev ? '#378ADD' : rt.color;
+    const w     = (isSel ? (rt.width||1.5)+1 : (rt.width||1.5));
+    let line;
+    if (edge.type==='conflict' && !isPrev) {
+      line = document.createElementNS('http://www.w3.org/2000/svg','path');
+      line.setAttribute('d', wavyPath(sx,sy,ex,ey));
+      line.setAttribute('fill','none');
+    } else {
+      line = document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('x1',sx); line.setAttribute('y1',sy);
+      line.setAttribute('x2',ex); line.setAttribute('y2',ey);
+    }
+    line.setAttribute('stroke', color);
+    line.setAttribute('stroke-width', w);
+    const dash = isPrev ? '5 4' : (rt.dash||'');
+    if (dash) line.setAttribute('stroke-dasharray', dash);
+    if (edge.dir==='one')  line.setAttribute('marker-end','url(#marrow)');
+    if (edge.dir==='both') { line.setAttribute('marker-end','url(#marrow)'); line.setAttribute('marker-start','url(#marrow)'); }
+    if (!isPrev) {
+      line.style.cursor = 'pointer';
+      line.addEventListener('click', () => { selected={type:'edge',id:edge.id}; renderDetail(); renderEdges(); renderNodes(); });
+    }
+    g.appendChild(line);
+    if (!isPrev) {
+      const lbl = (edge.type==='custom' && edge.desc) ? edge.desc : rt.label;
+      const tx = document.createElementNS('http://www.w3.org/2000/svg','text');
+      tx.setAttribute('x',mx); tx.setAttribute('y',my-8);
+      tx.setAttribute('text-anchor','middle'); tx.setAttribute('dominant-baseline','central');
+      tx.setAttribute('font-size','10'); tx.setAttribute('fill',color);
+      tx.setAttribute('font-family', '-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif');
+      tx.setAttribute('pointer-events','none');
+      tx.textContent = lbl;
+      lg.appendChild(tx);
+    }
+  });
+}
+function wavyPath(x1,y1,x2,y2) {
+  const dx=x2-x1,dy=y2-y1,len=Math.hypot(dx,dy)||1,nx=-dy/len,ny=dx/len;
+  let d=`M${x1} ${y1}`;
+  for(let i=0;i<=6;i++){const t=i/6,px=x1+dx*t,py=y1+dy*t,w=5*Math.sin(i*Math.PI)*(i%2===0?1:-1);d+=` L${px+nx*w} ${py+ny*w}`;}
+  return d;
+}
+
+/* ════════════════════════════════════════
+   MODALS
+═══════════════════════════════════════ */
+function showModal(html, afterInsert) {
+  const slot = document.getElementById('canvas-overlay-slot');
+  const d = document.createElement('div'); d.className='overlay';
+  d.innerHTML = `<div class="overlay-scrim"></div><div class="modal">${html}</div>`;
+  d.querySelector('.overlay-scrim').addEventListener('click', cancelModal);
+  slot.appendChild(d); mStack.push(d);
+  if (afterInsert) setTimeout(afterInsert,0);
+}
+function closeModal()  { if (mStack.length) mStack.pop().remove(); }
+function cancelModal() {
+  clearHighlight();
+  closeModal();
+  renderEdges();
+}
+function clearHighlight() {
+  document.querySelectorAll('.node-circle').forEach(nc=>nc.classList.remove('highlighted','dimmed'));
+}
+
+/* ── New node modal ── */
+function openNewNodeModal(x, y) {
+  showModal(`<h3>新增节点</h3>
+    <div class="modal-row"><div class="modal-lbl">词语名称</div>
+      <input id="m-name" placeholder="输入词语…"/></div>
+    <div class="modal-btns">
+      <button onclick="closeModal()">取消</button>
+      <button class="btn-primary" onclick="confirmNewNode(${x.toFixed(2)},${y.toFixed(2)})">创建</button>
+    </div>`);
+  setTimeout(()=>document.getElementById('m-name')?.focus(),50);
+}
+function confirmNewNode(x,y) {
+  const name = document.getElementById('m-name')?.value.trim();
+  if (!name) { closeModal(); return; }
+  const id = 'n'+(nextId++);
+  S.nodes.push({id,name,x,y,attrs:[],note:''});
+  save(); closeModal(); render();
+  selected = {type:'node',id}; renderDetail();
+}
+
+/* ── Relation modal ── */
+function openRelModal(fromId, toId) {
+  const existing = S.edges.find(e=>(e.from===fromId&&e.to===toId)||(e.from===toId&&e.to===fromId));
+  if (existing) { selected={type:'edge',id:existing.id}; renderDetail(); renderEdges(); return; }
+  const fn = S.nodes.find(n=>n.id===fromId), tn = S.nodes.find(n=>n.id===toId);
+  const btns = RT.map(rt =>
+    `<button class="rt-btn${rt.id==='depend'?' sel':''}" data-rt="${rt.id}" onclick="selRT(this,'${rt.id}')">
+      <span class="dot-i" style="background:${rt.color}"></span>${rt.label}
+    </button>`).join('');
+  showModal(`<h3>创建连线：${escH(fn?.name||'?')} → ${escH(tn?.name||'?')}</h3>
+    <div class="modal-row"><div class="modal-lbl">关系类型</div><div class="rel-types">${btns}</div></div>
+    <div class="modal-row" id="custom-row" style="display:none">
+      <div class="modal-lbl">自定义描述</div><input id="m-desc" placeholder="描述这段关系…"/></div>
+    <div class="modal-row"><div class="modal-lbl">方向</div>
+      <select id="m-dir">
+        <option value="one">单向（from → to）</option>
+        <option value="both">双向</option>
+      </select></div>
+    <div class="modal-btns">
+      <button onclick="cancelModal()">取消</button>
+      <button class="btn-primary" onclick="confirmEdge('${fromId}','${toId}')">确认</button>
+    </div>`,
+    () => {
+      document.querySelectorAll('.node-circle').forEach(nc => {
+        const nid = nc.id.replace('nc-','');
+        nc.classList.remove('highlighted','dimmed');
+        if (nid===fromId||nid===toId) nc.classList.add('highlighted');
+        else nc.classList.add('dimmed');
+      });
+      renderEdges(true, fromId, toId);
+    });
+}
+function selRT(btn, rid) {
+  document.querySelectorAll('.rt-btn').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');
+  document.getElementById('custom-row').style.display = rid==='custom' ? '' : 'none';
+  const rt = RT.find(r=>r.id===rid);
+  if (rt && rt.dir!=='custom') document.getElementById('m-dir').value = rt.dir;
+}
+function confirmEdge(fromId, toId) {
+  const selBtn = document.querySelector('.rt-btn.sel');
+  const rtId   = selBtn ? selBtn.dataset.rt : 'depend';
+  const dir    = document.getElementById('m-dir')?.value || 'one';
+  const desc   = document.getElementById('m-desc')?.value.trim() || '';
+  const id     = 'e'+(nextId++);
+  S.edges.push({id,from:fromId,to:toId,type:rtId,dir,desc,note:''});
+  clearHighlight(); save(); closeModal(); render();
+  selected = {type:'edge',id}; renderDetail();
+}
+
+/* ── (axis labels are now edited inline by double-clicking the label on canvas) ── */
+
+/* ════════════════════════════════════════
+   DETAIL PANEL
+═══════════════════════════════════════ */
+function renderDetail() {
+  const title   = document.getElementById('dp-title');
+  const body    = document.getElementById('dp-body');
+  const edgeDel = document.getElementById('dp-edge-del');
+  edgeDel.style.display = 'none';
+
+  if (!selected) {
+    title.textContent = '点击节点或连线以编辑';
+    body.innerHTML = '<span class="placeholder">选中元素后可编辑属性</span>';
+    return;
+  }
+
+  /* node */
+  if (selected.type==='node') {
+    const node = S.nodes.find(n=>n.id===selected.id);
+    if (!node) { selected=null; renderDetail(); return; }
+    const isCore = node.id==='me' || node.id==='other';
+    title.textContent = `节点：${node.name}`;
+    body.innerHTML = `
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+        <div class="field-lbl" style="white-space:nowrap">名称</div>
+        <input id="dp-name" value="${escH(node.name)}" oninput="updNodeName(this.value)" style="flex:1"/>
+      </div>
+      <div class="field-lbl">本质属性</div>
+      <div id="dp-attrs" style="margin-bottom:2px">${renderChips(node)}</div>
+      <div class="add-row">
+        <input id="dp-attr-inp" placeholder="添加属性…" onkeydown="if(event.key==='Enter')addAttr()"/>
+        <button onclick="addAttr()">添加</button>
+      </div>
+      <div class="field-lbl" style="margin-top:10px;margin-bottom:3px">备注</div>
+      <textarea placeholder="自由记录…" oninput="updNodeNote(this.value)">${escH(node.note||'')}</textarea>
+      ${isCore
+        ? `<button class="del-btn disabled" disabled>初始节点不可删除</button>`
+        : `<button class="del-btn" onclick="deleteSelected()">删除节点</button>`}`;
+  }
+
+  /* edge */
+  if (selected.type==='edge') {
+    const edge = S.edges.find(e=>e.id===selected.id);
+    if (!edge) { selected=null; renderDetail(); return; }
+    const fn = S.nodes.find(n=>n.id===edge.from), tn = S.nodes.find(n=>n.id===edge.to);
+    title.textContent = `连线：${fn?.name||'?'} ${edge.dir==='both'?'⟷':'→'} ${tn?.name||'?'}`;
+    edgeDel.style.display = '';
+    const tOpts = RT.map(r=>`<option value="${r.id}"${r.id===edge.type?' selected':''}>${r.label}</option>`).join('');
+    const dOpts = `<option value="one"${edge.dir==='one'?' selected':''}>单向</option><option value="both"${edge.dir==='both'?' selected':''}>双向</option>`;
+    body.innerHTML = `
+      <div class="row2">
+        <div><div class="field-lbl">类型</div><select onchange="updEdge('type',this.value)">${tOpts}</select></div>
+        <div><div class="field-lbl">方向</div><select onchange="updEdge('dir',this.value)">${dOpts}</select></div>
+      </div>
+      <div class="field-lbl" style="margin-bottom:3px">关系描述（显示在线上）</div>
+      <input value="${escH(edge.desc||'')}" placeholder="自定义描述…" oninput="updEdge('desc',this.value)" style="margin-bottom:8px"/>
+      <div class="field-lbl" style="margin-bottom:3px">关系说明</div>
+      <textarea placeholder="详细描述这段关联…" oninput="updEdge('note',this.value)">${escH(edge.note||'')}</textarea>`;
+  }
+}
+
+function renderChips(node) {
+  return node.attrs.map((a,i)=>`<span class="attr-chip">${escH(a)}<span class="x" onclick="rmAttr(${i})">✕</span></span>`).join('');
+}
+function updNodeName(v) { const n=S.nodes.find(n=>n.id===selected?.id);if(!n)return;n.name=v;save();const nc=document.getElementById('nc-'+n.id);if(nc)nc.textContent=v;document.getElementById('dp-title').textContent=`节点：${v}`; }
+function updNodeNote(v) { const n=S.nodes.find(n=>n.id===selected?.id);if(!n)return;n.note=v;save(); }
+function addAttr()     { const inp=document.getElementById('dp-attr-inp');if(!inp)return;const v=inp.value.trim();if(!v)return;const n=S.nodes.find(n=>n.id===selected?.id);if(!n)return;n.attrs.push(v);inp.value='';save();document.getElementById('dp-attrs').innerHTML=renderChips(n);renderNodes(); }
+function rmAttr(i)     { const n=S.nodes.find(n=>n.id===selected?.id);if(!n)return;n.attrs.splice(i,1);save();document.getElementById('dp-attrs').innerHTML=renderChips(n);renderNodes(); }
+function updEdge(k,v)  { const e=S.edges.find(e=>e.id===selected?.id);if(!e)return;e[k]=v;save();renderEdges();if(k==='dir')renderDetail(); }
+
+function deleteSelected() {
+  if (!selected) return;
+  if (selected.type==='node') {
+    if (selected.id==='me'||selected.id==='other') return;
+    S.nodes = S.nodes.filter(n=>n.id!==selected.id);
+    S.edges = S.edges.filter(e=>e.from!==selected.id&&e.to!==selected.id);
+  }
+  if (selected.type==='edge') S.edges = S.edges.filter(e=>e.id!==selected.id);
+  selected=null; save(); render();
+}
+
+/* ── Keyboard delete ── */
+document.addEventListener('keydown', e => {
+  if ((e.key==='Delete'||e.key==='Backspace') && selected?.type==='node') {
+    if (['INPUT','TEXTAREA'].includes(document.activeElement?.tagName)) return;
+    deleteSelected();
+  }
+});
+
+/* ── Mode switch ── */
+function setMode(m) {
+  S.mode=m; save();
+  document.getElementById('btn-coord').classList.toggle('active',m==='coord');
+  document.getElementById('btn-free').classList.toggle('active',m==='free');
+  renderAxes();
+}
+
+/* ── Reset ── */
+function resetAll() {
+  if (!confirm('确定清空所有数据并重置？')) return;
+  localStorage.removeItem(SK);
+  S={
+    mode:'coord',
+    axisLabels:{xLeft:'←',xRight:'→',yTop:'↑',yBottom:'↓'},
+    axisLabelPos: JSON.parse(JSON.stringify(DEFAULT_POS)),
+    nodes:[{id:'me',name:'我',x:30,y:50,attrs:[],note:''},{id:'other',name:'对方',x:70,y:50,attrs:[],note:''}],
+    edges:[]
+  };
+  nextId=10; selected=null;
+  // clear and re-render axis label divs
+  document.getElementById('axis-labels-layer').innerHTML='';
+  render();
+}
+
+/* ── Boot ── */
+load();
+requestAnimationFrame(render);
+window.addEventListener('resize', ()=>{ renderAxes(); renderEdges(); });
+</script>
+</body>
+</html>

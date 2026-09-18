@@ -1,0 +1,8 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { Content } from '../content/about.md';
+---
+<Layout title="关于我 · 段骁" description="我是段骁。我用 AI 做工具、交互实验与文字创作，在想法和实际体验之间不断尝试。">
+  <header class="page-intro"><span class="eyebrow">A PERSON BEHIND THE PROJECTS</span><h1>你好，我是段骁。</h1><p>比起给自己下一个定义，我更想把做过的东西放在这里。<br/>它们会慢慢说明，我关心什么，又在尝试什么。</p></header>
+  <div class="about-layout"><aside class="about-aside"><div class="monogram" aria-hidden="true">dx.</div><p>工具、文字与交互。<br/>从一个问题出发，<br/>做出一个可以体验的版本。</p><span class="eyebrow">THINK / MAKE / REPEAT</span></aside><article class="prose"><Content /></article></div>
+</Layout>

@@ -1,0 +1,11 @@
+---
+import { site } from '../data/site';
+---
+<section class="contact-section" id="contact" aria-labelledby="contact-title">
+  <div class="contact-heading"><span class="eyebrow">LET’S TALK</span><h2 id="contact-title">一个想法，<br/>也许从聊天开始。</h2></div>
+  <div class="contact-copy">
+    <p>关于 AI 应用、一个正在酝酿的项目，<br class="desktop-break"/>或者，只是分享你最近做的东西。</p>
+    <div class="wechat-line"><span>加微信：</span><strong id="wechat-id">{site.wechat}</strong><button type="button" class="copy-button" data-copy={site.wechat} hidden aria-label="复制微信号 dx2020z">复制微信号 <span aria-hidden="true">↗</span></button></div>
+    <p class="copy-feedback" role="status" aria-live="polite" data-copy-status></p>
+  </div>
+</section>

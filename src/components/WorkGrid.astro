@@ -1,0 +1,52 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import WorkCard from './WorkCard.astro';
+import { kindLabels } from '../lib/model.mjs';
+interface Props { works: CollectionEntry<'works'>[]; }
+const { works } = Astro.props;
+const kinds = Object.entries(kindLabels).filter(([key]) => works.some(w => w.data.kind === key));
+const tags = [...new Set(works.flatMap(w => w.data.tags))].sort((a,b) => a.localeCompare(b,'zh'));
+---
+<section class="archive" aria-label="作品集合" data-work-grid>
+  <div class="filter-bar" data-filters hidden>
+    <div class="filter-buttons" role="group" aria-label="按作品分类">
+      <button type="button" class="filter-button" data-filter="all" aria-pressed="true">全部 <span>{works.length}</span></button>
+      {kinds.map(([kind,label]) => <button type="button" class="filter-button" data-filter={kind} aria-pressed="false">{label}</button>)}
+    </div>
+    <div class="filter-selects">
+      <label>来源<select data-source><option value="all">全部来源</option><option value="local">本站作品</option><option value="external">外部作品</option></select></label>
+      <label>标签<select data-tag><option value="all">全部标签</option>{tags.map(tag => <option value={tag}>{tag}</option>)}</select></label>
+    </div>
+  </div>
+  <div class="archive-count"><span data-result-count role="status" aria-live="polite">{works.length} 件作品</span><span>TOOLS / STORIES / EXPERIMENTS</span></div>
+  <div class="works-grid">{works.map((work,index) => <WorkCard work={work} index={index} />)}</div>
+  <div class="empty-state" data-empty hidden><h2>这一组还没有作品。</h2><p>换个分类，或者回到全部作品看看。</p><button type="button" class="button" data-reset>显示全部作品</button></div>
+</section>
+<script>
+  document.querySelectorAll<HTMLElement>('[data-work-grid]').forEach(grid => {
+    let kind = 'all';
+    const buttons = grid.querySelectorAll<HTMLButtonElement>('[data-filter]');
+    const source = grid.querySelector<HTMLSelectElement>('[data-source]');
+    const tag = grid.querySelector<HTMLSelectElement>('[data-tag]');
+    const filters = grid.querySelector<HTMLElement>('[data-filters]');
+    if (filters) filters.hidden = false;
+    const apply = () => {
+      let count = 0;
+      grid.querySelectorAll<HTMLElement>('.work-card').forEach(card => {
+        const matches = (kind === 'all' || card.dataset.kind === kind)
+          && (source?.value === 'all' || card.dataset.type === source?.value)
+          && (tag?.value === 'all' || (JSON.parse(card.dataset.tags || '[]') as string[]).includes(tag?.value || ''));
+        card.hidden = !matches;
+        if (matches) count++;
+      });
+      buttons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.filter === kind)));
+      const countElement = grid.querySelector('[data-result-count]');
+      if (countElement) countElement.textContent = count + ' 件作品';
+      const empty = grid.querySelector<HTMLElement>('[data-empty]');
+      if (empty) empty.hidden = count !== 0;
+    };
+    buttons.forEach(button => button.addEventListener('click', () => { kind = button.dataset.filter || 'all'; apply(); }));
+    source?.addEventListener('change', apply); tag?.addEventListener('change', apply);
+    grid.querySelector('[data-reset]')?.addEventListener('click', () => { kind = 'all'; if (source) source.value = 'all'; if (tag) tag.value = 'all'; apply(); });
+  });
+</script>

@@ -1,0 +1,2763 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>LATENT / 潜 — 一座可以航行的意义间隙地图</title>
+<style>
+/* ============================================================
+   LATENT / 潜  —  design tokens
+   ============================================================ */
+:root{
+  --bg:        #04060a;
+  --bg-2:      #070b12;
+  --ink:       #e9f0f7;
+  --ink-2:     #9fb0c3;
+  --dim:       #5d6b7c;
+  --dimmer:    #394654;
+  --line:      rgba(140,175,210,.13);
+  --line-2:    rgba(140,175,210,.26);
+  --cy:        #6fe3ff;
+  --pu:        #a78bfa;
+  --go:        #ffcf8f;
+  --ro:        #ff8fa8;
+  --mono:      'JetBrains Mono','SFMono-Regular','SF Mono',Menlo,Consolas,'Liberation Mono',monospace;
+  --serif:     'Songti SC','STSong','Source Han Serif SC','Noto Serif CJK SC','SimSun',serif;
+  --sans:      'PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans CJK SC',sans-serif;
+  --ease:      cubic-bezier(.16,.84,.44,1);
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg)}
+body{
+  font-family:var(--sans);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  cursor:default;
+  user-select:none;
+  -webkit-tap-highlight-color:transparent;
+}
+body.dragging{cursor:grabbing}
+body.over-node{cursor:pointer}
+
+canvas#stage{position:fixed;inset:0;width:100%;height:100%;display:block;z-index:1}
+
+/* ---------- post overlays ---------- */
+#vignette{
+  position:fixed;inset:0;z-index:5;pointer-events:none;
+  background:radial-gradient(ellipse 78% 68% at 50% 48%,transparent 34%,rgba(2,4,7,.55) 78%,rgba(2,4,7,.92) 100%);
+  mix-blend-mode:multiply;
+}
+#grain{
+  position:fixed;inset:-120px;z-index:6;pointer-events:none;opacity:.055;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>");
+  animation:grainShift 5.4s steps(6) infinite;
+}
+@keyframes grainShift{
+  0%{transform:translate(0,0)}      16%{transform:translate(-34px,18px)}
+  33%{transform:translate(22px,-28px)} 50%{transform:translate(-18px,-14px)}
+  66%{transform:translate(30px,26px)}  83%{transform:translate(-26px,10px)}
+  100%{transform:translate(0,0)}
+}
+#scanline{
+  position:fixed;inset:0;z-index:7;pointer-events:none;opacity:.16;
+  background:repeating-linear-gradient(180deg,rgba(255,255,255,.028) 0 1px,transparent 1px 3px);
+}
+
+/* ============================================================
+   HUD
+   ============================================================ */
+.hud{position:fixed;z-index:20;pointer-events:none;font-family:var(--mono)}
+
+#hud-tl{top:0;left:0;padding:22px 26px}
+#hud-tr{top:0;right:0;padding:22px 26px;text-align:right}
+#hud-bl{bottom:0;left:0;padding:20px 26px}
+#hud-br{bottom:0;right:0;padding:20px 26px}
+
+.brand{
+  font-family:var(--serif);font-size:26px;line-height:1;letter-spacing:.16em;
+  color:var(--ink);display:flex;align-items:baseline;gap:11px;
+  pointer-events:auto;cursor:pointer;      /* 这是唯一刻意可点的 HUD 元素 */
+}
+.brand b{font-weight:400}
+.brand i{
+  font-style:normal;font-family:var(--mono);font-size:10.5px;letter-spacing:.3em;
+  color:var(--cy);opacity:.7;transform:translateY(-2px);
+}
+.tagline{
+  margin-top:9px;font-size:10.5px;letter-spacing:.2em;color:var(--dim);
+  text-transform:uppercase;max-width:240px;line-height:1.8;
+}
+
+.readout{font-size:10.5px;letter-spacing:.14em;color:var(--dim);line-height:2}
+.readout .k{color:var(--dimmer);display:inline-block;width:62px;text-align:right;margin-right:9px}
+.readout .v{color:var(--ink-2);font-variant-numeric:tabular-nums}
+/* 暗层有词显形时，计数闪一下 */
+#ro-u{transition:color .5s var(--ease),text-shadow .5s var(--ease)}
+#ro-u.flash{color:var(--cy);text-shadow:0 0 14px rgba(111,227,255,.65)}
+
+/* ---------- hint chips ---------- */
+#hints{display:flex;flex-direction:column;gap:7px}
+.chip{
+  display:flex;align-items:center;gap:10px;
+  font-size:11px;letter-spacing:.1em;color:var(--dim);
+  transition:color .5s var(--ease),opacity .5s var(--ease);
+}
+.chip.done{opacity:.28}
+.chip.done .box{border-color:var(--cy);background:var(--cy);box-shadow:0 0 12px rgba(111,227,255,.5)}
+.chip .box{
+  width:11px;height:11px;border:1px solid var(--line-2);flex:none;
+  transition:all .5s var(--ease);
+}
+.chip .key{
+  font-family:var(--mono);font-size:10px;color:var(--ink-2);
+  padding:1px 6px;border:1px solid var(--line);border-radius:2px;
+}
+.chip em{font-style:normal;color:var(--ink-2);opacity:.85}
+
+/* ---------- audio toggle ---------- */
+#audio-btn{
+  position:fixed;z-index:22;bottom:20px;right:26px;
+  display:flex;align-items:center;gap:9px;
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;
+  color:var(--dim);background:none;border:0;cursor:pointer;padding:6px 0;
+  transition:color .4s var(--ease);
+}
+#audio-btn:hover{color:var(--ink-2)}
+#audio-btn .bars{display:flex;align-items:flex-end;gap:2px;height:11px}
+#audio-btn .bars span{
+  width:2px;background:var(--dimmer);height:3px;
+  transition:height .3s var(--ease),background .3s var(--ease);
+}
+#audio-btn.on{color:var(--cy)}
+#audio-btn.on .bars span{background:var(--cy);animation:eq 1.5s ease-in-out infinite}
+#audio-btn.on .bars span:nth-child(2){animation-delay:.22s}
+#audio-btn.on .bars span:nth-child(3){animation-delay:.44s}
+#audio-btn.on .bars span:nth-child(4){animation-delay:.12s}
+@keyframes eq{0%,100%{height:3px}50%{height:11px}}
+
+/* ============================================================
+   node info card
+   ============================================================ */
+#nodeinfo{
+  position:fixed;z-index:21;left:26px;top:50%;
+  transform:translateY(-50%);
+  width:212px;
+  opacity:0;pointer-events:none;   /* 纯展示，不拦截拖动 */
+  transition:opacity .55s var(--ease),transform .55s var(--ease);
+}
+#nodeinfo.show{opacity:1;transform:translateY(-50%) translateX(0)}
+#nodeinfo.hide-left{transform:translateY(-50%) translateX(-14px)}
+.ni-rule{height:1px;background:linear-gradient(90deg,var(--line-2),transparent);margin-bottom:14px}
+.ni-zh{
+  font-family:var(--serif);font-size:33px;line-height:1.1;letter-spacing:.1em;
+  color:var(--ink);margin-bottom:6px;
+}
+.ni-en{
+  font-family:var(--mono);font-size:10px;letter-spacing:.34em;
+  color:var(--dim);text-transform:uppercase;margin-bottom:15px;
+}
+.ni-note{
+  font-size:13px;line-height:1.95;color:var(--ink-2);opacity:.82;
+  font-family:var(--serif);letter-spacing:.03em;
+  border-left:1px solid var(--line-2);padding-left:12px;
+}
+.ni-meta{
+  margin-top:15px;font-family:var(--mono);font-size:10px;letter-spacing:.12em;
+  color:var(--dimmer);line-height:2;
+}
+.ni-meta span{color:var(--dim)}
+
+/* ============================================================
+   interpolation panel  (bottom center)
+   ============================================================ */
+#interp{
+  position:fixed;z-index:21;left:50%;bottom:52px;
+  transform:translateX(-50%) translateY(16px);
+  opacity:0;pointer-events:none;
+  transition:opacity .6s var(--ease),transform .6s var(--ease);
+  display:flex;flex-direction:column;align-items:center;gap:13px;
+  pointer-events:none;             /* 只有词条本身可点，其余透传给画布 */
+}
+#interp.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.ip-cell{pointer-events:auto}
+
+.ip-head{
+  display:flex;align-items:center;gap:14px;
+  font-family:var(--mono);font-size:10px;letter-spacing:.24em;color:var(--dim);
+}
+.ip-end{
+  font-family:var(--serif);font-size:16px;letter-spacing:.14em;color:var(--ink);
+}
+.ip-arrow{
+  flex:none;width:96px;height:1px;position:relative;
+  background:linear-gradient(90deg,var(--c1),var(--c2));
+  opacity:.6;
+}
+.ip-arrow::after{
+  content:'';position:absolute;right:-1px;top:-2.5px;
+  width:6px;height:6px;border-top:1px solid var(--c2);border-right:1px solid var(--c2);
+  transform:rotate(45deg);
+}
+
+.ip-track{display:flex;align-items:flex-end;gap:0}
+.ip-cell{
+  width:82px;display:flex;flex-direction:column;align-items:center;gap:9px;
+  cursor:pointer;position:relative;
+}
+.ip-cell .t{
+  font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--dimmer);
+}
+.ip-cell .w{
+  font-family:var(--serif);font-size:14px;letter-spacing:.1em;color:var(--ink-2);
+  text-align:center;line-height:1.5;min-height:21px;
+  transition:color .4s var(--ease),transform .4s var(--ease),text-shadow .4s var(--ease);
+}
+.ip-cell.mid .w{
+  font-size:13px;line-height:1.7;
+}
+.ip-cell.mid .w .a,.ip-cell.mid .w .b{display:block}
+.ip-cell:hover .w,.ip-cell.active .w{
+  color:var(--ink);transform:translateY(-3px);
+  text-shadow:0 0 22px currentColor;
+}
+.ip-cell .dot{
+  width:4px;height:4px;border-radius:50%;background:var(--dimmer);
+  transition:all .4s var(--ease);
+}
+.ip-cell.active .dot{transform:scale(2.1)}
+.ip-cell.edge .dot{background:var(--dim);transform:scale(1.5)}
+/* 流变中：当前所在的那一格自己亮起来 */
+.ip-cell.flow .w{color:var(--ink);text-shadow:0 0 20px currentColor}
+.ip-cell.flow .dot{transform:scale(2.6)}
+
+/* ---------- 插值面板底部：播放 / 距离 / 导出 ---------- */
+.ip-foot{
+  display:flex;align-items:center;gap:16px;
+  pointer-events:auto;
+  font-family:var(--mono);font-size:10px;letter-spacing:.14em;
+}
+.ip-btn{
+  background:none;border:1px solid var(--line);border-radius:2px;
+  color:var(--ink-2);cursor:pointer;
+  font-family:var(--mono);font-size:10px;letter-spacing:.18em;
+  padding:6px 13px;display:inline-flex;align-items:center;gap:7px;
+  transition:color .4s var(--ease),border-color .4s var(--ease),background .4s var(--ease);
+}
+.ip-btn:hover{color:var(--ink);border-color:var(--line-2);background:rgba(160,200,235,.055)}
+.ip-btn.ghost{border-color:transparent;color:var(--dim);padding:6px 9px}
+.ip-btn.ghost:hover{color:var(--cy);background:none}
+.ip-btn i{font-style:normal;font-size:10px;color:var(--cy)}
+.ip-btn.on{color:var(--cy);border-color:rgba(111,227,255,.34);background:rgba(111,227,255,.055)}
+.ip-dist{color:var(--dimmer);letter-spacing:.1em;white-space:nowrap;font-size:10px}
+.ip-acts{display:flex;gap:0;margin-left:2px}
+
+/* ---------- 快捷键 ---------- */
+#keys{
+  margin-top:13px;
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;
+  color:var(--dimmer);opacity:.8;line-height:1.9;
+}
+#keys i{
+  font-style:normal;opacity:.62;letter-spacing:.1em;
+  display:inline-block;margin-top:4px;
+}
+
+/* the live interpolated glyph, floating above the track */
+#ip-glyph{
+  position:fixed;z-index:20;pointer-events:none;
+  opacity:0;transition:opacity .5s var(--ease);
+}
+#ip-glyph.show{opacity:1}
+#ip-glyph canvas{display:block}
+#ip-glyph .cap{
+  position:absolute;left:50%;transform:translateX(-50%);bottom:-26px;
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;color:var(--dim);
+  white-space:nowrap;
+}
+
+/* ============================================================
+   decoder
+   ============================================================ */
+#decoder{
+  position:fixed;z-index:22;right:26px;top:50%;
+  transform:translateY(-50%);
+  width:236px;
+}
+.dc-label{
+  font-family:var(--mono);font-size:10px;letter-spacing:.24em;color:var(--dim);
+  margin-bottom:10px;display:flex;justify-content:space-between;align-items:baseline;
+}
+.dc-label i{font-style:normal;color:var(--dimmer);letter-spacing:.1em}
+.dc-field{
+  display:flex;align-items:center;gap:9px;
+  border-bottom:1px solid var(--line-2);padding-bottom:9px;
+  transition:border-color .5s var(--ease);
+}
+.dc-field:focus-within{border-color:var(--cy)}
+.dc-field input{
+  flex:1;background:none;border:0;outline:0;
+  font-family:var(--serif);font-size:17px;letter-spacing:.12em;color:var(--ink);
+  padding:3px 0;min-width:0;
+}
+.dc-field input::placeholder{color:var(--dimmer);letter-spacing:.1em}
+.dc-go{
+  background:none;border:0;cursor:pointer;flex:none;
+  font-family:var(--mono);font-size:10px;letter-spacing:.16em;
+  color:var(--dim);transition:color .4s var(--ease),transform .4s var(--ease);
+}
+.dc-go:hover{color:var(--cy);transform:translateX(3px)}
+.dc-hint{
+  margin-top:11px;font-size:11.5px;line-height:1.9;color:var(--dim);
+  font-family:var(--sans);letter-spacing:.02em;
+}
+.dc-seeds{margin-top:13px;display:flex;flex-wrap:wrap;gap:6px}
+.dc-seed{
+  font-family:var(--mono);font-size:10px;letter-spacing:.08em;
+  color:var(--dim);border:1px solid var(--line);padding:4px 9px;border-radius:2px;
+  cursor:pointer;transition:all .4s var(--ease);
+}
+.dc-seed:hover{color:var(--cy);border-color:var(--line-2);background:rgba(111,227,255,.05)}
+.dc-list{
+  margin-top:13px;max-height:132px;overflow-y:auto;
+  display:flex;flex-direction:column;gap:1px;
+  scrollbar-width:thin;scrollbar-color:var(--line-2) transparent;
+}
+.dc-list::-webkit-scrollbar{width:2px}
+.dc-list::-webkit-scrollbar-thumb{background:var(--line-2)}
+.dc-item{
+  display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer;
+  font-size:12px;color:var(--dim);transition:color .35s var(--ease);
+  font-family:var(--serif);letter-spacing:.08em;
+}
+.dc-item:hover{color:var(--ink)}
+.dc-item .sw{width:5px;height:5px;border-radius:50%;flex:none}
+.dc-item .x{
+  margin-left:auto;font-family:var(--mono);font-size:9px;color:var(--dimmer);
+  opacity:0;transition:opacity .35s var(--ease);
+}
+.dc-item:hover .x{opacity:1}
+
+/* ============================================================
+   潜层目录（隐藏入口：连点左上角「潜」五下）
+   ============================================================ */
+#codex{
+  position:fixed;inset:0;z-index:50;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(2,4,7,.88);backdrop-filter:blur(15px);
+  opacity:0;visibility:hidden;
+  transition:opacity .7s var(--ease),visibility .7s;
+}
+#codex.show{opacity:1;visibility:visible}
+.cx-inner{
+  width:min(900px,92vw);max-height:84vh;
+  display:flex;flex-direction:column;
+  border:1px solid var(--line);border-radius:3px;
+  background:linear-gradient(180deg,rgba(9,14,22,.97),rgba(5,8,13,.97));
+  padding:26px 30px 18px;
+}
+.cx-head{
+  display:flex;align-items:baseline;justify-content:space-between;
+  font-family:var(--serif);font-size:17px;letter-spacing:.4em;color:var(--ink);
+  padding-bottom:14px;border-bottom:1px solid var(--line);flex:none;
+}
+.cx-count{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;color:var(--cy)}
+.cx-body{
+  flex:1;overflow-y:auto;margin:15px 0 12px;
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:1px 10px;
+  scrollbar-width:thin;scrollbar-color:var(--line-2) transparent;
+}
+.cx-body::-webkit-scrollbar{width:2px}
+.cx-body::-webkit-scrollbar-thumb{background:var(--line-2)}
+.cx-item{
+  display:flex;align-items:baseline;gap:8px;padding:5px 2px;
+  font-family:var(--serif);font-size:13.5px;letter-spacing:.06em;color:var(--ink-2);
+  transition:color .3s var(--ease),background .3s var(--ease);
+}
+.cx-item:not(.hid):hover{color:var(--ink);background:rgba(160,200,235,.05)}
+.cx-item .mk{font-family:var(--mono);font-size:9px;color:var(--dimmer);flex:none;width:13px}
+.cx-item.hid{color:var(--dimmer);cursor:default}
+.cx-item.hid .nm{letter-spacing:.34em;opacity:.5}
+.cx-sep{
+  grid-column:1/-1;margin:13px 0 6px;
+  font-family:var(--mono);font-size:9px;letter-spacing:.3em;color:var(--dimmer);
+  border-top:1px solid var(--line);padding-top:11px;
+}
+.cx-sep:first-child{border-top:0;margin-top:0;padding-top:0}
+.cx-foot{
+  flex:none;font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;
+  color:var(--dimmer);text-align:center;padding-top:12px;border-top:1px solid var(--line);
+}
+
+/* ============================================================
+   intro
+   ============================================================ */
+/* 半透明：背后那片海一开始就在动，这是最好的说明书 */
+#intro{
+  position:fixed;inset:0;z-index:60;
+  display:flex;align-items:center;justify-content:center;
+  padding:44px;
+  background:radial-gradient(ellipse 74% 66% at 50% 50%,
+    rgba(4,6,10,.58) 0%, rgba(4,6,10,.86) 54%, rgba(4,6,10,.975) 100%);
+  backdrop-filter:blur(3px);
+  transition:opacity 2s var(--ease),visibility 2s,backdrop-filter 2s var(--ease);
+}
+#intro.gone{
+  opacity:0;visibility:hidden;pointer-events:none;
+  backdrop-filter:blur(0px);
+}
+.it-inner{
+  display:flex;flex-direction:column;align-items:center;
+  max-width:780px;width:100%;
+}
+.it-in{animation:rise 1.5s var(--ease) both}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+.it-title{
+  font-family:var(--serif);font-size:clamp(50px,9vw,112px);
+  line-height:1;letter-spacing:.1em;color:var(--ink);
+  display:flex;align-items:baseline;gap:.26em;
+  text-shadow:0 0 70px rgba(4,6,10,.95),0 0 150px rgba(4,6,10,.85);
+}
+.it-title span{
+  font-family:var(--mono);font-size:.11em;letter-spacing:.4em;
+  color:var(--cy);opacity:.85;
+}
+.it-rule{
+  width:1px;height:36px;margin:22px 0 16px;
+  background:linear-gradient(180deg,transparent,var(--line-2),transparent);
+}
+.it-sub{
+  font-family:var(--serif);font-size:15.5px;letter-spacing:.14em;
+  color:var(--ink-2);text-align:center;opacity:.92;
+  text-shadow:0 0 34px rgba(4,6,10,.95);
+}
+
+/* 三个可点的玩法：hover 就在背后真的演示一遍 */
+.it-demos{
+  display:flex;gap:13px;margin-top:38px;
+  flex-wrap:wrap;justify-content:center;
+}
+.it-demo{
+  background:rgba(8,13,20,.46);border:1px solid var(--line);
+  border-radius:3px;cursor:pointer;
+  padding:17px 21px;min-width:158px;
+  display:flex;flex-direction:column;align-items:flex-start;gap:8px;
+  backdrop-filter:blur(7px);
+  transition:transform .45s var(--ease),border-color .45s var(--ease),background .45s var(--ease);
+}
+.it-demo:hover{
+  border-color:rgba(111,227,255,.42);
+  background:rgba(13,24,37,.7);
+  transform:translateY(-3px);
+}
+.it-demo .d-ico{
+  font-size:15px;color:var(--cy);opacity:.82;line-height:1;
+  transition:transform .5s var(--ease),opacity .5s var(--ease);
+}
+.it-demo:hover .d-ico{transform:scale(1.24);opacity:1}
+.it-demo .d-t{
+  font-family:var(--serif);font-size:17px;letter-spacing:.2em;color:var(--ink);
+}
+.it-demo .d-d{
+  font-size:11.5px;letter-spacing:.02em;color:var(--dim);line-height:1.85;
+  text-align:left;
+}
+.it-hint{
+  margin-top:20px;font-family:var(--mono);font-size:9.5px;
+  letter-spacing:.22em;color:var(--dimmer);
+}
+.it-enter{
+  margin-top:24px;
+  background:none;border:1px solid var(--line-2);cursor:pointer;
+  padding:14px 46px;border-radius:2px;
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.34em;color:var(--ink-2);
+  transition:all .6s var(--ease);
+}
+.it-enter:hover{
+  color:var(--bg);background:var(--ink);border-color:var(--ink);
+  letter-spacing:.44em;
+}
+.it-foot{
+  position:absolute;bottom:24px;left:0;right:0;text-align:center;
+  font-family:var(--mono);font-size:9px;letter-spacing:.26em;color:var(--dimmer);
+}
+
+/* 「种下」预览时，右侧解码器亮一下 */
+#decoder.demo-glow .dc-field{border-color:var(--cy)}
+#decoder.demo-glow .dc-label{color:var(--cy)}
+
+/* ---------- toast ---------- */
+#toast{
+  position:fixed;z-index:40;left:50%;top:78px;transform:translateX(-50%) translateY(-10px);
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;color:var(--cy);
+  padding:8px 18px;border:1px solid rgba(111,227,255,.22);border-radius:2px;
+  background:rgba(6,14,22,.72);backdrop-filter:blur(8px);
+  opacity:0;pointer-events:none;
+  transition:opacity .5s var(--ease),transform .5s var(--ease);
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ---------- mobile / small ---------- */
+@media (max-width:900px){
+  #nodeinfo,#decoder{
+    position:fixed;left:16px;right:16px;width:auto;
+    top:auto;bottom:auto;transform:none;
+  }
+  #nodeinfo{top:74px}
+  #nodeinfo.show{transform:none}
+  #decoder{bottom:120px}
+  #interp{bottom:104px;width:100%;padding:0 10px}
+  .ip-cell{width:56px}
+  .ip-cell .w{font-size:12px}
+  #hints{display:none}
+  .tagline{display:none}
+  #hud-tr{display:none}
+}
+</style>
+</head>
+<body>
+
+<canvas id="stage"></canvas>
+<div id="vignette"></div>
+<div id="grain"></div>
+<div id="scanline"></div>
+
+<!-- ============ HUD ============ -->
+<div class="hud" id="hud-tl">
+  <div class="brand"><b>潜</b><i>LATENT</i></div>
+  <div class="tagline">A navigable atlas of<br>the space between meanings</div>
+</div>
+
+<div class="hud" id="hud-tr">
+  <div class="readout">
+    <div><span class="k">COORD</span><span class="v" id="ro-xy">0 , 0</span></div>
+    <div><span class="k">ZOOM</span><span class="v" id="ro-z">1.00×</span></div>
+    <div><span class="k">LUMEN</span><span class="v" id="ro-n">24</span></div>
+    <div><span class="k">UMBRA</span><span class="v" id="ro-u">0 / 28</span></div>
+    <div><span class="k">FPS</span><span class="v" id="ro-f">60</span></div>
+  </div>
+</div>
+
+<div class="hud" id="hud-bl">
+  <div id="hints">
+    <div class="chip" data-hint="drag"><span class="box"></span><em>拖动 / 滚轮</em> 在潜空间里航行</div>
+    <div class="chip" data-hint="pair"><span class="box"></span><em>依次点击两个概念</em> 观察它们之间长出什么</div>
+    <div class="chip" data-hint="seed"><span class="box"></span><em>在右侧输入一个词</em> 让它在这里获得形状</div>
+  </div>
+  <div id="keys">D 漫游　R 全图　P 播放　SPACE 声音　ESC 取消<br><i>有些词，只在你做了某件事之后才出现</i></div>
+</div>
+
+<button id="audio-btn">
+  <span class="bars"><span></span><span></span><span></span><span></span></span>
+  <span id="audio-txt">SOUND OFF</span>
+</button>
+
+<!-- ============ node info ============ -->
+<aside id="nodeinfo">
+  <div class="ni-rule"></div>
+  <div class="ni-zh" id="ni-zh"></div>
+  <div class="ni-en" id="ni-en"></div>
+  <div class="ni-note" id="ni-note"></div>
+  <div class="ni-meta" id="ni-meta"></div>
+</aside>
+
+<!-- ============ interpolation ============ -->
+<section id="interp">
+  <div class="ip-head">
+    <span class="ip-end" id="ip-a"></span>
+    <span class="ip-arrow" id="ip-arrow"></span>
+    <span class="ip-end" id="ip-b"></span>
+  </div>
+  <div class="ip-track" id="ip-track"></div>
+  <div class="ip-foot">
+    <button class="ip-btn" id="ip-play"><i id="ip-play-ico">▶</i><span id="ip-play-txt">播放流变</span></button>
+    <span class="ip-dist" id="ip-dist"></span>
+    <span class="ip-acts">
+      <button class="ip-btn ghost" id="ip-card">明信片</button>
+      <button class="ip-btn ghost" id="ip-link">复制链接</button>
+    </span>
+  </div>
+</section>
+<div id="ip-glyph"><canvas id="ip-gc" width="230" height="230"></canvas><div class="cap" id="ip-gcap"></div></div>
+
+<!-- ============ decoder ============ -->
+<section id="decoder">
+  <div class="dc-label"><span>DECODER / 解码器</span><i id="dc-count">0</i></div>
+  <div class="dc-field">
+    <input id="dc-input" maxlength="12" placeholder="种下一个词" autocomplete="off" spellcheck="false">
+    <button class="dc-go" id="dc-go">↓ 种入</button>
+  </div>
+  <div class="dc-hint">任意文字会被折叠成一对坐标，<br>并在潜空间里长成独属于它的形状。</div>
+  <div class="dc-seeds" id="dc-seeds"></div>
+  <div class="dc-list" id="dc-list"></div>
+</section>
+
+<div id="toast"></div>
+
+<!-- ============ 潜层目录（隐藏入口） ============ -->
+<div id="codex">
+  <div class="cx-inner">
+    <div class="cx-head">
+      <span>潜 层 目 录</span>
+      <span class="cx-count" id="cx-count"></span>
+    </div>
+    <div class="cx-body" id="cx-body"></div>
+    <div class="cx-foot" id="cx-foot">已显形的会写下名字 · 其余的留给还没发生的动作</div>
+  </div>
+</div>
+
+<!-- ============ intro ============ -->
+<div id="intro">
+  <div class="it-inner">
+    <div class="it-title it-in" style="animation-delay:.1s">潜<span>LATENT</span></div>
+    <div class="it-rule it-in" style="animation-delay:.3s"></div>
+    <div class="it-sub it-in" style="animation-delay:.4s">在两个意义之间，有一片没被命名的海</div>
+
+    <div class="it-demos it-in" style="animation-delay:.55s">
+      <button class="it-demo" data-act="roam">
+        <span class="d-ico">◎</span>
+        <span class="d-t">航行</span>
+        <span class="d-d">拖动 · 滚轮<br>去这片海的任何地方</span>
+      </button>
+      <button class="it-demo" data-act="link">
+        <span class="d-ico">◈</span>
+        <span class="d-t">连接</span>
+        <span class="d-d">选两个词<br>看它们之间长出什么</span>
+      </button>
+      <button class="it-demo" data-act="sow">
+        <span class="d-ico">✧</span>
+        <span class="d-t">种下</span>
+        <span class="d-d">输入任意文字<br>让它长出自己的形状</span>
+      </button>
+    </div>
+
+    <div class="it-hint it-in" style="animation-delay:.7s">把鼠标放在上面 —— 背后会真的演示一遍</div>
+
+    <button class="it-enter it-in" id="it-enter" style="animation-delay:.85s">进入潜空间</button>
+  </div>
+  <div class="it-foot it-in" style="animation-delay:1s">ZERO DEPENDENCIES · HAND-WRITTEN CANVAS · GENERATIVE AUDIO</div>
+</div>
+
+<script>
+"use strict";
+/* ==========================================================================
+   LATENT / 潜
+   一座可以航行的意义间隙地图
+   --------------------------------------------------------------------------
+   全部手写：噪声 / 形态生成 / 渲染管线 / 辉光 / 音频合成
+   零第三方依赖
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   0. 基础数学与随机
+   -------------------------------------------------------------------------- */
+const TAU = Math.PI * 2;
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const lerp  = (a, b, t) => a + (b - a) * t;
+const smooth = t => t * t * (3 - 2 * t);
+const smoother = t => t*t*t*(t*(t*6-15)+10);
+const easeOut = t => 1 - Math.pow(1 - t, 3);
+const mix = (a, b, t) => a + (b - a) * t;
+
+/* 确定性 PRNG —— 同一个 seed 永远长成同一个形状 */
+function mulberry32(a){
+  return function(){
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+/* 字符串 → 32bit 哈希，用于把任意文字折叠成潜坐标 */
+function hash32(str){
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < str.length; i++){
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+/* 从一段文字派生多个独立子种子 */
+function subSeed(str, salt){
+  return (hash32(str) ^ Math.imul(salt + 1, 0x9E3779B1)) >>> 0;
+}
+
+/* --------------------------------------------------------------------------
+   1. 值噪声（3D：x, y, 时间）—— 驱动整个空间的"潜流"
+   -------------------------------------------------------------------------- */
+const NOISE_SIZE = 256;
+const NOISE_MASK = 255;
+const perm = new Uint8Array(512);
+const gradP = new Float32Array(512);
+(function buildNoise(){
+  const rnd = mulberry32(0x5EED17);
+  const p = new Uint8Array(256);
+  for (let i = 0; i < 256; i++) p[i] = i;
+  for (let i = 255; i > 0; i--){
+    const j = (rnd() * (i + 1)) | 0;
+    const t = p[i]; p[i] = p[j]; p[j] = t;
+  }
+  for (let i = 0; i < 512; i++){
+    perm[i] = p[i & 255];
+    gradP[i] = (perm[i] / 255) * 2 - 1;
+  }
+})();
+const fade = t => t * t * t * (t * (t * 6 - 15) + 10);
+function vnoise3(x, y, z){
+  let X = Math.floor(x) & 255, Y = Math.floor(y) & 255, Z = Math.floor(z) & 255;
+  x -= Math.floor(x); y -= Math.floor(y); z -= Math.floor(z);
+  const u = fade(x), v = fade(y), w = fade(z);
+  const A = perm[X] + Y, AA = perm[A & 255] + Z, AB = perm[(A + 1) & 255] + Z;
+  const B = perm[(X + 1) & 255] + Y, BA = perm[B & 255] + Z, BB = perm[(B + 1) & 255] + Z;
+  const g = (h, dx, dy, dz) => gradP[h & 511] * dx + gradP[(h + 87) & 511] * dy + gradP[(h + 173) & 511] * dz;
+  const x1 = lerp(g(perm[AA & 255], x, y, z),           g(perm[BA & 255], x - 1, y, z), u);
+  const x2 = lerp(g(perm[AB & 255], x, y - 1, z),       g(perm[BB & 255], x - 1, y - 1, z), u);
+  const y1 = lerp(x1, x2, v);
+  const x3 = lerp(g(perm[(AA + 1) & 255], x, y, z - 1),     g(perm[(BA + 1) & 255], x - 1, y, z - 1), u);
+  const x4 = lerp(g(perm[(AB + 1) & 255], x, y - 1, z - 1), g(perm[(BB + 1) & 255], x - 1, y - 1, z - 1), u);
+  const y2 = lerp(x3, x4, v);
+  return lerp(y1, y2, w);
+}
+function fbm3(x, y, z, oct){
+  let a = 1, f = 1, s = 0, n = 0;
+  for (let i = 0; i < (oct || 3); i++){
+    s += a * vnoise3(x * f, y * f, z * f);
+    n += a; a *= 0.5; f *= 2.03;
+  }
+  return s / n;
+}
+/* curl noise —— 无散度向量场，让流线自然打旋而不汇聚 */
+function curl2(x, y, t, e){
+  e = e || 0.0016;
+  const n1 = fbm3(x, y + e, t, 2), n2 = fbm3(x, y - e, t, 2);
+  const n3 = fbm3(x + e, y, t, 2), n4 = fbm3(x - e, y, t, 2);
+  return [(n1 - n2) / (2 * e), -(n3 - n4) / (2 * e)];
+}
+
+/* --------------------------------------------------------------------------
+   2. 颜色
+   -------------------------------------------------------------------------- */
+function hsl(h, s, l, a){
+  return 'hsla(' + (((h % 360) + 360) % 360).toFixed(1) + ',' + s + '%,' + l + '%,' + (a === undefined ? 1 : a) + ')';
+}
+/* 潜坐标 → 色相：x 偏冷青，y 越深越紫，越"热"越金 */
+function coordHue(x, y){
+  const xn = clamp(x / 1100, -1, 1), yn = clamp(y / 900, -1, 1);
+  let h = 196 + xn * 34 - yn * 52;
+  if (Math.abs(xn) + Math.abs(yn) > 1.15) h += 26;
+  return h;
+}
+
+/* --------------------------------------------------------------------------
+   3. 概念数据
+   坐标由语义手工排布：
+     X 轴  内敛 / 静止  ──────────────►  外扩 / 运动
+     Y 轴  冷 / 秩序 / 结构  ─────────►  热 / 混沌 / 生命
+   out[] : 从这个概念出发，一步步远离它
+   in[]  : 从别处一步步靠近这个概念
+   -------------------------------------------------------------------------- */
+const CONCEPTS = [
+  { id:'silence', zh:'沉默', en:'SILENCE', x:-860, y:-280, arch:'ring', hue:196, s:1.02,
+    out:['屏息','留白','未被说出的','空气的厚度','话已到嘴边'],
+    in: ['声音退潮','词沉下去','安静聚拢','呼吸放慢','万籁收束'],
+    note:'不是没有声音，是声音还在，只是不再指向谁。' },
+
+  { id:'solitude', zh:'孤独', en:'SOLITUDE', x:-940, y:130, arch:'ring', hue:206, s:1.0,
+    out:['一个人待着','空房间','信号无人接收','对着自己说话','回声练习'],
+    in: ['人群散去','消息不再响起','夜变长','世界退到远处','只剩自己'],
+    note:'孤独不是缺少别人，是缺少一个接得住你的人。' },
+
+  { id:'oblivion', zh:'遗忘', en:'OBLIVION', x:-620, y:440, arch:'dissolve', hue:178, s:1.04,
+    out:['模糊','褪色','轮廓松开','名字滑落','不再被想起'],
+    in: ['细节流失','颜色变淡','声音变远','最后一次提起','无人认领'],
+    note:'遗忘不是删除，是文件还在，只是再没人打开。' },
+
+  { id:'memory', zh:'记忆', en:'MEMORY', x:-430, y:-520, arch:'lattice', hue:214, s:1.06,
+    out:['回响','旧物','某个下午的气味','断续的片段','被反复讲述'],
+    in: ['气味先到','画面浮起','细节重新亮起','忽然清晰','宛如昨日'],
+    note:'记忆不是录像，是每次回忆时重新写一遍的稿子。' },
+
+  { id:'entropy', zh:'熵', en:'ENTROPY', x:250, y:650, arch:'chaos', hue:38, s:1.05,
+    out:['扩散','趋于均匀','温差消失','不再有形状','一切等可能'],
+    in: ['结构松动','秩序渗漏','边界模糊','信息丢失','归于平淡'],
+    note:'熵不是混乱，是所有可能终于变得一样多。' },
+
+  { id:'order', zh:'秩序', en:'ORDER', x:340, y:-720, arch:'lattice', hue:188, s:1.0,
+    out:['排列','规则','可预测','对称','各就各位'],
+    in: ['噪声减弱','重复出现','模式浮现','误差被修正','收敛'],
+    note:'秩序是概率极低的一种状态，所以它才显得美。' },
+
+  { id:'chaos', zh:'混沌', en:'CHAOS', x:730, y:530, arch:'chaos', hue:6, s:1.06,
+    out:['分岔','扰动','不可预测','一只蝴蝶','失控'],
+    in: ['微小差异','被放大','轨迹分离','确定性崩解','再算也算不出'],
+    note:'混沌不是没有规律，是规律对初始条件过于敏感。' },
+
+  { id:'emergence', zh:'涌现', en:'EMERGENCE', x:620, y:-230, arch:'cluster', hue:268, s:1.08,
+    out:['个体还在','规则很简单','相互作用','整体出现','多了一种性质'],
+    in: ['没有谁在指挥','局部无知','连接变密','临界点','忽然就会了'],
+    note:'没有一只鸟知道队形长什么样，但队形存在。' },
+
+  { id:'growth', zh:'生长', en:'GROWTH', x:440, y:130, arch:'filament', hue:96, s:1.0,
+    out:['伸展','分叉','向外试探','叶片转向','再长一节'],
+    in: ['养分积累','细胞排队','破土','方向确定','不可逆地展开'],
+    note:'生长是唯一一种能把错误也吃进去的聪明。' },
+
+  { id:'decay', zh:'衰变', en:'DECAY', x:-240, y:530, arch:'dissolve', hue:28, s:1.0,
+    out:['松动','剥落','结构失效','归尘','成为别的东西的养分'],
+    in: ['边缘先坏','强度下降','时间显形','支撑不住','缓慢让步'],
+    note:'衰变不是终止，是把结构交还给别的过程。' },
+
+  { id:'childhood', zh:'童年', en:'CHILDHOOD', x:-750, y:280, arch:'spiral', hue:52, s:1.02,
+    out:['蝉鸣','暑假的下午','不敢说的喜欢','以为会永远','第一次意识到会结束'],
+    in: ['个子还小','时间很慢','大人很高','世界很大','不知道什么叫失去'],
+    note:'童年结束的那一刻，是发现大人也不知道答案。' },
+
+  { id:'death', zh:'死亡', en:'DEATH', x:-90, y:740, arch:'dissolve', hue:350, s:1.1,
+    out:['停止','安静','不再回应','被记住','被继续活着的人修改'],
+    in: ['呼吸变浅','意识变薄','边界松开','最后一次','没有之后'],
+    note:'死亡最锋利的部分，不是结束，是它只对旁观者成立。' },
+
+  { id:'love', zh:'爱', en:'LOVE', x:530, y:-480, arch:'cluster', hue:332, s:1.1,
+    out:['在意','想被看见','愿意让步','把对方放进计划','成为习惯'],
+    in: ['多看了两眼','心跳失序','开始记住细节','怕失去','愿意承担'],
+    note:'爱不是感觉，是把另一个人的变量写进自己的目标函数。' },
+
+  { id:'fear', zh:'恐惧', en:'FEAR', x:-530, y:-690, arch:'filament', hue:264, s:1.02,
+    out:['警觉','后退','预演最坏','僵住','逃跑或战斗'],
+    in: ['不确定','影子变长','声音靠近','心跳提前','来不及想'],
+    note:'恐惧是身体比意识更早算完的那道题。' },
+
+  { id:'ambition', zh:'野心', en:'AMBITION', x:850, y:-530, arch:'spiral', hue:44, s:1.04,
+    out:['想要更多','不满足','向上','要被看见','想留下痕迹'],
+    in: ['比较','不甘','看见更高的位置','假设自己可以','不再解释'],
+    note:'野心不是贪婪，是不接受「到此为止」这个答案。' },
+
+  { id:'creation', zh:'创造', en:'CREATION', x:730, y:-120, arch:'filament', hue:78, s:1.05,
+    out:['动手','试','失败','修改','做出来了'],
+    in: ['一个念头','素材凑齐','手开始动','不完美但存在','第一次被看见'],
+    note:'创造是把「我觉得可以」逼成「它真的在了」。' },
+
+  { id:'language', zh:'语言', en:'LANGUAGE', x:0, y:-330, arch:'lattice', hue:166, s:1.07,
+    out:['命名','比喻','句子','故事','一整个能被理解的世界'],
+    in: ['声音有了形状','指称成立','彼此确认','误解','再解释一次'],
+    note:'语言不是装思想的盒子，是思想能走多远的地基。' },
+
+  { id:'time', zh:'时间', en:'TIME', x:130, y:230, arch:'spiral', hue:216, s:1.08,
+    out:['流逝','积累','不可逆','回头看','来不及'],
+    in: ['滴答','日历变薄','孩子长高','照片变黄','忽然有一天'],
+    note:'时间不是一条河，是我们给「变化」起的同一个名字。' },
+
+  { id:'light', zh:'光', en:'LIGHT', x:950, y:-730, arch:'cluster', hue:184, s:1.03,
+    out:['照亮','穿透','折射','影子出现','看得见了'],
+    in: ['边缘变亮','轮廓浮出','暗处退开','被看见','不再需要想象'],
+    note:'光本身不可见，我们看见的永远是它撞上的东西。' },
+
+  { id:'abyss', zh:'深渊', en:'ABYSS', x:0, y:830, arch:'chaos', hue:248, s:1.12,
+    out:['下坠','没有底','被注视','回望','还能再退一步'],
+    in: ['脚下变软','边界消失','声音传不回来','失去参照','开始习惯'],
+    note:'深渊最可怕的不是深，是你发现自己在估算距离。' },
+
+  { id:'echo', zh:'回声', en:'ECHO', x:-330, y:-90, arch:'ring', hue:152, s:1.0,
+    out:['重复','减弱','延迟','变形','越来越像自己'],
+    in: ['喊出去','撞回来','晚一点','少了点什么','第二次'],
+    note:'回声证明那里有墙，也证明你曾经出过声。' },
+
+  { id:'boundary', zh:'边界', en:'BOUNDARY', x:550, y:430, arch:'lattice', hue:120, s:1.0,
+    out:['划线','内外','限制','保护','另一边'],
+    in: ['密度变化','性质改变','到这里为止','越过去就不一样','分界显现'],
+    note:'边界不是终点，是定义「里面」这件事本身。' },
+
+  { id:'chance', zh:'偶然', en:'CHANCE', x:-130, y:-830, arch:'chaos', hue:302, s:1.03,
+    out:['随机','掷出','不可控','恰好','如果那一刻'],
+    in: ['概率分布','还没落定','多种可能','收束','其中一种发生'],
+    note:'偶然是还没被追溯完的因果。' },
+
+  { id:'self', zh:'我', en:'SELF', x:0, y:0, arch:'spiral', hue:280, s:1.22,
+    out:['选择','承担','成为','被误解','继续'],
+    in: ['意识到自己在看','记忆连成线','开始解释自己','有了偏好','不肯让步'],
+    note:'「我」不是被发现的东西，是被持续做出来的东西。' }
+];
+
+/* ==========================================================================
+   暗层 · UMBRA —— 28 个来自诗词的意象
+   默认不显形。它们各自只向某一种特定的行为回应。
+   via: echo 回声 / return 逆旅 / middle 中点 / still 静默 / edge 边缘 / seed 播种
+   note 一律用原句，作为这个词在语言里最初的栖身之所。
+   ========================================================================== */
+const DEEP = [
+  { id:'snowfall', zh:'雪落', en:'SNOWFALL', x:-1010, y:-420, arch:'dissolve', hue:200, s:.94, via:'echo',
+    out:['一片一片','盖住脚印','世界变轻','没有声音','再等一场'],
+    in: ['天暗下来','风停了','第一片','越来越多的白','落下来'],
+    note:'晚来天欲雪，能饮一杯无。' },
+
+  { id:'rainlisten', zh:'听雨', en:'LISTENING TO RAIN', x:-900, y:-520, arch:'ring', hue:186, s:.98, via:'echo',
+    out:['一整夜','滴到天明','屋檐','睡不着','雨停了才听见安静'],
+    in: ['开始下','打在瓦上','一声一声','躺着听','整夜'],
+    note:'小楼一夜听春雨，深巷明朝卖杏花。' },
+
+  { id:'emptymt', zh:'空山', en:'EMPTY MOUNTAIN', x:-1000, y:-150, arch:'ring', hue:158, s:1.0, via:'echo',
+    out:['没有人','只剩下声音','鸟叫更显得空','走遍也不见','空'],
+    in: ['雨停了','雾散','走进去','脚步有回声','空'],
+    note:'空山新雨后，天气晚来秋。' },
+
+  { id:'moss', zh:'苔痕', en:'MOSS-TRACE', x:-700, y:-560, arch:'lattice', hue:128, s:.96, via:'echo',
+    out:['爬上来','盖住台阶','没人踩','越来越厚','一直绿着'],
+    in: ['潮湿','石缝里','一点绿','慢慢蔓延','长成一片'],
+    note:'苔痕上阶绿，草色入帘青。' },
+
+  { id:'farbell', zh:'远钟', en:'DISTANT BELL', x:-520, y:30, arch:'ring', hue:214, s:.98, via:'echo',
+    out:['荡开','越来越淡','散在夜色里','听不见了','余音'],
+    in: ['远处传来','一下','穿过空气','撞到心上','还在响'],
+    note:'姑苏城外寒山寺，夜半钟声到客船。' },
+
+  { id:'gooseword', zh:'雁字', en:'GOOSE-SCRIPT', x:180, y:-520, arch:'lattice', hue:196, s:.95, via:'echo',
+    out:['写在天上','风吹散','没人读懂','一整行','远去'],
+    in: ['抬头看见','排成字','一撇一捺','像谁写的','消息'],
+    note:'云中谁寄锦书来，雁字回时，月满西楼。' },
+
+  { id:'wutong', zh:'梧桐', en:'WUTONG', x:-280, y:800, arch:'filament', hue:32, s:.98, via:'gaze',
+    out:['叶子黄了','一片一片掉','扫了又落','整个秋天','光秃'],
+    in: ['起风','叶响','第一片落下','满地','秋深了'],
+    note:'梧桐更兼细雨，到黄昏、点点滴滴。' },
+
+  { id:'starlet', zh:'星子', en:'STARLET', x:700, y:-880, arch:'cluster', hue:218, s:.94, via:'leap',
+    out:['一颗','很多颗','隔着很远','光走了很久','才到眼睛'],
+    in: ['天黑透','抬起头','一点一点亮','密起来','满天'],
+    note:'星垂平野阔，月涌大江流。' },
+
+  { id:'wildferry', zh:'野渡', en:'UNTENDED FERRY', x:900, y:480, arch:'filament', hue:150, s:.96, via:'leap',
+    out:['没人管','自己漂','系着','水涨','不知道在等谁'],
+    in: ['走到渡口','没有人','船还在','解开','自己划'],
+    note:'春潮带雨晚来急，野渡无人舟自横。' },
+
+  { id:'bluehaze', zh:'青霭', en:'BLUE HAZE', x:-260, y:990, arch:'dissolve', hue:168, s:.98, via:'leap',
+    out:['散了','回头看','什么都没有','又合拢','刚才像假的'],
+    in: ['远山有雾','走过去','被包住','看不见路','青色'],
+    note:'白云回望合，青霭入看无。' },
+
+  { id:'sparseshade', zh:'疏影', en:'SPARSE SHADOW', x:-560, y:-330, arch:'filament', hue:300, s:.95, via:'echo',
+    out:['横斜','映在水上','动了','碎掉','月亮下去就没了'],
+    in: ['月光下','花枝','投下来','淡淡的','几笔'],
+    note:'疏影横斜水清浅，暗香浮动月黄昏。' },
+
+  { id:'slightfrost', zh:'微霜', en:'SLIGHT FROST', x:380, y:-180, arch:'lattice', hue:184, s:.93, via:'gaze',
+    out:['薄薄一层','踩上去','太阳一出就化','明天更冷','白'],
+    in: ['夜里降温','早上看见','是白的','摸一下','凉'],
+    note:'鸡声茅店月，人迹板桥霜。' },
+
+  { id:'moonwhite', zh:'月白', en:'MOON-WHITE', x:1060, y:-300, arch:'ring', hue:190, s:1.0, via:'return',
+    out:['照着','不说话','照见所有','也照见空','天亮就走'],
+    in: ['云散开','地上亮了','抬起头','看见','被照亮'],
+    note:'月白风清，如此良夜何。' },
+
+  { id:'gooseback', zh:'归鸿', en:'RETURNING GOOSE', x:-880, y:480, arch:'spiral', hue:52, s:.96, via:'return',
+    out:['排成人字','往南','越来越小','看不见了','春天再来'],
+    in: ['天上一行','叫了一声','抬起头','数不清','往南去'],
+    note:'淮南秋雨夜，高斋闻雁来。' },
+];
+const DEEP_B = [
+  { id:'oldfriend', zh:'故人', en:'OLD FRIEND', x:560, y:-700, arch:'cluster', hue:320, s:1.02, via:'return',
+    out:['多年不见','提起名字','还在某个城市','断了音讯','偶尔梦见'],
+    in: ['忽然想起','翻到照片','想联系','又放下','故人'],
+    note:'故人入我梦，明我长相忆。' },
+
+  { id:'coldmt', zh:'寒山', en:'COLD MOUNTAIN', x:-1020, y:-50, arch:'lattice', hue:196, s:1.0, via:'relinquish',
+    out:['没有鸟','没有人','只有石头','更冷','一直那样'],
+    in: ['爬上去','风大','树少了','到半山','冷'],
+    note:'千山鸟飞绝，万径人踪灭。' },
+
+  { id:'firefly', zh:'流萤', en:'DRIFTING FIREFLY', x:-330, y:-960, arch:'chaos', hue:84, s:.92, via:'middle',
+    out:['忽明忽暗','飞远','找不到了','以为还有','只剩夜'],
+    in: ['一点亮','飘过来','又一闪','追上去','在手心'],
+    note:'银烛秋光冷画屏，轻罗小扇扑流萤。' },
+
+  { id:'apricotrain', zh:'杏花雨', en:'APRICOT RAIN', x:620, y:60, arch:'chaos', hue:348, s:.94, via:'middle',
+    out:['湿了衣','看不清','落在肩上','不觉得','回家才发现'],
+    in: ['花瓣在飞','混着雨','沾上来','细细的','春天在下雨'],
+    note:'沾衣欲湿杏花雨，吹面不寒杨柳风。' },
+
+  { id:'whitedew', zh:'白露', en:'WHITE DEW', x:850, y:700, arch:'cluster', hue:172, s:.95, via:'middle',
+    out:['凝成','压弯草','太阳一出','消失','明天再来'],
+    in: ['夜里变凉','水汽聚起来','草尖上','一颗一颗','白'],
+    note:'蒹葭苍苍，白露为霜。' },
+
+  { id:'loneboat', zh:'孤舟', en:'LONELY BOAT', x:-1080, y:300, arch:'filament', hue:202, s:.98, via:'still',
+    out:['一个人','顺流','没人知道','越走越远','变成一个点'],
+    in: ['解开缆','岸在后退','只剩下水','天地变大','独自'],
+    note:'孤舟蓑笠翁，独钓寒江雪。' },
+
+  { id:'dusk', zh:'暮色', en:'DUSK', x:300, y:470, arch:'dissolve', hue:24, s:.97, via:'still',
+    out:['天边最后一寸','影子拉长','轮廓模糊','颜色退尽','夜接手'],
+    in: ['光变软','房子暗了','该回去了','鸟都飞回','天要黑了'],
+    note:'日暮乡关何处是，烟波江上使人愁。' },
+
+  { id:'eveningclear', zh:'晚晴', en:'EVENING CLEAR', x:60, y:430, arch:'ring', hue:42, s:.94, via:'relinquish',
+    out:['最后的光','特别好','很快就没了','记得那一刻','天黑'],
+    in: ['雨停','云开','太阳又出来','照在湿的地上','难得'],
+    note:'天意怜幽草，人间重晚晴。' },
+
+  { id:'homeboat', zh:'归舟', en:'RETURNING BOAT', x:-980, y:430, arch:'filament', hue:46, s:.96, via:'edge',
+    out:['离开岸','水痕合拢','灯越来越小','回头看不见','只剩水声'],
+    in: ['远处有灯','桨声近了','认出那个码头','减速','靠岸'],
+    note:'兴尽晚回舟，误入藕花深处。' },
+
+  { id:'oldletter', zh:'旧信', en:'OLD LETTER', x:-820, y:570, arch:'dissolve', hue:40, s:.95, via:'edge',
+    out:['泛黄','字迹淡了','折痕还在','没人再读','但还在抽屉里'],
+    in: ['翻出来','认出笔迹','日期是那年','拆开','重新读一遍'],
+    note:'欲寄彩笺兼尺素，山长水阔知何处。' },
+
+  { id:'springsnow', zh:'春雪', en:'SPRING SNOW', x:840, y:-330, arch:'chaos', hue:172, s:.93, via:'edge',
+    out:['落在新绿上','很快就化','冷了一下','又暖','春天继续'],
+    in: ['三月','忽然下起来','落在花上','意外','短暂的'],
+    note:'白雪却嫌春色晚，故穿庭树作飞花。' },
+
+  { id:'springword', zh:'春信', en:"SPRING'S WORD", x:620, y:330, arch:'filament', hue:100, s:.95, via:'seed',
+    out:['一枝','折下','寄出去','在路上','到了就开了'],
+    in: ['枝头动了','一点颜色','消息传来','忍不住','春天被证实了'],
+    note:'江南无所有，聊赠一枝春。' },
+
+  { id:'fallenbloom', zh:'落花', en:'FALLING BLOSSOM', x:-420, y:680, arch:'dissolve', hue:344, s:.97, via:'seed',
+    out:['离开枝头','转两圈','落地','被踩过','明年不是这一朵'],
+    in: ['风起了','松手','飘着','慢慢','落下'],
+    note:'落花人独立，微雨燕双飞。' },
+
+  { id:'cooksmoke', zh:'炊烟', en:'COOKING SMOKE', x:450, y:800, arch:'filament', hue:30, s:.94, via:'seed',
+    out:['升起','被风吹斜','散开','天黑了','灭了'],
+    in: ['灶火','屋顶上','一缕','笔直','有人在做饭'],
+    note:'暧暧远人村，依依墟里烟。' },
+];
+DEEP.push.apply(DEEP, DEEP_B);
+
+/* 六种显形方式 —— 每个只说半句，另外半句留给去做的人 */
+const VIA_HINT = {
+  echo:   '有些词只在回声里出现。',
+  return: '同一段路，走回去会看见别的东西。',
+  middle: '只有在流动中，才抓得住中间那个。',
+  still:  '你不找它的时候，它自己会来。',
+  edge:   '有些东西只在边界处显形。',
+  seed:   '你种下的，会引来别的。',
+  leap:   '离得越远的两个词，中间藏着越多东西。',
+  gaze:   '盯着一个词看久了，它会变。',
+  relinquish: '你放弃的那条路上，也有东西。'
+};
+const VIA_NAME = {
+  echo:'回声', return:'逆旅', middle:'中点', still:'静默', edge:'边界',
+  seed:'播种', leap:'跨越', gaze:'凝视', relinquish:'放手'
+};
+
+/* 用户种下的节点：用模板生成它的语义邻域 */
+const USER_OUT = ['{n}之始','离{n}渐远','{n}的余震','{n}在变淡','将不再是{n}'];
+const USER_IN  = ['{n}的预感','朝着{n}去','{n}正在成形','几乎是{n}','{n}'];
+const seedWords = t => ({
+  out: USER_OUT.map(s => s.replace(/\{n\}/g, t)),
+  in:  USER_IN.map(s => s.replace(/\{n\}/g, t))
+});
+
+/* 解码器建议词：全部是人类共通经验，不指向任何具体的人 */
+const PRESET_SEEDS = ['自由','明天','雨','一支歌','旧照片','没能说出口的话','南方','凌晨三点','家','第一次'];
+
+
+/* --------------------------------------------------------------------------
+   4. 形态生成器
+   7 种原型，统一输出 { pts:Float32Array(2N), edges:Int32Array }
+   坐标归一化到 [-1,1]，可复现（由 seed 决定）
+   -------------------------------------------------------------------------- */
+const SHAPE_N = 140;
+const shapeCache = new Map();
+
+/* 把一堆点缩放到统一半径内，保证不同原型视觉体量一致 */
+function normalizeShape(pts){
+  let m = 0;
+  for (let i = 0; i < pts.length; i += 2){
+    const d = pts[i]*pts[i] + pts[i+1]*pts[i+1];
+    if (d > m) m = d;
+  }
+  m = Math.sqrt(m);
+  if (m > 1e-4){
+    const k = 0.96 / m;
+    for (let i = 0; i < pts.length; i += 2){ pts[i] *= k; pts[i+1] *= k; }
+  }
+}
+
+const GEN = {
+  /* 环 —— 同心、闭合、内省：沉默 / 孤独 / 回声 */
+  ring(rnd, pts, E){
+    const layers = [48, 46, 46], radii = [0.30, 0.60, 0.90];
+    let k = 0;
+    for (let L = 0; L < 3; L++){
+      const n = layers[L], r = radii[L];
+      const phase = rnd() * TAU, amp = 0.045 + rnd() * 0.075, wob = 2 + ((rnd() * 4) | 0);
+      for (let i = 0; i < n; i++){
+        const a = phase + i / n * TAU;
+        const rr = r * (1 + Math.sin(a * wob + L * 1.7) * amp + (rnd() - 0.5) * 0.03);
+        pts[k*2] = Math.cos(a) * rr; pts[k*2+1] = Math.sin(a) * rr; k++;
+      }
+    }
+    let base = 0;
+    for (let L = 0; L < 3; L++){
+      const n = layers[L];
+      for (let i = 0; i < n; i++){
+        E.push(base + i, base + (i + 1) % n);
+        if (i % 5 === 0 && L < 2){
+          const nn = layers[L + 1];
+          E.push(base + i, base + n + Math.floor(i / n * nn));
+        }
+      }
+      base += n;
+    }
+  },
+
+  /* 丝 —— 从核心向外试探的流线：恐惧 / 创造 / 生长 */
+  filament(rnd, pts, E){
+    const strands = 7, steps = 20;
+    let k = 0;
+    for (let s = 0; s < strands; s++){
+      const a0 = s / strands * TAU + (rnd() - 0.5) * 0.42;
+      let x = Math.cos(a0) * 0.09, y = Math.sin(a0) * 0.09;
+      const zs = rnd() * 90;
+      for (let i = 0; i < steps; i++){
+        pts[k*2] = x; pts[k*2+1] = y;
+        if (i > 0) E.push(k - 1, k);
+        const c = curl2(x * 1.6 + s * 3.7, y * 1.6, zs, 0.01);
+        const m = Math.hypot(c[0], c[1]) || 1;
+        const t = i / steps, outw = 0.052 * (1 - t * 0.52);
+        x += (c[0] / m) * 0.030 + Math.cos(a0) * outw;
+        y += (c[1] / m) * 0.030 + Math.sin(a0) * outw;
+        k++;
+      }
+    }
+    for (let s = 0; s < strands; s += 2){
+      E.push(s * steps + 2, ((s + 3) % strands) * steps + 4);
+    }
+  },
+
+  /* 簇 —— 无中心的密集连接：涌现 / 爱 / 光 */
+  cluster(rnd, pts, E){
+    const GA = 2.39996322972865332;
+    for (let i = 0; i < SHAPE_N; i++){
+      const r = 0.97 * Math.sqrt((i + 0.6) / SHAPE_N);
+      const a = i * GA + (rnd() - 0.5) * 0.16;
+      const rr = r * (1 + (rnd() - 0.5) * 0.15);
+      pts[i*2] = Math.cos(a) * rr; pts[i*2+1] = Math.sin(a) * rr;
+    }
+    for (let i = 1; i < SHAPE_N; i++){
+      E.push(i - 1, i);
+      if (i >= 8)  E.push(i - 8, i);
+      if (i >= 21 && (i & 1) === 0) E.push(i - 21, i);
+    }
+  },
+
+  /* 涡 —— 无散度湍流轨迹：混沌 / 熵 / 偶然 / 深渊 */
+  chaos(rnd, pts, E){
+    const trails = 5, steps = 28;
+    let k = 0;
+    for (let s = 0; s < trails; s++){
+      let x = (rnd() - 0.5) * 0.85, y = (rnd() - 0.5) * 0.85, vx = 0, vy = 0;
+      const zs = rnd() * 70;
+      for (let i = 0; i < steps; i++){
+        pts[k*2] = x; pts[k*2+1] = y;
+        if (i > 0) E.push(k - 1, k);
+        const c = curl2(x * 2.1 + s * 7.7, y * 2.1, zs, 0.01);
+        const m = Math.hypot(c[0], c[1]) || 1;
+        vx = vx * 0.87 + (c[0] / m) * 0.0042 + (rnd() - 0.5) * 0.0075;
+        vy = vy * 0.87 + (c[1] / m) * 0.0042 + (rnd() - 0.5) * 0.0075;
+        x += vx; y += vy;
+        k++;
+      }
+    }
+    for (let s = 0; s < trails; s++){
+      E.push(s * steps + ((rnd() * steps) | 0), ((s + 1) % trails) * steps + ((rnd() * steps) | 0));
+    }
+  },
+
+  /* 旋 —— 对数螺线，从一点不可逆地展开：时间 / 童年 / 野心 / 我 */
+  spiral(rnd, pts, E){
+    const arms = 4, steps = 35, SPAN = 5.4, b = Math.log(11.9) / SPAN;
+    let k = 0;
+    for (let s = 0; s < arms; s++){
+      const ph = s / arms * TAU + rnd() * 0.2, zs = rnd() * 60, flip = rnd() < 0.5 ? 1 : -1;
+      for (let i = 0; i < steps; i++){
+        const th = i / (steps - 1) * SPAN;
+        const nz = fbm3(Math.cos(th) * 0.9 + s, Math.sin(th) * 0.9, zs, 2);
+        const r = 0.08 * Math.exp(b * th) * (1 + nz * 0.15);
+        const a = th * flip + ph + nz * 0.13;
+        pts[k*2] = Math.cos(a) * r; pts[k*2+1] = Math.sin(a) * r;
+        if (i > 0) E.push(k - 1, k);
+        k++;
+      }
+    }
+    for (let s = 0; s < arms; s++){
+      for (let i = 1; i < steps; i += 3){
+        E.push(s * steps + i, ((s + 1) % arms) * steps + i);
+      }
+    }
+  },
+
+  /* 格 —— 晶体点阵，带缺位：秩序 / 记忆 / 语言 / 边界 */
+  lattice(rnd, pts, E){
+    const step = 0.16, cand = [];
+    for (let row = -8; row <= 8; row++){
+      for (let col = -8; col <= 8; col++){
+        const x = (col + (row & 1 ? 0.5 : 0)) * step, y = row * step * 0.866;
+        if (x*x + y*y > 0.985) continue;
+        if (rnd() < 0.13) continue;                 // 晶体缺陷
+        cand.push(x, y, x*x + y*y);
+      }
+    }
+    const m = cand.length / 3;
+    const idx = [];
+    for (let i = 0; i < m; i++) idx.push(i);
+    idx.sort((a, b) => cand[a*3+2] - cand[b*3+2]);
+    const n = Math.min(SHAPE_N, m);
+    for (let i = 0; i < n; i++){
+      const j = idx[i] * 3;
+      pts[i*2] = cand[j]; pts[i*2+1] = cand[j+1];
+    }
+    for (let i = n; i < SHAPE_N; i++){              // 不足则回补内核
+      const a = rnd() * TAU, r = rnd() * 0.22;
+      pts[i*2] = Math.cos(a) * r; pts[i*2+1] = Math.sin(a) * r;
+    }
+    const thr = step * 1.16, t2 = thr * thr;
+    for (let i = 0; i < n; i++){
+      for (let j = i + 1; j < n; j++){
+        const dx = pts[i*2] - pts[j*2], dy = pts[i*2+1] - pts[j*2+1];
+        if (dx*dx + dy*dy < t2) E.push(i, j);
+      }
+    }
+  },
+
+  /* 散 —— 从中心向外消散的条纹粒子：遗忘 / 衰变 / 死亡 */
+  dissolve(rnd, pts, E){
+    const buckets = 12, arr = [];
+    for (let i = 0; i < SHAPE_N; i++){
+      const r = Math.pow(rnd(), 0.55) * 0.99, a = rnd() * TAU;
+      const w = 1 + Math.sin(a * 6 + r * 3.4) * 0.15;
+      arr.push([Math.cos(a) * r * w, Math.sin(a) * r * w, (a % TAU + TAU) % TAU, r]);
+    }
+    arr.sort((p, q) => (Math.floor(p[2] / TAU * buckets) - Math.floor(q[2] / TAU * buckets)) || p[3] - q[3]);
+    for (let i = 0; i < SHAPE_N; i++){
+      pts[i*2] = arr[i][0]; pts[i*2+1] = arr[i][1];
+    }
+    for (let i = 1; i < SHAPE_N; i++){
+      if (Math.floor(arr[i-1][2] / TAU * buckets) === Math.floor(arr[i][2] / TAU * buckets)) E.push(i - 1, i);
+    }
+    for (let i = 0; i < SHAPE_N; i += 3) E.push(i, (i + 12) % SHAPE_N);
+  }
+};
+
+const ARCHS = Object.keys(GEN);
+
+function genShape(arch, seed){
+  const key = arch + ':' + seed;
+  const hit = shapeCache.get(key);
+  if (hit) return hit;
+  const rnd = mulberry32(seed >>> 0);
+  const pts = new Float32Array(SHAPE_N * 2);
+  const E = [];
+  (GEN[arch] || GEN.ring)(rnd, pts, E);
+  normalizeShape(pts);
+  const sh = { pts, edges: Int32Array.from(E) };
+  shapeCache.set(key, sh);
+  return sh;
+}
+
+/* 形态插值：位置直接线性插值，
+   再叠加一层在 t=0.5 处最强的噪声扰动 —— 两端清晰，中间流动。
+   这正是潜空间插值的手感：中点最不稳定，也最富可能。 */
+const blendBuf = new Float32Array(SHAPE_N * 2);
+function blendShape(A, B, t, out, seedMix, time){
+  if (out === undefined) out = blendBuf;
+  const pa = A.pts, pb = B.pts;
+  const wob = Math.sin(t * Math.PI);
+  const wob2 = wob * wob;
+  const tz = time * 0.000055;
+  for (let i = 0; i < SHAPE_N; i++){
+    const ix = i * 0.207 + seedMix * 0.00093;
+    const nx = vnoise3(ix, t * 2.1, tz);
+    const ny = vnoise3(ix + 31.7, t * 2.1 + 11.3, tz);
+    out[i*2]   = lerp(pa[i*2],   pb[i*2],   t) + nx * wob2 * 0.34;
+    out[i*2+1] = lerp(pa[i*2+1], pb[i*2+1], t) + ny * wob2 * 0.34;
+  }
+  return out;
+}
+
+/* --------------------------------------------------------------------------
+   5. 场景 / 相机 / 节点
+   -------------------------------------------------------------------------- */
+const WORLD_R   = 1180;   // 潜空间软边界
+const NODE_BASE = 76;     // 节点基准半径（世界单位）
+
+const cam = { x:0, y:0, z:0.86, tx:0, ty:0, tz:0.86, vx:0, vy:0 };
+let VW = 0, VH = 0, DPR = 1;
+
+const w2sx = wx => (wx - cam.x) * cam.z + VW / 2;
+const w2sy = wy => (wy - cam.y) * cam.z + VH / 2;
+const s2wx = sx => (sx - VW / 2) / cam.z + cam.x;
+const s2wy = sy => (sy - VH / 2) / cam.z + cam.y;
+
+/* ---------- 节点 ---------- */
+let nodes = [];
+let userNodes = [];
+let hoverNode = null;
+let selA = null, selB = null;
+
+function makeNode(c, deep){
+  const seed = hash32(c.id);
+  return {
+    id:c.id, zh:c.zh, en:c.en, x:c.x, y:c.y,
+    arch:c.arch, hue:c.hue, note:c.note,
+    out:c.out, in:c.in, via:c.via || null,
+    seed, shape: genShape(c.arch, seed),
+    scale: (c.s || 1) * NODE_BASE,
+    born: 0, ph: (seed % 1000) / 1000 * TAU,
+    user: false,
+    deep: !!deep, revealed: !deep
+  };
+}
+/* 明层：24 个一开始就在。暗层：28 个先只在数组里等着，不进 nodes ——
+   不在 nodes 里就不会被绘制、不会被点中、不会参与插值，等于尚未存在。 */
+nodes = CONCEPTS.map(c => makeNode(c, false));
+const deepNodes = DEEP.map(c => makeNode(c, true));
+let revealedCount = 0;
+let allRevealed = false;
+
+/* 世界坐标 y 向下，与屏幕一致：+x 东，+y 南 */
+const BEARINGS = ['东', '东南', '南', '西南', '西', '西北', '北', '东北'];
+function bearing(fromX, fromY, toX, toY){
+  const a = Math.atan2(toY - fromY, toX - fromX);
+  const i = Math.round(((a + TAU) % TAU) / (Math.PI / 4)) % 8;
+  return BEARINGS[i];
+}
+
+/* 让一个暗层的词显形 */
+const viaSeen = {};
+function revealDeep(via, nearX, nearY){
+  if (allRevealed) return null;
+  const cands = deepNodes.filter(n => !n.revealed && n.via === via);
+  if (!cands.length) return null;
+  let pick;
+  if (nearX !== undefined){
+    cands.sort((a, b) =>
+      ((a.x - nearX) * (a.x - nearX) + (a.y - nearY) * (a.y - nearY)) -
+      ((b.x - nearX) * (b.x - nearX) + (b.y - nearY) * (b.y - nearY)));
+    pick = cands[0];
+  } else {
+    pick = cands[(Math.random() * cands.length) | 0];
+  }
+  pick.revealed = true;
+  nodes.push(pick);
+  revealedCount++;
+  Audio_.ping(pick.hue);
+
+  /* 第一次用这种方式，给一句提示；之后就只说它在哪 —— 不然你根本不知道往哪找 */
+  const first = !viaSeen[via];
+  viaSeen[via] = true;
+  const dir = bearing(cam.x, cam.y, pick.x, pick.y);
+  const away = Math.round(Math.hypot(pick.x - cam.x, pick.y - cam.y));
+  toast(VIA_NAME[via] + ' · ' + pick.zh + '　' +
+        (first ? VIA_HINT[via] : ('在 ' + dir + ' 方向，' + away + ' 单位外')));
+
+  const u = $('ro-u');
+  u.classList.add('flash');
+  setTimeout(() => u.classList.remove('flash'), 1000);
+
+  updateCodex();
+  if (revealedCount >= deepNodes.length) setTimeout(unlockAll, 1800);
+  return pick;
+}
+
+/* 任意文字 → 潜坐标 + 形态 + 语义邻域 */
+function seedNode(text){
+  const t = text.trim();
+  if (!t) return null;
+  const h = hash32(t);
+  const rnd = mulberry32(h);
+  const ang = rnd() * TAU;
+  const rad = 170 + Math.pow(rnd(), 0.7) * 930;
+  const x = Math.cos(ang) * rad, y = Math.sin(ang) * rad;
+  const arch = ARCHS[(h >>> 8) % ARCHS.length];
+  const hue  = coordHue(x, y);
+  const sw   = seedWords(t);
+  return {
+    id: 'u:' + t, zh: t, en: t.toUpperCase().slice(0, 14),
+    x, y, arch, hue,
+    note: '「' + t + '」——你把它放进了这里，于是它有了形状。',
+    out: sw.out, in: sw.in,
+    seed: h, shape: genShape(arch, h),
+    scale: NODE_BASE * (0.82 + (rnd() * 0.36)),
+    born: 0, ph: (h % 1000) / 1000 * TAU,
+    user: true
+  };
+}
+
+/* ---------- 星尘（3 层视差） ---------- */
+const DUST_LAYERS = [0.26, 0.55, 0.9];
+let dust = [];
+(function buildDust(){
+  const rnd = mulberry32(0xD0571A);
+  for (let L = 0; L < 3; L++){
+    const count = [560, 360, 180][L];
+    for (let i = 0; i < count; i++){
+      dust.push({
+        x: (rnd() - 0.5) * 14000,
+        y: (rnd() - 0.5) * 11000,
+        p: DUST_LAYERS[L],
+        r: 0.4 + rnd() * (0.5 + L * 0.55),
+        a: 0.06 + rnd() * (0.1 + L * 0.16),
+        tw: rnd() * TAU,
+        tws: 0.4 + rnd() * 1.1,
+        h: 190 + rnd() * 60
+      });
+    }
+  }
+})();
+
+/* ---------- 潜流场（屏幕空间粒子，保证视野里永远在流） ---------- */
+const FLOW_N = 150;
+let flow = [];
+(function buildFlow(){
+  const rnd = mulberry32(0xF10F8B);
+  for (let i = 0; i < FLOW_N; i++){
+    flow.push({ x: rnd(), y: rnd(), px: 0, py: 0, life: rnd(), z: rnd() * 40 });
+  }
+})();
+
+/* ---------- 命中检测 ---------- */
+function pickNode(mx, my){
+  let best = null, bestD = Infinity;
+  for (let i = 0; i < nodes.length; i++){
+    const n = nodes[i];
+    const sx = w2sx(n.x), sy = w2sy(n.y), r = n.scale * cam.z;
+    const d = Math.hypot(mx - sx, my - sy);
+    if (d < r * 1.06 && d < bestD){ bestD = d; best = n; }
+  }
+  return best;
+}
+
+/* 找最近的 k 个邻居（用于悬停时暗示潜空间的邻接） */
+function nearestNodes(n, k){
+  const arr = nodes.filter(o => o !== n);
+  arr.sort((a, b) => {
+    const da = (a.x-n.x)*(a.x-n.x) + (a.y-n.y)*(a.y-n.y);
+    const db = (b.x-n.x)*(b.x-n.x) + (b.y-n.y)*(b.y-n.y);
+    return da - db;
+  });
+  return arr.slice(0, k);
+}
+
+/* --------------------------------------------------------------------------
+   6. 渲染管线
+   -------------------------------------------------------------------------- */
+const cv  = document.getElementById('stage');
+const ctx = cv.getContext('2d', { alpha:false });
+const fx  = document.createElement('canvas'), fxc = fx.getContext('2d');
+const bl  = document.createElement('canvas'), blc = bl.getContext('2d');
+const bl2 = document.createElement('canvas'), bl2c = bl2.getContext('2d');
+
+function resize(){
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  VW = window.innerWidth; VH = window.innerHeight;
+  for (const c of [cv, fx]){
+    c.width = Math.max(1, (VW * DPR) | 0); c.height = Math.max(1, (VH * DPR) | 0);
+    c.style.width = VW + 'px'; c.style.height = VH + 'px';
+  }
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  fxc.setTransform(DPR, 0, 0, DPR, 0, 0);
+  bl.width  = Math.max(1, (VW / 4)  | 0); bl.height  = Math.max(1, (VH / 4)  | 0);
+  bl2.width = Math.max(1, (VW / 13) | 0); bl2.height = Math.max(1, (VH / 13) | 0);
+}
+window.addEventListener('resize', resize);
+
+/* 自适应画质：帧率掉下来时自动减负，回升后恢复 */
+let quality = 1;
+
+/* 粒子按"离心距"分 4 个亮度桶批量绘制，避免逐粒子切换 fillStyle */
+const PB = 4;
+const pbuf = [], pcnt = new Int32Array(PB);
+for (let i = 0; i < PB; i++) pbuf.push(new Float32Array(SHAPE_N * 3));
+
+/* 统一的字形绘制器。
+   pts    : 粒子坐标（可以是原始形态，也可以是插值结果）
+   shA/shB: 边拓扑来源；shB 为 null 时只画 A
+   eMix   : 0→全部用 A 的边，1→全部用 B 的边，中间两侧同时淡化 */
+function paintGlyph(g, pts, shA, shB, eMix, cx, cy, R, hue, alpha, rot, time, glow){
+  const cs = Math.cos(rot), sn = Math.sin(rot);
+
+  /* --- 边 --- */
+  const aA = shB ? (1 - smoother(clamp(eMix * 2, 0, 1))) : 1;
+  const aB = shB ? smoother(clamp((eMix - 0.5) * 2, 0, 1)) : 0;
+  let lod = R > 30 ? 1 : (R > 15 ? 2 : 4);
+  if (quality === 0) lod *= 2;
+  const lw  = Math.max(0.45, R * 0.0062);
+
+  for (let pass = 0; pass < 2; pass++){
+    const sh = pass === 0 ? shA : shB;
+    if (!sh) continue;
+    const a = (pass === 0 ? aA : aB) * alpha;
+    if (a < 0.012) continue;
+    const E = sh.edges;
+    g.strokeStyle = hsl(hue + 6, 82, 66, a * 0.34);
+    g.lineWidth = lw;
+    g.beginPath();
+    for (let e = 0; e < E.length; e += 2 * lod){
+      const i = E[e] * 2, j = E[e+1] * 2;
+      const xi = pts[i], yi = pts[i+1], xj = pts[j], yj = pts[j+1];
+      g.moveTo(cx + (xi*cs - yi*sn) * R, cy + (xi*sn + yi*cs) * R);
+      g.lineTo(cx + (xj*cs - yj*sn) * R, cy + (xj*sn + yj*cs) * R);
+    }
+    g.stroke();
+  }
+
+  /* --- 粒子 --- */
+  pcnt.fill(0);
+  for (let i = 0; i < SHAPE_N; i++){
+    const xi = pts[i*2], yi = pts[i*2+1];
+    const d = Math.sqrt(xi*xi + yi*yi);
+    const b = d < 0.28 ? 0 : (d < 0.55 ? 1 : (d < 0.8 ? 2 : 3));
+    const px = cx + (xi*cs - yi*sn) * R, py = cy + (xi*sn + yi*cs) * R;
+    const k = pcnt[b] * 3;
+    const buf = pbuf[b];
+    buf[k] = px; buf[k+1] = py; buf[k+2] = R * 0.0128 * (1.55 - d * 0.85);
+    pcnt[b]++;
+  }
+  for (let b = 0; b < PB; b++){
+    const c = pcnt[b];
+    if (!c) continue;
+    const dd = [0.16, 0.42, 0.67, 0.9][b];
+    g.fillStyle = hsl(hue + dd * 26, 84, 72 - dd * 20, alpha * (0.62 - dd * 0.34));
+    const buf = pbuf[b];
+    for (let i = 0; i < c; i++){
+      const k = i * 3, r = buf[k+2];
+      g.fillRect(buf[k] - r * 0.5, buf[k+1] - r * 0.5, r, r);
+    }
+  }
+
+  /* --- 核心辉光 --- */
+  if (glow !== false && R > 16 && quality === 1){
+    const gr = g.createRadialGradient(cx, cy, 0, cx, cy, R * 0.6);
+    gr.addColorStop(0,    hsl(hue, 92, 74, alpha * 0.24));
+    gr.addColorStop(0.38, hsl(hue, 88, 62, alpha * 0.075));
+    gr.addColorStop(1,    hsl(hue, 84, 52, 0));
+    g.fillStyle = gr;
+    g.beginPath(); g.arc(cx, cy, R * 0.6, 0, TAU); g.fill();
+  }
+}
+
+/* ---------- 星尘 ---------- */
+function drawDust(time){
+  const z = cam.z, hw = VW / 2, hh = VH / 2;
+  const stride = quality === 0 ? 2 : 1;
+  for (let i = 0; i < dust.length; i += stride){
+    const s = dust[i];
+    const sx = (s.x - cam.x * s.p) * z + hw;
+    const sy = (s.y - cam.y * s.p) * z + hh;
+    if (sx < -4 || sx > VW + 4 || sy < -4 || sy > VH + 4) continue;
+    const tw = 0.62 + 0.38 * Math.sin(time * 0.0009 * s.tws + s.tw);
+    ctx.fillStyle = hsl(s.h, 60, 78, s.a * tw);
+    const r = s.r * (0.7 + z * 0.42);
+    ctx.fillRect(sx, sy, r, r);
+  }
+}
+
+/* ---------- 潜流场 ---------- */
+function drawFlow(time){
+  const spd = 0.0011, tz = time * 0.00006;
+  for (let i = 0; i < flow.length; i++){
+    const p = flow[i];
+    p.px = p.x; p.py = p.y;
+    const c = curl2(p.x * 2.35, p.y * 2.35, tz + p.z, 0.006);
+    const m = Math.hypot(c[0], c[1]) || 1;
+    const mag = clamp(m * 0.4, 0.18, 1);
+    p.x += (c[0] / m) * spd * mag - cam.vx * 0.00028;
+    p.y += (c[1] / m) * spd * mag - cam.vy * 0.00028;
+    if (p.x < -0.02 || p.x > 1.02 || p.y < -0.02 || p.y > 1.02){
+      p.x = Math.random(); p.y = Math.random(); p.px = p.x; p.py = p.y;
+    }
+    fxc.strokeStyle = hsl(198 + mag * 46, 86, 66, 0.030 + mag * 0.052);
+    fxc.lineWidth = 0.75;
+    fxc.beginPath();
+    fxc.moveTo(p.px * VW, p.py * VH);
+    fxc.lineTo(p.x * VW, p.y * VH);
+    fxc.stroke();
+  }
+}
+
+/* ---------- 邻接暗示：悬停/选中节点到最近邻居的极淡连线 ---------- */
+function drawNeighbourLinks(time){
+  const focus = hoverNode || selA;
+  if (!focus) return;
+  const near = nearestNodes(focus, 3);
+  const ax = w2sx(focus.x), ay = w2sy(focus.y);
+  for (const n of near){
+    const bx = w2sx(n.x), by = w2sy(n.y);
+    const dash = 3 + Math.sin(time * 0.0011) * 1.5;
+    fxc.save();
+    fxc.setLineDash([1.5, dash + 5]);
+    fxc.lineDashOffset = -time * 0.022;
+    fxc.strokeStyle = hsl((focus.hue + n.hue) / 2, 70, 70, 0.085);
+    fxc.lineWidth = 0.7;
+    fxc.beginPath(); fxc.moveTo(ax, ay); fxc.lineTo(bx, by); fxc.stroke();
+    fxc.restore();
+  }
+}
+
+/* ---------- 节点 ---------- */
+function drawNodes(time){
+  for (let i = 0; i < nodes.length; i++){
+    const n = nodes[i];
+    const sx = w2sx(n.x), sy = w2sy(n.y), R = n.scale * cam.z;
+    if (sx < -R*1.5 || sx > VW + R*1.5 || sy < -R*1.5 || sy > VH + R*1.5) continue;
+    /* 只有被看见的概念才会凝结成形 —— 潜空间里未被观测处没有形状。
+       离得近的先凝，于是一进场是一圈由内向外扩散的涟漪 */
+    if (n.born < 1){
+      const dd = Math.hypot(n.x - cam.x, n.y - cam.y);
+      n.born = Math.min(1, n.born + 0.010 + (1 - clamp(dd / 1500, 0, 1)) * 0.017);
+    }
+    if (n.born < 0.012) continue;
+    const b = easeOut(n.born);
+    const isSel = (n === selA || n === selB);
+    const isHov = (n === hoverNode);
+    const breath = 1 + Math.sin(time * 0.00062 + n.ph) * 0.024;
+    const a = b * (0.62 + (isSel ? 0.34 : 0) + (isHov ? 0.18 : 0));
+    const rot = time * 0.000042 * ((n.seed & 1) ? 1 : -1) + n.ph;
+
+    paintGlyph(fxc, n.shape.pts, n.shape, null, 0, sx, sy, R * b * breath, n.hue, a, rot, time, true);
+
+    /* 选中 / 悬停：细环 */
+    if (isSel || isHov){
+      const rr = R * 1.16;
+      fxc.save();
+      fxc.setLineDash(isSel ? [2, 6] : [1, 4]);
+      fxc.lineDashOffset = -time * 0.03;
+      fxc.strokeStyle = hsl(n.hue, 88, 74, isSel ? 0.42 : 0.22);
+      fxc.lineWidth = isSel ? 1.1 : 0.8;
+      fxc.beginPath(); fxc.arc(sx, sy, rr, 0, TAU); fxc.stroke();
+      fxc.restore();
+      if (isSel){
+        fxc.strokeStyle = hsl(n.hue, 90, 80, 0.13);
+        fxc.lineWidth = 0.7;
+        fxc.beginPath(); fxc.arc(sx, sy, rr * 1.28, 0, TAU); fxc.stroke();
+      }
+    }
+  }
+}
+
+/* ---------- 标签（清晰层，不参与辉光） ---------- */
+function drawLabels(){
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  for (let i = 0; i < nodes.length; i++){
+    const n = nodes[i];
+    const sx = w2sx(n.x), sy = w2sy(n.y), R = n.scale * cam.z * easeOut(n.born);
+    if (R < 13) continue;
+    if (sx < -60 || sx > VW + 60 || sy < -60 || sy > VH + 60) continue;
+    const isSel = (n === selA || n === selB), isHov = (n === hoverNode);
+    const size = clamp(R * 0.245, 11, 21);
+    const y = sy + R * 1.16 + size * 0.72;
+    ctx.font = size + 'px "Songti SC","STSong","Source Han Serif SC","SimSun",serif';
+    ctx.fillStyle = isSel ? '#f2f7fc' : (isHov ? 'rgba(233,240,247,.94)' : 'rgba(159,176,195,' + (0.34 + clamp((R-13)/46,0,1)*0.42).toFixed(3) + ')');
+    ctx.fillText(n.zh, sx, y);
+    if (R > 34){
+      ctx.font = (size * 0.42).toFixed(1) + 'px "JetBrains Mono",ui-monospace,monospace';
+      ctx.fillStyle = 'rgba(93,107,124,' + (0.2 + clamp((R-34)/70,0,1)*0.5).toFixed(3) + ')';
+      ctx.fillText(n.en, sx, y + size * 0.92);
+    }
+  }
+}
+
+/* ---------- 插值带：A 与 B 之间长出 7 个中间态 ---------- */
+const beltBuf = new Float32Array(SHAPE_N * 2);
+let beltVisible = null;   // [{t, x, y, r, hue}]
+let playT = null;         // null = 未播放；否则为 0..1 的流变进度
+let playScreen = null;    // 流变中那个形态在屏幕上的位置，供"抓住中点"用
+let lastPingK = -1;
+
+/* 插值路径上 t 处的点：中段向垂直方向鼓出，像一根被拉开的弦 */
+function beltPoint(t, ax, ay, bx, by, baseR){
+  const bulge = Math.sin(t * Math.PI) * baseR * 0.42;
+  const nx = -(by - ay), ny = (bx - ax);
+  const nl = Math.hypot(nx, ny) || 1;
+  return { x: lerp(ax, bx, t) + nx / nl * bulge,
+           y: lerp(ay, by, t) + ny / nl * bulge };
+}
+
+function drawBelt(time){
+  beltVisible = null;
+  playScreen = null;
+  if (!selA || !selB) return;
+  const ax = w2sx(selA.x), ay = w2sy(selA.y);
+  const bx = w2sx(selB.x), by = w2sy(selB.y);
+  const baseR = Math.min(selA.scale, selB.scale) * cam.z;
+  const R = clamp(baseR * 0.30, 9, 46);
+  const hueA = selA.hue, hueB = selB.hue;
+  const list = [];
+  const mixSeed = (selA.seed ^ selB.seed) >>> 0;
+  const playing = (playT !== null);
+  const SEG = 26;
+
+  /* 主轴：沿整条插值路径的曲线 */
+  fxc.strokeStyle = hsl((hueA + hueB) / 2, 76, 72, playing ? 0.07 : 0.10);
+  fxc.lineWidth = 0.8;
+  fxc.beginPath(); fxc.moveTo(ax, ay);
+  for (let i = 1; i < SEG; i++){
+    const p = beltPoint(i / SEG, ax, ay, bx, by, baseR);
+    fxc.lineTo(p.x, p.y);
+  }
+  fxc.lineTo(bx, by); fxc.stroke();
+
+  /* 流过的那半段路径被点亮 */
+  if (playing){
+    fxc.strokeStyle = hsl(lerp(hueA, hueB, playT), 88, 76, 0.34);
+    fxc.lineWidth = 1.7;
+    fxc.beginPath(); fxc.moveTo(ax, ay);
+    for (let i = 1; i <= SEG; i++){
+      const q = i / SEG;
+      if (q > playT) break;
+      const pp = beltPoint(q, ax, ay, bx, by, baseR);
+      fxc.lineTo(pp.x, pp.y);
+    }
+    fxc.stroke();
+  }
+
+  for (let k = 1; k <= IP_STEPS; k++){
+    const t = k / 8;
+    const p = beltPoint(t, ax, ay, bx, by, baseR);
+    blendShape(selA.shape, selB.shape, t, beltBuf, mixSeed, time);
+    const hue = lerp(hueA, hueB, t);
+    const wob = Math.sin(t * Math.PI);
+    const foc = (beltFocus === k);
+    const rr = foc ? R * 1.55 : R;
+    /* 流变时七个静态切片退到背景，让正在流动的那个成为主角 */
+    let a = (0.72 + wob * 0.2) * (foc ? 1.45 : 1);
+    if (playing) a *= 0.34;
+    paintGlyph(fxc, beltBuf, selA.shape, selB.shape, t, p.x, p.y, rr, hue,
+               a, time * 0.00007 + t, time, rr > 22);
+    list.push({ t, x: p.x, y: p.y, r: rr, hue, k });
+  }
+  beltVisible = list;
+
+  /* 流变：一个形态沿着路径，从 A 一路融化成 B */
+  if (playing){
+    const p = beltPoint(playT, ax, ay, bx, by, baseR);
+    blendShape(selA.shape, selB.shape, playT, beltBuf, mixSeed, time);
+    const hue = lerp(hueA, hueB, playT);
+    const Rp = clamp(baseR * 0.52, 18, 100);
+    paintGlyph(fxc, beltBuf, selA.shape, selB.shape, playT, p.x, p.y, Rp, hue, 1, time * 0.00009, time, true);
+
+    const pulse = 1 + Math.sin(time * 0.0034) * 0.03;
+    fxc.strokeStyle = hsl(hue, 88, 78, 0.26);
+    fxc.lineWidth = 1;
+    fxc.beginPath(); fxc.arc(p.x, p.y, Rp * 1.16 * pulse, 0, TAU); fxc.stroke();
+    fxc.strokeStyle = hsl(hue, 90, 82, 0.09);
+    fxc.beginPath(); fxc.arc(p.x, p.y, Rp * 1.46 * pulse, 0, TAU); fxc.stroke();
+
+    /* 记下它在屏幕上的位置 —— 它移动的时候也能被抓住 */
+    playScreen = { x: p.x, y: p.y, r: Math.max(30, Rp * 1.25) };
+  }
+}
+
+/* ---------- 星座：五十二个词全部显形之后，它们之间自己连起来 ---------- */
+let constellationPairs = null;
+function buildConstellation(){
+  constellationPairs = [];
+  for (const a of nodes){
+    for (const b of nearestNodes(a, 2)) constellationPairs.push(a, b);
+  }
+}
+function drawConstellation(time){
+  if (!allRevealed || !constellationPairs) return;
+  const P = constellationPairs;
+  for (let i = 0; i < P.length; i += 2){
+    const a = P[i], b = P[i+1];
+    const ax = w2sx(a.x), ay = w2sy(a.y), bx = w2sx(b.x), by = w2sy(b.y);
+    if (Math.max(ax, bx) < -60 || Math.min(ax, bx) > VW + 60) continue;
+    if (Math.max(ay, by) < -60 || Math.min(ay, by) > VH + 60) continue;
+    const tw = 0.032 + 0.026 * Math.sin(time * 0.0008 + (a.seed % 100) * 0.11);
+    fxc.strokeStyle = hsl((a.hue + b.hue) / 2, 70, 74, tw);
+    fxc.lineWidth = 0.6;
+    fxc.beginPath(); fxc.moveTo(ax, ay); fxc.lineTo(bx, by); fxc.stroke();
+  }
+}
+
+/* ---------- 主绘制 ---------- */
+function draw(time){
+  /* 背景 */
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = '#04060a';
+  ctx.fillRect(0, 0, VW, VH);
+  drawDust(time);
+
+  /* 发光层：先衰减，再叠加绘制 */
+  fxc.globalCompositeOperation = 'source-over';
+  fxc.fillStyle = 'rgba(0,0,0,0.155)';
+  fxc.fillRect(0, 0, VW, VH);
+  fxc.globalCompositeOperation = 'lighter';
+
+  drawFlow(time);
+  drawNeighbourLinks(time);
+  drawConstellation(time);
+  drawBelt(time);
+  drawNodes(time);
+
+  /* 合成 + 两级辉光 */
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.drawImage(fx, 0, 0, VW, VH);
+
+  blc.globalCompositeOperation = 'copy';
+  blc.drawImage(fx, 0, 0, bl.width, bl.height);
+  bl2c.globalCompositeOperation = 'copy';
+  bl2c.drawImage(bl, 0, 0, bl2.width, bl2.height);
+
+  ctx.imageSmoothingEnabled = true;
+  ctx.globalAlpha = 0.46; ctx.drawImage(bl,  0, 0, VW, VH);
+  ctx.globalAlpha = 0.34; ctx.drawImage(bl2, 0, 0, VW, VH);
+
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over';
+  drawLabels();
+}
+
+/* --------------------------------------------------------------------------
+   7. 语义插值
+   -------------------------------------------------------------------------- */
+const IP_STEPS = 7;
+let beltFocus = null;
+
+/* k = 1..7，t = k/8
+   1..3  → A 一步步远离自己
+   4     → 中点：A 走得最远的一次，与 B 最早的预感，在这里对峙
+   5..7  → B 一步步靠近自己                                        */
+function interpWord(A, B, k){
+  if (k <= 3) return { a: A.out[k - 1], mid: false };
+  if (k === 4) return { a: A.out[4], b: B.in[4], mid: true };
+  return { a: B.in[7 - k], mid: false };
+}
+
+const $ = id => document.getElementById(id);
+const elTrack = $('ip-track'), elInterp = $('interp');
+const ipg = $('ip-glyph'), ipgc = $('ip-gc'), ipgctx = ipgc.getContext('2d');
+let ipgDpr = 1;
+
+function sizeIpg(){
+  ipgDpr = Math.min(window.devicePixelRatio || 1, 2);
+  ipgc.width = 230 * ipgDpr; ipgc.height = 230 * ipgDpr;
+  ipgc.style.width = '230px'; ipgc.style.height = '230px';
+  ipgctx.setTransform(ipgDpr, 0, 0, ipgDpr, 0, 0);
+}
+
+function buildInterp(){
+  if (!selA || !selB){ elInterp.classList.remove('show'); ipg.classList.remove('show'); return; }
+  $('ip-a').textContent = selA.zh;
+  $('ip-b').textContent = selB.zh;
+  $('ip-arrow').style.setProperty('--c1', hsl(selA.hue, 82, 68, 1));
+  $('ip-arrow').style.setProperty('--c2', hsl(selB.hue, 82, 68, 1));
+  $('ip-arrow').style.setProperty('background',
+    'linear-gradient(90deg,' + hsl(selA.hue,82,68,1) + ',' + hsl(selB.hue,82,68,1) + ')');
+  $('ip-arrow').style.setProperty('--c2', hsl(selB.hue, 82, 68, 1));
+
+  elTrack.innerHTML = '';
+  for (let k = 1; k <= IP_STEPS; k++){
+    const t = k / 8;
+    const w = interpWord(selA, selB, k);
+    const hue = lerp(selA.hue, selB.hue, t);
+    const cell = document.createElement('div');
+    cell.className = 'ip-cell' + (w.mid ? ' mid' : '') + (k === 1 || k === 7 ? ' edge' : '');
+    const dot = hsl(hue, 84, 70, 1);
+    cell.innerHTML =
+      '<div class="t">t=' + t.toFixed(3) + '</div>' +
+      '<div class="w">' + (w.mid
+        ? '<span class="a">' + w.a + '</span><span class="b">' + w.b + '</span>'
+        : w.a) + '</div>' +
+      '<div class="dot" style="background:' + dot + ';box-shadow:0 0 10px ' + hsl(hue,84,62,.7) + '"></div>';
+    cell.addEventListener('mouseenter', () => { beltFocus = k; showIpg(k); });
+    cell.addEventListener('mouseleave', () => { beltFocus = null; ipg.classList.remove('show'); });
+    cell.addEventListener('click', () => {
+      if (!beltVisible) return;
+      const b = beltVisible[k - 1];
+      if (b){ flyTo(s2wx(b.x) - s2wx(0), s2wy(b.y) - s2wy(0), clamp(cam.z * 1.5, 0.4, 2.4)); }
+      Audio_.ping(hue);
+      toast('t = ' + t.toFixed(3) + ' · ' + (w.mid ? w.a + ' / ' + w.b : w.a));
+    });
+    elTrack.appendChild(cell);
+  }
+  const dist = Math.hypot(selA.x - selB.x, selA.y - selB.y);
+  $('ip-dist').textContent =
+    '相距 ' + Math.round(dist) + ' 单位 · 穿过 ' + IP_STEPS + ' 个未被命名的中间态';
+  elInterp.classList.add('show');
+}
+
+function paintIpg(k, time){
+  if (!selA || !selB) return;
+  const t = k / 8;
+  const mixSeed = (selA.seed ^ selB.seed) >>> 0;
+  blendShape(selA.shape, selB.shape, t, beltBuf, mixSeed, time);
+  const hue = lerp(selA.hue, selB.hue, t);
+  ipgctx.clearRect(0, 0, 230, 230);
+  ipgctx.globalCompositeOperation = 'lighter';
+  paintGlyph(ipgctx, beltBuf, selA.shape, selB.shape, t, 115, 106, 84, hue, 1, time * 0.00007, time, true);
+  ipgctx.globalCompositeOperation = 'source-over';
+  $('ip-gcap').textContent = selA.zh + ' → ' + selB.zh + '   t=' + t.toFixed(3);
+}
+
+function showIpg(k){
+  if (!beltVisible) return;
+  const b = beltVisible[k - 1];
+  const cell = elTrack.children[k - 1];
+  if (!b || !cell) return;
+  const r = cell.getBoundingClientRect();
+  ipg.style.left = (r.left + r.width / 2 - 115) + 'px';
+  ipg.style.top  = (r.top - 262) + 'px';
+  ipg.classList.add('show');
+  for (let i = 0; i < elTrack.children.length; i++)
+    elTrack.children[i].classList.toggle('active', i === k - 1);
+}
+
+/* 把 A、B 同时框进视野 */
+function fitPair(){
+  if (!selA || !selB) return;
+  const mx = (selA.x + selB.x) / 2, my = (selA.y + selB.y) / 2;
+  const d  = Math.hypot(selA.x - selB.x, selA.y - selB.y);
+  const need = d + selA.scale * 2 + selB.scale * 2 + 300;
+  const z = clamp(Math.min(VW * 0.92, VH * 1.25) / need, 0.34, 1.45);
+  flyTo(mx, my, z);
+}
+
+/* --------------------------------------------------------------------------
+   8. 生成式音频：一座随位置改变音高的 drone
+   -------------------------------------------------------------------------- */
+const Audio_ = {
+  on:false, ac:null, master:null, lp:null, osc:[], gains:[], noise:null, nGain:null, lfo:null,
+  init(){
+    if (this.ac) return;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    const ac = this.ac = new AC();
+    this.master = ac.createGain();
+    this.master.gain.value = 0;
+    this.master.connect(ac.destination);
+
+    this.lp = ac.createBiquadFilter();
+    this.lp.type = 'lowpass';
+    this.lp.frequency.value = 700;
+    this.lp.Q.value = 0.7;
+    this.lp.connect(this.master);
+
+    /* 三个纯律音程的振荡器：根音 / 五度 / 低八度 */
+    const specs = [[1, 'sine'], [1.5, 'sine'], [0.5, 'triangle'], [2.002, 'sine']];
+    for (let i = 0; i < specs.length; i++){
+      const o = ac.createOscillator();
+      o.type = specs[i][1];
+      o.frequency.value = 62 * specs[i][0];
+      o.detune.value = (i - 1.5) * 4.5;
+      const g = ac.createGain();
+      g.gain.value = [0.34, 0.17, 0.26, 0.06][i];
+      o.connect(g); g.connect(this.lp);
+      o.start();
+      this.osc.push(o); this.gains.push(g);
+    }
+    /* 缓慢起伏的呼吸 LFO */
+    const lfo = ac.createOscillator(); lfo.frequency.value = 0.055;
+    const lg = ac.createGain(); lg.gain.value = 340;
+    lfo.connect(lg); lg.connect(this.lp.frequency);
+    lfo.start(); this.lfo = lfo;
+
+    /* 潜流噪声层 */
+    const len = (ac.sampleRate * 2) | 0;
+    const buf = ac.createBuffer(1, len, ac.sampleRate);
+    const d = buf.getChannelData(0);
+    let last = 0;
+    for (let i = 0; i < len; i++){
+      const w = Math.random() * 2 - 1;
+      last = last * 0.86 + w * 0.14;          // 粉噪，比白噪柔和
+      d[i] = last * 2.6;
+    }
+    const src = ac.createBufferSource();
+    src.buffer = buf; src.loop = true;
+    const bp = ac.createBiquadFilter();
+    bp.type = 'bandpass'; bp.frequency.value = 900; bp.Q.value = 0.8;
+    const ng = ac.createGain(); ng.gain.value = 0.05;
+    src.connect(bp); bp.connect(ng); ng.connect(this.master);
+    src.start();
+    this.noise = bp; this.nGain = ng;
+  },
+  toggle(){
+    this.init();
+    if (!this.ac) return false;
+    this.on = !this.on;
+    const t = this.ac.currentTime;
+    this.master.gain.cancelScheduledValues(t);
+    this.master.gain.setTargetAtTime(this.on ? 0.075 : 0, t, this.on ? 1.2 : 0.5);
+    if (this.on && this.ac.state === 'suspended') this.ac.resume();
+    return this.on;
+  },
+  /* 位置决定音高：越"热"（y 大）越低沉，越"冷"越清亮 */
+  update(){
+    if (!this.on || !this.ac) return;
+    const t = this.ac.currentTime;
+    const yn = clamp(cam.y / 900, -1, 1);
+    const base = 58 * Math.pow(2, -yn * 0.28);
+    for (let i = 0; i < this.osc.length; i++){
+      this.osc[i].frequency.setTargetAtTime(base * [1, 1.5, 0.5, 2.002][i], t, 0.35);
+    }
+    const zoomCut = lerp(360, 2900, clamp((cam.z - 0.34) / 2.1, 0, 1));
+    this.lp.frequency.setTargetAtTime(zoomCut, t, 0.25);
+    const spd = Math.hypot(cam.vx, cam.vy);
+    this.nGain.gain.setTargetAtTime(0.035 + Math.min(spd * 0.012, 0.10), t, 0.3);
+    this.noise.frequency.setTargetAtTime(lerp(500, 2100, clamp((cam.z - 0.34) / 2.1, 0, 1)), t, 0.4);
+  },
+  /* 五声音阶钟声 —— 选中一个概念时的回响 */
+  ping(hue){
+    if (!this.on || !this.ac) return;
+    const ac = this.ac, t = ac.currentTime;
+    const PENTA = [0, 2, 4, 7, 9];
+    const step = PENTA[Math.floor(clamp(hue / 360, 0, 0.999) * PENTA.length)];
+    const f = 196 * Math.pow(2, step / 12);
+    const car = ac.createOscillator(); car.type = 'sine'; car.frequency.value = f * 2;
+    const mod = ac.createOscillator(); mod.type = 'sine'; mod.frequency.value = f * 3.13;
+    const mg  = ac.createGain(); mg.gain.value = f * 1.4;
+    mod.connect(mg); mg.connect(car.frequency);
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.16, t + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 2.1);
+    car.connect(g); g.connect(this.master);
+    car.start(t); mod.start(t);
+    car.stop(t + 2.2); mod.stop(t + 2.2);
+    mg.gain.setValueAtTime(f * 1.4, t);
+    mg.gain.exponentialRampToValueAtTime(f * 0.05, t + 0.6);
+  }
+};
+
+/* --------------------------------------------------------------------------
+   8. 生成式音频
+   -------------------------------------------------------------------------- */
+
+/* --------------------------------------------------------------------------
+   9. 交互 + 主循环
+   -------------------------------------------------------------------------- */
+let flying = false, started = false;
+let flyAnim = null;
+
+/* 缓入缓出地飞过去，而不是一头扎过去 —— 丝滑感主要来自这里 */
+function flyTo(x, y, z){
+  const z1 = (z === undefined) ? cam.tz : clamp(z, 0.32, 2.6);
+  const d = Math.hypot(x - cam.x, y - cam.y);
+  /* log 两侧都要夹住：cam.z 一旦为 0 或负（时间跳变、异常 dt 都可能造成），
+     log 会返回 NaN，进而把整个相机坐标污染成 NaN —— 画面会整片消失。 */
+  const zSafe = Math.max(1e-3, cam.z), z1Safe = Math.max(1e-3, z1);
+  flyAnim = {
+    x0: cam.x, y0: cam.y, z0: cam.z,
+    x1: x,     y1: y,     z1: z1,
+    t: 0,
+    dur: clamp(640 + d * 0.5 + Math.abs(Math.log(z1Safe / zSafe)) * 340, 720, 2300)
+  };
+  cam.tx = x; cam.ty = y; cam.tz = z1;
+  flying = true;
+}
+
+/* 能把整张概念星图框进视野的缩放（随屏幕自适应） */
+function overviewZ(){
+  return clamp(Math.min(VW / 2060, VH / 1840), 0.28, 1.0);
+}
+
+/* ---------- toast ---------- */
+let toastTimer = null;
+function toast(msg){
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+/* ---------- 概念卡片 ---------- */
+function showNodeInfo(n){
+  const box = $('nodeinfo');
+  if (!n){ box.classList.remove('show'); return; }
+  $('ni-zh').textContent   = n.zh;
+  $('ni-en').textContent   = n.en;
+  $('ni-note').textContent = n.note;
+  const near = nearestNodes(n, 3);
+  $('ni-meta').innerHTML =
+    'COORD <span>' + Math.round(n.x) + ' , ' + Math.round(n.y) + '</span><br>' +
+    'ARCH  <span>' + n.arch.toUpperCase() + '</span><br>' +
+    'HUE   <span>' + Math.round(n.hue) + '°</span><br>' +
+    'NEAR  <span>' + near.map(o => o.zh).join(' · ') + '</span>';
+  box.classList.add('show');
+}
+
+/* ---------- 提示 ---------- */
+function markHint(k){
+  const c = document.querySelector('.chip[data-hint="' + k + '"]');
+  if (c) c.classList.add('done');
+}
+
+/* ==========================================================================
+   暗层 · UMBRA —— 六种显形方式 + 潜层目录
+   明层 24 个一直都在；暗层 28 个各自只回应一种动作，且不会自己说破。
+   ========================================================================== */
+
+/* ---------- 潜层目录：连点左上角「潜」五下 ---------- */
+let codexBuilt = false;
+function renderCodexList(){
+  const box = $('cx-body');
+  box.innerHTML = '';
+  const sep = txt => {
+    const s = document.createElement('div');
+    s.className = 'cx-sep'; s.textContent = txt;
+    box.appendChild(s);
+  };
+  const item = (n, hidden) => {
+    const d = document.createElement('div');
+    d.className = 'cx-item' + (hidden ? ' hid' : '');
+    d.innerHTML = '<span class="mk">' + (hidden ? '·' : '○') + '</span>' +
+                  '<span class="nm">' + (hidden ? '？？？' : n.zh) + '</span>';
+    if (!hidden){
+      d.addEventListener('click', () => {
+        closeCodex();
+        flyTo(n.x, n.y, 1.15); showNodeInfo(n); Audio_.ping(n.hue);
+      });
+    }
+    box.appendChild(d);
+  };
+  const lumen = nodes.filter(n => !n.deep && !n.user);
+  sep('明层 · LUMEN — 一直都在的 ' + lumen.length + ' 个');
+  lumen.forEach(n => item(n, false));
+  if (userNodes.length){
+    sep('你种下的 · YOURS — ' + userNodes.length + ' 个');
+    userNodes.forEach(n => item(n, false));
+  }
+  sep('暗层 · UMBRA — 只向特定的动作显形　' + revealedCount + ' / ' + deepNodes.length);
+  deepNodes.forEach(n => item(n, !n.revealed));
+}
+function updateCodex(){
+  $('ro-u').textContent = revealedCount + ' / ' + deepNodes.length;
+  $('cx-count').textContent = revealedCount + ' / ' + deepNodes.length;
+  if (codexBuilt) renderCodexList();
+}
+function openCodex(){
+  codexBuilt = true;
+  renderCodexList();
+  $('codex').classList.add('show');
+}
+function closeCodex(){ $('codex').classList.remove('show'); }
+$('codex').addEventListener('click', e => { if (e.target === $('codex')) closeCodex(); });
+
+{
+  let taps = 0, tapT = 0;
+  document.querySelector('.brand').addEventListener('click', () => {
+    const now = performance.now();
+    if (now - tapT > 1700) taps = 0;
+    tapT = now; taps++;
+    if (taps >= 5){ taps = 0; openCodex(); }
+    else if (taps === 3) toast('……');
+  });
+}
+
+/* ---------- 全部显形：它们之间自己连起来 ---------- */
+function unlockAll(){
+  if (allRevealed) return;
+  allRevealed = true;
+  buildConstellation();
+  const n = nodes.length;
+  const paths = n * (n - 1) / 2;
+  toast('二十八个都在这里了 · ' + n + ' 个词之间，还有 ' + paths + ' 条没走过的路');
+  $('cx-foot').textContent = '全部显形 · ' + n + ' 个词 · ' + paths + ' 条可能的路';
+  flyTo(0, 0, overviewZ());
+  updateCodex();
+}
+
+/* ---------- 静默：四十五秒什么都不做 ---------- */
+let stillTimer = null;
+function resetStill(){
+  if (stillTimer) clearTimeout(stillTimer);
+  stillTimer = setTimeout(() => { if (started) revealDeep('still', cam.x, cam.y); }, 45000);
+}
+
+/* ---------- 选中概念 ---------- */
+const donePairs = new Set();
+let lastTapNode = null, lastTapT = 0;
+
+function clickNode(n){
+  const now = performance.now();
+  const isDouble = (n === lastTapNode) && (now - lastTapT < 430);
+  lastTapNode = n; lastTapT = now;
+
+  /* 双击同一个概念 —— 听它的回声 */
+  if (isDouble){ revealDeep('echo', n.x, n.y); return; }
+
+  Audio_.ping(n.hue);
+  if (!selA){
+    selA = n; showNodeInfo(n);
+    toast('已锚定 · ' + n.zh + '　再选一个，看它们之间长出什么');
+  } else if (!selB){
+    if (n === selA){ selA = null; showNodeInfo(null); return; }
+    selB = n;
+    buildInterp(); fitPair(); markHint('pair');
+    toast(selA.zh + ' → ' + selB.zh + '　七次插值已展开');
+    /* 逆旅：同一段路，反着再走一次，会看见别的东西 */
+    const key = selA.id + '|' + selB.id, rev = selB.id + '|' + selA.id;
+    if (donePairs.has(rev)) revealDeep('return', (selA.x + selB.x) / 2, (selA.y + selB.y) / 2);
+    donePairs.add(key);
+    /* 跨越：把两个离得足够远的词连起来 */
+    if (Math.hypot(selA.x - selB.x, selA.y - selB.y) > 1900)
+      revealDeep('leap', (selA.x + selB.x) / 2, (selA.y + selB.y) / 2);
+  } else {
+    setPlay(false);
+    selA = n; selB = null; beltFocus = null;
+    elInterp.classList.remove('show'); ipg.classList.remove('show');
+    showNodeInfo(n);
+    toast('已锚定 · ' + n.zh);
+  }
+}
+
+/* ---------- 解码器 ---------- */
+function plant(text){
+  const n = seedNode(text);
+  if (!n) return;
+  const dup = nodes.find(o => o.id === n.id);
+  if (dup){
+    flyTo(dup.x, dup.y, 1.2); Audio_.ping(dup.hue);
+    toast('「' + text + '」已经在这里了');
+    $('dc-input').value = '';
+    return;
+  }
+  nodes.push(n);
+  userNodes.push(n);
+  renderSeedList();
+  flyTo(n.x, n.y, 1.25);
+  Audio_.ping(n.hue);
+  markHint('seed');
+  toast('已种入 · ' + n.zh + '　' + Math.round(n.x) + ' , ' + Math.round(n.y));
+  $('dc-input').value = '';
+  /* 播种：你种下的东西，过一会儿会引来别的 */
+  setTimeout(() => revealDeep('seed', n.x, n.y), 12000);
+}
+
+function renderSeedList(){
+  const box = $('dc-list');
+  box.innerHTML = '';
+  $('dc-count').textContent = userNodes.length;
+  for (let i = 0; i < userNodes.length; i++){
+    const n = userNodes[i];
+    const d = document.createElement('div');
+    d.className = 'dc-item';
+    d.innerHTML = '<span class="sw" style="background:' + hsl(n.hue, 84, 66, 1) + '"></span>' +
+                  '<span>' + n.zh + '</span>' +
+                  '<span class="x">' + Math.round(n.x) + ',' + Math.round(n.y) + '</span>';
+    d.addEventListener('click', () => { flyTo(n.x, n.y, 1.2); showNodeInfo(n); Audio_.ping(n.hue); });
+    d.addEventListener('mouseenter', () => { hoverNode = n; showNodeInfo(n); });
+    d.addEventListener('mouseleave', () => { hoverNode = null; showNodeInfo(selA); });
+    box.appendChild(d);
+  }
+}
+
+(function buildPresets(){
+  const box = $('dc-seeds');
+  for (let i = 0; i < PRESET_SEEDS.length; i++){
+    const s = PRESET_SEEDS[i];
+    const b = document.createElement('div');
+    b.className = 'dc-seed'; b.textContent = s;
+    b.addEventListener('click', () => plant(s));
+    box.appendChild(b);
+  }
+})();
+
+$('dc-go').addEventListener('click', () => plant($('dc-input').value));
+$('dc-input').addEventListener('keydown', e => { if (e.key === 'Enter') plant($('dc-input').value); });
+
+/* ---------- 指针 ---------- */
+let dragging = false, dragMoved = 0, lastX = 0, lastY = 0;
+
+cv.addEventListener('pointerdown', e => {
+  if (e.button !== 0) return;
+  dragging = true; dragMoved = 0;
+  lastX = e.clientX; lastY = e.clientY;
+  flying = false;
+  cam.vx = 0; cam.vy = 0;
+  document.body.classList.add('dragging');
+});
+
+window.addEventListener('pointermove', e => {
+  const mx = e.clientX, my = e.clientY;
+  if (dragging){
+    const dx = mx - lastX, dy = my - lastY;
+    lastX = mx; lastY = my;
+    dragMoved += Math.abs(dx) + Math.abs(dy);
+    cam.x -= dx / cam.z; cam.y -= dy / cam.z;
+    cam.tx = cam.x; cam.ty = cam.y;
+    cam.vx = -dx / cam.z; cam.vy = -dy / cam.z;
+    if (dragMoved > 46) markHint('drag');
+  } else if (started){
+    const n = pickNode(mx, my);
+    if (n !== hoverNode){
+      hoverNode = n;
+      document.body.classList.toggle('over-node', !!n);
+      if (n) showNodeInfo(n); else showNodeInfo(selA);
+    }
+  }
+});
+
+window.addEventListener('pointerup', e => {
+  if (!dragging) return;
+  dragging = false;
+  document.body.classList.remove('dragging');
+  if (dragMoved < 7){
+    const n = pickNode(e.clientX, e.clientY);
+    if (n) clickNode(n);
+    /* 中点：抓住那个正在流动的形态 —— 它一直在动，可抓 */
+    else if (playScreen){
+      const d = Math.hypot(e.clientX - playScreen.x, e.clientY - playScreen.y);
+      if (d < playScreen.r) revealDeep('middle');
+    }
+  }
+});
+
+cv.addEventListener('wheel', e => {
+  e.preventDefault();
+  const wx = s2wx(e.clientX), wy = s2wy(e.clientY);
+  cam.tz = clamp(cam.tz * Math.exp(-e.deltaY * 0.0015), 0.32, 2.6);
+  cam.z  = cam.tz;
+  cam.x  = wx - (e.clientX - VW / 2) / cam.z;
+  cam.y  = wy - (e.clientY - VH / 2) / cam.z;
+  cam.tx = cam.x; cam.ty = cam.y;
+  flying = false;
+  markHint('drag');
+}, { passive:false });
+
+/* ---------- 音频开关 ---------- */
+$('audio-btn').addEventListener('click', () => {
+  const on = Audio_.toggle();
+  $('audio-btn').classList.toggle('on', on);
+  $('audio-txt').textContent = on ? 'SOUND ON' : 'SOUND OFF';
+  if (on) toast('生成式音景已开启 · 位置决定音高');
+});
+
+/* ---------- 键盘 ---------- */
+window.addEventListener('keydown', e => {
+  if (e.target && e.target.tagName === 'INPUT') return;
+  if (e.key === 'Escape'){
+    if ($('codex').classList.contains('show')){ closeCodex(); return; }
+    /* 放手：正在看一条插值的时候丢掉它 —— 那条路上也有东西 */
+    if (selA && selB) revealDeep('relinquish');
+    setPlay(false);
+    selA = null; selB = null; beltFocus = null;
+    elInterp.classList.remove('show'); ipg.classList.remove('show');
+    showNodeInfo(null);
+  } else if (e.code === 'Space'){
+    e.preventDefault();
+    $('audio-btn').click();
+  } else if (e.key === 'r' || e.key === 'R'){
+    flyTo(0, 0, overviewZ());
+    toast('回到全图');
+  } else if (e.key === 'd' || e.key === 'D'){
+    autoAborted = true;            /* 手动开漫游，就别再放自动演示了 */
+    toggleDrift();
+  } else if (e.key === 'p' || e.key === 'P'){
+    if (selA && selB) setPlay(playT === null);
+  }
+});
+
+/* ==========================================================================
+   流变播放 / 明信片 / 链接分享 / 漫游
+   ========================================================================== */
+
+/* ---------- 流变：让形态沿着路径从 A 一路融化成 B ---------- */
+const PLAY_MS = 9000;                       // 一个完整 A→B 周期
+function setPlay(on){
+  if (on && (!selA || !selB)) return;
+  if (on && playT === null){ playT = 0; lastPingK = -1; }
+  else if (!on) playT = null;
+  for (let i = 0; i < elTrack.children.length; i++)
+    elTrack.children[i].classList.remove('flow');
+  $('ip-play').classList.toggle('on', playT !== null);
+  $('ip-play-ico').textContent = playT !== null ? '❙❙' : '▶';
+  $('ip-play-txt').textContent = playT !== null ? '停止流变' : '播放流变';
+}
+$('ip-play').addEventListener('click', () => setPlay(playT === null));
+
+/* ---------- 明信片：把这一整条插值路径导出成一张 PNG ---------- */
+function exportCard(){
+  if (!selA || !selB){ toast('先选两个概念'); return; }
+  const W = 1400, H = 660, S = 2;
+  const c = document.createElement('canvas');
+  c.width = W * S; c.height = H * S;
+  const g = c.getContext('2d');
+  g.setTransform(S, 0, 0, S, 0, 0);
+
+  const mixSeed = (selA.seed ^ selB.seed) >>> 0;
+  const hueA = selA.hue, hueB = selB.hue;
+  const dist = Math.hypot(selA.x - selB.x, selA.y - selB.y);
+  const mono  = '"JetBrains Mono",ui-monospace,monospace';
+  const serif = '"Songti SC","STSong","Source Han Serif SC","SimSun",serif';
+
+  /* 底：星尘 + 暗角 */
+  g.fillStyle = '#04060a'; g.fillRect(0, 0, W, H);
+  const rnd = mulberry32(mixSeed);
+  for (let i = 0; i < 340; i++){
+    g.fillStyle = hsl(186 + rnd() * 70, 55, 80, 0.035 + rnd() * 0.15);
+    const r = 0.35 + rnd() * 1.2;
+    g.fillRect(rnd() * W, rnd() * H, r, r);
+  }
+  const vg = g.createRadialGradient(W/2, H/2, H*0.2, W/2, H/2, H*0.98);
+  vg.addColorStop(0, 'rgba(0,0,0,0)');
+  vg.addColorStop(1, 'rgba(2,4,7,.8)');
+  g.fillStyle = vg; g.fillRect(0, 0, W, H);
+
+  /* 页眉 */
+  g.textBaseline = 'middle';
+  g.textAlign = 'left';
+  g.font = '20px ' + serif; g.fillStyle = '#e9f0f7';
+  g.fillText('潜', 62, 60);
+  g.font = '9px ' + mono; g.fillStyle = 'rgba(111,227,255,.75)';
+  g.fillText('LATENT', 90, 61);
+  g.textAlign = 'right'; g.font = '9px ' + mono;
+  g.fillStyle = 'rgba(93,107,124,.85)';
+  g.fillText(new Date().toISOString().slice(0, 10).replace(/-/g, '.'), W - 62, 61);
+  g.strokeStyle = 'rgba(140,175,210,.14)'; g.lineWidth = 1;
+  g.beginPath(); g.moveTo(62, 92); g.lineTo(W - 62, 92); g.stroke();
+
+  /* 主体：A —— 七个中间态 —— B（用叠加混合，和屏幕上的发光质感一致） */
+  const CY = 288;
+  g.globalCompositeOperation = 'lighter';
+  g.strokeStyle = 'rgba(140,175,210,.15)'; g.lineWidth = 1;
+  g.beginPath(); g.moveTo(150, CY); g.lineTo(W - 150, CY); g.stroke();
+
+  paintGlyph(g, selA.shape.pts, selA.shape, null, 0, 150, CY, 74, hueA, 1, 0, 0, true);
+  paintGlyph(g, selB.shape.pts, selB.shape, null, 0, W - 150, CY, 74, hueB, 1, 0, 0, true);
+
+  g.globalCompositeOperation = 'source-over';
+  g.textAlign = 'center';
+  g.font = '27px ' + serif; g.fillStyle = '#e9f0f7';
+  g.fillText(selA.zh, 150, CY + 112);
+  g.fillText(selB.zh, W - 150, CY + 112);
+  g.font = '8.5px ' + mono; g.fillStyle = 'rgba(93,107,124,.9)';
+  g.fillText(selA.en, 150, CY + 136);
+  g.fillText(selB.en, W - 150, CY + 136);
+
+  const X0 = 352, X1 = W - 352, R = 37;
+  const buf = new Float32Array(SHAPE_N * 2);
+  for (let k = 1; k <= IP_STEPS; k++){
+    const t = k / 8;
+    const px = X0 + (X1 - X0) * (k - 1) / (IP_STEPS - 1);
+    const hue = lerp(hueA, hueB, t);
+    blendShape(selA.shape, selB.shape, t, buf, mixSeed, 0);
+    g.globalCompositeOperation = 'lighter';
+    paintGlyph(g, buf, selA.shape, selB.shape, t, px, CY, R, hue, 0.96, 0, 0, true);
+    g.globalCompositeOperation = 'source-over';
+    g.font = '8px ' + mono; g.fillStyle = 'rgba(93,107,124,.62)';
+    g.fillText('t=' + t.toFixed(3), px, CY - 150);
+    g.fillStyle = hsl(hue, 84, 68, 0.8);
+    g.fillRect(px - 1, CY - 134, 2, 2);
+    const w = interpWord(selA, selB, k);
+    g.font = '13px ' + serif;
+    if (w.mid){
+      g.fillStyle = hsl(hue, 72, 82, 1);
+      g.fillText(w.a, px, CY + 68);
+      g.fillText(w.b, px, CY + 87);
+      g.strokeStyle = hsl(hue, 80, 70, 0.45); g.lineWidth = 1;
+      g.beginPath(); g.moveTo(px - 15, CY + 77); g.lineTo(px + 15, CY + 77); g.stroke();
+    } else {
+      g.fillStyle = 'rgba(200,214,228,.9)';
+      g.fillText(w.a, px, CY + 68);
+    }
+  }
+
+  /* 页脚 */
+  g.strokeStyle = 'rgba(140,175,210,.14)'; g.lineWidth = 1;
+  g.beginPath(); g.moveTo(62, H - 98); g.lineTo(W - 62, H - 98); g.stroke();
+  g.textAlign = 'center';
+  g.font = '10.5px ' + mono; g.fillStyle = 'rgba(159,176,195,.82)';
+  g.fillText(selA.zh + '  →  ' + selB.zh + '     相距 ' + Math.round(dist) +
+             ' 单位     穿过 ' + IP_STEPS + ' 个未被命名的中间态', W/2, H - 68);
+  g.font = '8.5px ' + mono; g.fillStyle = 'rgba(57,70,84,.95)';
+  g.fillText('LATENT / 潜 — 一座可以航行的意义间隙地图', W/2, H - 42);
+
+  try {
+    const a = document.createElement('a');
+    a.download = 'LATENT_' + selA.zh + '-' + selB.zh + '.png';
+    a.href = c.toDataURL('image/png');
+    a.click();
+    toast('明信片已导出 · ' + a.download);
+  } catch (e){
+    toast('导出失败：浏览器拦截了下载');
+  }
+}
+$('ip-card').addEventListener('click', exportCard);
+
+/* ---------- 链接分享：把当前画面编码进 URL ---------- */
+let lastHash = '';
+function syncHash(){
+  const p = [];
+  if (selA) p.push('a=' + encodeURIComponent(selA.id));
+  if (selB) p.push('b=' + encodeURIComponent(selB.id));
+  if (userNodes.length) p.push('s=' + encodeURIComponent(userNodes.map(n => n.zh).join(',')));
+  const h = p.join('&');
+  if (h === lastHash) return;
+  lastHash = h;
+  try { history.replaceState(null, '', h ? '#' + h : location.pathname); } catch (e){ /* file:// 下受限则静默 */ }
+}
+function restoreFromHash(){
+  const raw = (location.hash || '').replace(/^#/, '');
+  if (!raw) return false;
+  const q = {};
+  raw.split('&').forEach(kv => {
+    const i = kv.indexOf('=');
+    if (i > 0) q[kv.slice(0, i)] = decodeURIComponent(kv.slice(i + 1));
+  });
+  if (q.s){
+    q.s.split(',').filter(Boolean).forEach(t => {
+      const n = seedNode(t);
+      if (n && !nodes.some(o => o.id === n.id)){ nodes.push(n); userNodes.push(n); }
+    });
+    renderSeedList();
+  }
+  if (q.a){ const a = nodes.find(n => n.id === q.a); if (a) selA = a; }
+  if (q.b){ const b = nodes.find(n => n.id === q.b); if (b) selB = b; }
+  if (selA && selB){ buildInterp(); fitPair(); }
+  else if (selA){ showNodeInfo(selA); flyTo(selA.x, selA.y, 1.1); }
+  return true;
+}
+$('ip-link').addEventListener('click', () => {
+  syncHash();
+  const url = location.href;
+  const done = () => toast('链接已复制 · 别人打开就是这幅画面');
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(url).then(done, () => fallbackCopy(url, done));
+  } else fallbackCopy(url, done);
+});
+function fallbackCopy(url, done){
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = url;
+    ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    done();
+  } catch (e){ toast(url); }
+}
+
+/* ---------- 漫游：让它自己走 ---------- */
+let drift = false, driftTimer = null, driftStepNo = 0;
+function stopDrift(){
+  if (driftTimer){ clearTimeout(driftTimer); driftTimer = null; }
+  drift = false;
+}
+function doDrift(){
+  if (!drift) return;
+  driftStepNo++;
+  if (nodes.length >= 2 && driftStepNo % 3 === 2){
+    const i = (Math.random() * nodes.length) | 0;
+    let j = (Math.random() * nodes.length) | 0;
+    if (i === j) j = (j + 1) % nodes.length;
+    selA = nodes[i]; selB = nodes[j];
+    buildInterp(); fitPair();
+    if (playT === null) setPlay(true);
+  } else {
+    const n = nodes[(Math.random() * nodes.length) | 0];
+    flyTo(n.x + (Math.random() - 0.5) * 340,
+          n.y + (Math.random() - 0.5) * 340,
+          0.62 + Math.random() * 0.7);
+  }
+  driftTimer = setTimeout(doDrift, 8600);
+}
+function toggleDrift(){
+  drift = !drift;
+  if (drift){ driftStepNo = 0; toast('漫游模式 · 它自己会走 · 按 D 退出'); doDrift(); }
+  else { stopDrift(); setPlay(false); toast('已退出漫游'); }
+}
+
+/* ---------- 自动演示：无人操作时自己演示一次「孤独 → 涌现」 ---------- */
+let autoTimer = null, autoAborted = false;
+function abortAuto(){
+  if (!started) return;            /* 点「进入」那一下不算打断 */
+  autoAborted = true;
+  if (autoTimer){ clearTimeout(autoTimer); autoTimer = null; }
+  stopDrift();                     /* 用户一动手，漫游就让位 */
+  resetStill();                    /* 静默计时从头再数 */
+}
+['pointerdown', 'wheel', 'keydown'].forEach(t =>
+  window.addEventListener(t, abortAuto, { capture:true }));
+
+function startAutoDemo(){
+  const pick = id => nodes.find(n => n.id === id);
+  autoTimer = setTimeout(() => {
+    if (autoAborted) return;
+    const a = pick('solitude');
+    if (a){ selA = a; showNodeInfo(a); Audio_.ping(a.hue); }
+    autoTimer = setTimeout(() => {
+      if (autoAborted) return;
+      const b = pick('emergence');
+      if (b && selA){ selB = b; buildInterp(); fitPair(); markHint('pair'); }
+    }, 2500);
+  }, 4800);
+}
+
+/* ---------- 开场：三个按钮，鼠标一放上去背后就真的演示一遍 ---------- */
+function clearDemo(){
+  demoRoam = false;
+  $('decoder').classList.remove('demo-glow');
+}
+function previewDemo(act){
+  clearDemo();
+  if (act === 'roam'){
+    demoRoam = true;
+  } else if (act === 'link'){
+    const a = nodes.find(n => n.id === 'solitude') || nodes[0];
+    const b = nodes.find(n => n.id === 'emergence') || nodes[3];
+    selA = a; selB = b; buildInterp(); fitPair(); setPlay(true);
+  } else if (act === 'sow'){
+    $('decoder').classList.add('demo-glow');
+  }
+}
+document.querySelectorAll('.it-demo').forEach(btn => {
+  btn.addEventListener('mouseenter', () => previewDemo(btn.dataset.act));
+  btn.addEventListener('mouseleave', clearDemo);
+  btn.addEventListener('click', () => enterSpace(btn.dataset.act));
+});
+
+/* ---------- 进入 ---------- */
+function enterSpace(act){
+  $('intro').classList.add('gone');
+  started = true;
+  if (restoreFromHash()){
+    setTimeout(() => toast('已从链接恢复这幅画面 · 点「播放流变」看它走一遍'), 1200);
+    return;
+  }
+  if (act === 'link'){
+    setTimeout(() => toast('这就是「连接」· 换两个词再试一次'), 2100);
+  } else if (act === 'sow'){
+    previewDemo('sow');
+    setTimeout(() => { $('dc-input').focus(); toast('种下一个词 · 任何词都可以'); }, 1500);
+  } else {
+    clearDemo();
+    if (selA && selB){
+      setPlay(false); selA = null; selB = null;
+      elInterp.classList.remove('show'); ipg.classList.remove('show');
+    }
+    flyTo(0, 0, overviewZ());
+    setTimeout(() => toast('拖动航行 · 滚轮缩放 · 点击两个概念'), 2100);
+    startAutoDemo();
+  }
+}
+$('it-enter').addEventListener('click', () => enterSpace(null));
+
+/* ---------- 主循环 ---------- */
+let fps = 60, fpsAcc = 0, fpsN = 0, hudT = 0, frameNo = 0, lastEdgeT = 0;
+let lastT = performance.now();
+let gazeNode = null, gazeT = 0;      // 凝视计时
+let demoRoam = false;                // 开场「航行」预览
+
+function frame(now){
+  requestAnimationFrame(frame);
+  /* dt 夹在 [0,60]：切回标签页或时间跳变时不该让 dt 变成负数，
+     否则缓动会外推出负的缩放，一路污染到 NaN */
+  const dt = clamp(now - lastT, 0, 60);
+  lastT = now;
+
+  /* 相机 */
+  if (flyAnim){
+    flyAnim.t += dt;
+    const p = Math.min(1, flyAnim.t / flyAnim.dur);
+    const e = p < 0.5 ? 4*p*p*p : 1 - Math.pow(-2*p + 2, 3) / 2;   // easeInOutCubic
+    cam.x = lerp(flyAnim.x0, flyAnim.x1, e);
+    cam.y = lerp(flyAnim.y0, flyAnim.y1, e);
+    cam.z = lerp(flyAnim.z0, flyAnim.z1, e);
+    if (p >= 1){ flyAnim = null; flying = false; cam.vx = 0; cam.vy = 0; }
+  } else if (flying){
+    cam.x += (cam.tx - cam.x) * 0.1;
+    cam.y += (cam.ty - cam.y) * 0.1;
+    cam.z += (cam.tz - cam.z) * 0.11;
+    if (Math.hypot(cam.tx - cam.x, cam.ty - cam.y) < 0.5 && Math.abs(cam.tz - cam.z) < 0.0015) flying = false;
+  } else {
+    cam.x += cam.vx; cam.y += cam.vy;
+    cam.vx *= 0.94; cam.vy *= 0.94;                                 // 惯性滑得更远一点
+    if (Math.abs(cam.vx) < 0.005) cam.vx = 0;
+    if (Math.abs(cam.vy) < 0.005) cam.vy = 0;
+    cam.z += (cam.tz - cam.z) * 0.14;
+    cam.tx = cam.x; cam.ty = cam.y;
+  }
+
+  /* 开场预览「航行」：让它自己慢慢飘 */
+  if (demoRoam){
+    cam.x += Math.sin(now * 0.00013) * 1.5;
+    cam.y += Math.cos(now * 0.00017) * 1.2;
+    cam.tx = cam.x; cam.ty = cam.y;
+  }
+
+  /* 凝视：盯着一个词看够久，它会变 */
+  if (hoverNode && !dragging){
+    if (hoverNode !== gazeNode){ gazeNode = hoverNode; gazeT = now; }
+    else if (now - gazeT > 8000){ revealDeep('gaze', hoverNode.x, hoverNode.y); gazeT = now; }
+  } else { gazeNode = null; gazeT = now; }
+  /* 软边界：越界被缓缓拉回 */
+  const d = Math.hypot(cam.x, cam.y);
+  if (d > WORLD_R){
+    const k = (d - WORLD_R) / d * 0.13;
+    cam.x -= cam.x * k; cam.y -= cam.y * k;
+    cam.vx *= 0.76; cam.vy *= 0.76;
+  }
+
+  /* 流变推进：每跨过一个 1/8，敲一记钟并点亮对应的词条 */
+  if (playT !== null && selA && selB){
+    playT += dt / PLAY_MS;
+    if (playT >= 1){ playT = 0; lastPingK = -1; }
+    const k = Math.floor(playT * 8);
+    if (k !== lastPingK && k >= 1 && k <= IP_STEPS){
+      lastPingK = k;
+      Audio_.ping(lerp(selA.hue, selB.hue, k / 8));
+      for (let i = 0; i < elTrack.children.length; i++)
+        elTrack.children[i].classList.toggle('flow', i === k - 1);
+    }
+  }
+
+  draw(now);
+  if ((frameNo++ & 5) === 0) Audio_.update();
+  if (beltFocus && selA && selB) paintIpg(beltFocus, now);
+
+  /* HUD（低频刷新） */
+  fpsN++; fpsAcc += dt;
+  if (fpsAcc > 480){
+    fps = 1000 / (fpsAcc / fpsN); fpsAcc = 0; fpsN = 0;
+    if      (fps < 40 && quality === 1) quality = 0;   /* 掉帧 → 减负 */
+    else if (fps > 55 && quality === 0) quality = 1;   /* 回升 → 恢复 */
+  }
+  if (now - hudT > 130){
+    hudT = now;
+    $('ro-xy').textContent = Math.round(cam.x) + ' , ' + Math.round(cam.y);
+    $('ro-z').textContent  = cam.z.toFixed(2) + '×';
+    $('ro-n').textContent  = nodes.filter(n => !n.deep && !n.user).length;
+    $('ro-f').textContent  = Math.round(fps);
+    syncHash();
+    /* 边缘：航行到潜空间的边界之外 */
+    if (Math.hypot(cam.x, cam.y) > 1040 && now - lastEdgeT > 9000){
+      if (revealDeep('edge', cam.x, cam.y)) lastEdgeT = now;
+    }
+  }
+}
+
+/* ---------- 启动 ---------- */
+resize();
+sizeIpg();
+renderSeedList();
+updateCodex();
+cam.z = cam.tz = overviewZ() * 0.82;
+
+/* 开场：背后先自己演一遍。与其用文字解释"两个词之间能长出什么"，
+   不如直接让他看见 —— 这是唯一一份不需要翻译的说明书。 */
+setTimeout(() => {
+  if (started) return;
+  const a = nodes.find(n => n.id === 'solitude');
+  const b = nodes.find(n => n.id === 'emergence');
+  if (a && b){ selA = a; selB = b; buildInterp(); fitPair(); setPlay(true); }
+}, 2400);
+
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

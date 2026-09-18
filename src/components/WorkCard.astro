@@ -1,0 +1,20 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { kindLabels } from '../lib/model.mjs';
+import { withBase } from '../lib/paths.mjs';
+interface Props { work: CollectionEntry<'works'>; index: number; }
+const { work, index } = Astro.props;
+const w = work.data;
+const href = withBase('/works/' + w.slug + '/', import.meta.env.BASE_URL);
+---
+<article class="work-card" data-kind={w.kind} data-type={w.type} data-tags={JSON.stringify(w.tags)}>
+  <a class:list={['work-art', 'art-' + w.kind]} href={href} tabindex="-1" aria-hidden="true">
+    {w.cover ? <img src={withBase(w.cover, import.meta.env.BASE_URL)} alt="" width="1200" height="750" loading="lazy" decoding="async" /> :
+    <div class="type-cover"><span class="cover-kicker">{kindLabels[w.kind]} / {w.type === 'external' ? 'WEB PROJECT' : 'LOCAL STUDY'}</span><span class="cover-title">{w.title.split('·')[0]}</span><span class="cover-code">{String(index + 1).padStart(2, '0')} — DX / {w.year || 'ARCHIVE'}</span><span class="cover-orbit" /></div>}
+    <span class="art-open" aria-hidden="true">↗</span>
+  </a>
+  <div class="card-meta"><span>{kindLabels[w.kind]}</span><span class:list={['status', { experimental: w.status !== '完成' }]}>{w.status}</span></div>
+  <h3><a href={href}>{w.title}<span aria-hidden="true">↗</span></a></h3>
+  <p>{w.desc}</p>
+  <div class="card-bottom"><span>{w.tags.slice(0, 3).join(' / ')}</span><span>{w.type === 'external' ? '外部作品' : '本站作品'}</span></div>
+</article>

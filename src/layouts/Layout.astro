@@ -1,0 +1,73 @@
+---
+import '@fontsource/sora/latin-400.css';
+import '@fontsource/sora/latin-500.css';
+import '../styles/global.css';
+import Nav from '../components/Nav.astro';
+import Contact from '../components/Contact.astro';
+import Footer from '../components/Footer.astro';
+import { site } from '../data/site';
+import { withBase } from '../lib/paths.mjs';
+interface Props { title?: string; description?: string; }
+const { title = site.title, description = site.description } = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const isPublic = Astro.site && !['localhost', '127.0.0.1'].includes(Astro.site.hostname);
+---
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#0B0D10" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="zh_CN" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    {isPublic && <><link rel="canonical" href={canonical} /><meta property="og:url" content={canonical} /></>}
+    <link rel="icon" type="image/svg+xml" href={withBase('/favicon.svg', import.meta.env.BASE_URL)} />
+    <title>{title}</title>
+    <script is:inline>
+      try { const t = localStorage.getItem('dx-theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch {}
+    </script>
+  </head>
+  <body id="top">
+    <a class="skip-link" href="#main">跳转到内容</a>
+    <div class="site-shell"><Nav /><main id="main"><slot /></main><Contact /><Footer /></div>
+    <script>
+      const toggle = document.querySelector<HTMLButtonElement>('[data-theme-toggle]');
+      function syncLabel() {
+        const dark = document.documentElement.dataset.theme === 'dark';
+        toggle?.setAttribute('aria-label', dark ? '切换到浅色主题' : '切换到深色主题');
+        document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#0B0D10' : '#F4F3EF');
+      }
+      if (toggle) {
+        toggle.hidden = false;
+        syncLabel();
+        toggle.addEventListener('click', () => {
+          const theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+          document.documentElement.dataset.theme = theme;
+          try { localStorage.setItem('dx-theme', theme); } catch {}
+          syncLabel();
+        });
+      }
+      document.querySelectorAll<HTMLButtonElement>('[data-copy]').forEach(button => {
+        button.hidden = false;
+        button.addEventListener('click', async () => {
+          const status = document.querySelector<HTMLElement>('[data-copy-status]');
+          if (status) status.textContent = '正在复制…';
+          try {
+            await Promise.race([
+              navigator.clipboard.writeText(button.dataset.copy || ''),
+              new Promise((_, reject) => window.setTimeout(() => reject(new Error('clipboard timeout')), 2000)),
+            ]);
+            if (status) status.textContent = '微信号已复制，去微信搜索添加即可。';
+          } catch {
+            if (status) status.textContent = '自动复制未确认，请长按或选中 dx2020z 手动复制。';
+            const text = document.getElementById('wechat-id');
+            if (text) { const range = document.createRange(); range.selectNodeContents(text); const selection = window.getSelection(); selection?.removeAllRanges(); selection?.addRange(range); }
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

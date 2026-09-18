@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>小白用 AI 做东西 · 需求→技术架构穷尽对照表（深度版）</title>
+<style>
+  :root{
+    --bg:#0f1115; --card:#171a21; --card2:#1d212b; --line:#2a2f3a;
+    --txt:#e6e9ef; --sub:#9aa3b2; --dim:#6b7385;
+    --accent:#4f8cff; --green:#37d39b; --yellow:#f5c451; --red:#ff6b6b;
+    --purple:#b07cff; --orange:#ff9f43; --cyan:#3fd0d6;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--txt);font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.65;padding-bottom:80px}
+  .wrap{max-width:1100px;margin:0 auto;padding:0 22px}
+  header{padding:52px 22px 34px;background:linear-gradient(160deg,#161b26,#0f1115);border-bottom:1px solid var(--line)}
+  header .wrap{padding:0 22px}
+  h1{font-size:28px;font-weight:800;letter-spacing:.4px;margin-bottom:10px;line-height:1.35}
+  .lead{color:var(--sub);font-size:15px;max-width:780px}
+  h2{font-size:21px;font-weight:800;margin:44px 0 6px;padding-left:13px;border-left:4px solid var(--accent)}
+  h3{font-size:16px;font-weight:700;margin:20px 0 8px;color:#cdd5e3}
+  p{margin:7px 0;color:#c4ccda}
+  .note{color:var(--sub);font-size:13.5px}
+  .tag{display:inline-block;font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:20px;margin-right:5px;white-space:nowrap}
+  .t-low{background:rgba(55,211,155,.14);color:var(--green)}
+  .t-mid{background:rgba(245,196,81,.14);color:var(--yellow)}
+  .t-high{background:rgba(255,107,107,.14);color:var(--red)}
+  .t-web{background:rgba(79,140,255,.16);color:var(--accent)}
+  .t-py{background:rgba(176,124,255,.16);color:var(--purple)}
+  .t-app{background:rgba(255,159,67,.16);color:var(--orange)}
+  .t-ext{background:rgba(63,208,214,.16);color:var(--cyan)}
+
+  .callout{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:12px;padding:16px 20px;margin:16px 0}
+  .callout.warn{border-left-color:var(--red)}
+  .callout.good{border-left-color:var(--green)}
+  .callout.b{background:linear-gradient(160deg,#1b2030,#14171f)}
+  .callout b{color:#fff}
+
+  .case{background:linear-gradient(160deg,#1a2233,#141821);border:1px solid #2c3a55;border-radius:16px;padding:22px 24px;margin:18px 0}
+  .case .tt{font-size:18px;font-weight:800;color:#fff;margin-bottom:4px}
+  .case .sub{color:var(--cyan);font-size:13px;font-weight:700;margin-bottom:12px}
+
+  .ladder{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0;align-items:stretch}
+  .lvl{flex:1;min-width:150px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px 14px;position:relative}
+  .lvl .n{font-size:12px;color:var(--dim);font-weight:800}
+  .lvl .h{font-size:15px;font-weight:800;margin:3px 0;color:#fff}
+  .lvl .d{font-size:12.5px;color:var(--sub)}
+  .lvl .arrow{position:absolute;right:-13px;top:50%;transform:translateY(-50%);color:var(--dim);z-index:2;font-size:18px}
+
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:12.8px}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--dim);font-weight:700;font-size:11.5px;letter-spacing:.3px;background:var(--card2);position:sticky;top:0}
+  td .ok{color:var(--green)} td .no{color:var(--red)} td .sw{color:var(--yellow);font-weight:600}
+  tr:hover td{background:var(--card)}
+  .scroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+
+  .deep{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:14px 0}
+  .deep .dh{font-size:16px;font-weight:800;color:#fff;margin-bottom:2px}
+  .deep .meta{font-size:12.5px;color:var(--dim);margin-bottom:10px}
+  .bdg{display:inline-block;font-size:12px;font-weight:700;padding:3px 10px;border-radius:8px;margin:6px 6px 0 0}
+  .bdg.ok{background:rgba(55,211,155,.12);color:var(--green)}
+  .bdg.no{background:rgba(255,107,107,.12);color:var(--red)}
+  .bdg.sw{background:rgba(245,196,81,.12);color:var(--yellow)}
+
+  pre{background:#0c0f15;border:1px solid var(--line);border-radius:10px;padding:13px 15px;overflow:auto;font-size:12.5px;color:#cdd5e3;white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,Consolas,monospace}
+  code{font-family:ui-monospace,Consolas,monospace;font-size:12.5px;background:#10141c;border:1px solid var(--line);padding:1px 6px;border-radius:5px;color:#9fd0ff}
+  .copy{float:right;font-size:12px;color:var(--accent);cursor:pointer;border:1px solid var(--line);background:var(--card2);padding:3px 10px;border-radius:7px;user-select:none}
+  .copy:active{transform:scale(.96)}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:680px){.grid2{grid-template-columns:1fr}}
+  .box{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:15px 17px}
+  ul{list-style:none;margin:8px 0} .li{margin:6px 0 6px 4px;padding-left:16px;position:relative}
+  .li:before{content:"▸";position:absolute;left:0;color:var(--accent)}
+  .footer{margin-top:48px;padding-top:22px;border-top:1px solid var(--line);color:var(--dim);font-size:13px}
+  .kbd{display:inline-block;background:var(--card2);border:1px solid var(--line);border-radius:6px;padding:1px 7px;font-family:ui-monospace,monospace;font-size:12px;color:#9fd0ff}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>小白用 AI 做东西 · 需求→技术架构穷尽对照表（深度版）</h1>
+    <p class="lead">不止告诉你"用什么"，更告诉你：<b>边界在哪、什么时候明确不适合、到什么程度必须换架构</b>。用一个贯穿全篇的真实例子——"新人 7 天陪练培训系统"——当标尺，把大多数人会用 AI 开发的需求类型都铺开。</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- ===== 置顶：怎么用这份表 ===== -->
+  <div class="callout good" style="margin-top:22px">
+    <div class="tt" style="font-size:16px;font-weight:800;color:#fff;margin-bottom:8px">📌 拿到这份表，三步就能用（给完全不懂技术的你）</div>
+    <ol style="margin:4px 0 4px 20px;color:#c4ccda">
+      <li style="margin:5px 0"><b>想清楚你要做啥</b> → 看「一、三维定位」，用 3 个问题把需求框住。</li>
+      <li style="margin:5px 0"><b>找到你的需求类型</b> → 去「三、24 类需求矩阵」看它：✅适用边界 / 🚫不适合信号 / 🔁换架构临界点。</li>
+      <li style="margin:5px 0"><b>复制指令甩给 AI</b> → 直接抄「七、复制即用的指令」里对应那句，当开发要求交给 AI。</li>
+    </ol>
+    <p class="note" style="margin-top:8px">卡住了？看「六、切换红线总表」判断要不要换架构；怕踩坑看「八、翻车坑」。</p>
+    <div class="callout b" style="margin-top:12px"><b>一句话心法：</b>AI 默认给你最省事的「单 HTML 文件」；东西越复杂，你越要像甲方一样点名「用什么架构」。这份表就是帮你点名的字典。</div>
+    <p class="note" style="margin-top:10px">整理 / 分享人：<b style="color:#cdd5e3;font-size:14px">段骁的AI助手</b></p>
+  </div>
+
+
+
+  <!-- ===== 判定三维 ===== -->
+  <h2>一、任何需求，先用 3 个维度定位</h2>
+  <p class="note">别急着问"用什么架构"，先回答这三个问题，架构自己就冒出来了。这是 AI 不会替你想、但你必须想的一步。</p>
+  <div class="grid2">
+    <div class="box">
+      <h3 style="margin-top:0">① 界面复杂度</h3>
+      <p>无界面（后台跑） → 单页小展示 → 多页多组件 → 重交互/3D/游戏</p>
+      <p class="note">越往后，单 HTML 越撑不住，必须工程化。</p>
+    </div>
+    <div class="box">
+      <h3 style="margin-top:0">② 数据需求</h3>
+      <p>不用存 → 本地存一人 → 多用户共享 → 实时多人同改</p>
+      <p class="note">"多用户/持久/登录"出现，前端 alone 不够，要后端。</p>
+    </div>
+    <div class="box">
+      <h3 style="margin-top:0">③ 运行环境</h3>
+      <p>命令行 → 浏览器 → 离线桌面 → 手机 App → 浏览器插件</p>
+      <p class="note">环境决定封装方式（Web/桌面/移动/扩展）。</p>
+    </div>
+    <div class="box">
+      <h3 style="margin-top:0">④ 谁在用 / 多少量</h3>
+      <p>自己用 → 小团队内部 → 公开给很多人 → 要上生产</p>
+      <p class="note">量越大、人越多，"临时方案"越要升级成"正经架构"。</p>
+    </div>
+  </div>
+
+  <!-- ===== 演进阶梯 ===== -->
+  <h2>二、架构演进阶梯：到什么程度换什么</h2>
+  <p class="note">绝大多数产品都会沿这条阶梯长大。你站在哪一级，就用哪级的架构；越过红线就升一级。</p>
+  <div class="ladder">
+    <div class="lvl"><div class="n">LEVEL 0</div><div class="h">单 HTML</div><div class="d">一次性/玩具/单页展示。改几次就完。</div><div class="arrow">→</div></div>
+    <div class="lvl"><div class="n">LEVEL 1</div><div class="h">React/Vue + Vite<br>+ 本地存储</div><div class="d">有界面的本地 demo，一人用，数据存自己浏览器。</div><div class="arrow">→</div></div>
+    <div class="lvl"><div class="n">LEVEL 2</div><div class="h">+ 后端 + 数据库</div><div class="d">多用户、登录、持久保存、跨设备。红线在此。</div><div class="arrow">→</div></div>
+    <div class="lvl"><div class="n">LEVEL 3</div><div class="h">+ 实时(WS/CRDT)</div><div class="d">多人同时编辑不冲突（协作/在线文档）。</div><div class="arrow">→</div></div>
+    <div class="lvl"><div class="n">LEVEL 4</div><div class="h">+ 移动/桌面封装</div><div class="d">手机 App / 离线桌面软件 / 多端同步。</div></div>
+  </div>
+
+  <!-- ===== 名词白话 ===== -->
+  <h2>二·补、技术名词白话 + 同类怎么选（看矩阵前先扫一眼）</h2>
+  <p class="note">所有英文都翻成白话：<b>是啥 / 同类差在哪 / 你点名时说哪个</b>。先重点讲你问的桌面双雄，再铺开其他对决，最后附单名词典。</p>
+
+  <!-- 桌面双雄 -->
+  <h3>🔑 你点名问的：桌面软件 Tauri vs Electron</h3>
+  <div class="deep">
+    <div class="dh">先搞懂"桌面封装"是啥</div>
+    <div class="meta">它俩干同一件事：把你用网页技术做的界面，"包"成一个能双击打开、能离线、能碰你电脑本地文件的软件（像微信电脑版那种）。不是重新学一门语言，前端还是 React/Vue。</div>
+    <div class="grid2" style="margin-top:10px">
+      <div class="box">
+        <h3 style="margin-top:0;color:#ff9f43">Electron</h3>
+        <p>做法是：把<b>一整个 Chrome 浏览器 + Node.js</b> 一起塞进软件里。所以——</p>
+        <p>• 体积大：随便 <b>100MB 起步</b>，装包动辄两三百兆<br>
+        • 吃内存：开着就占几百兆<br>
+        • 但：生态老、坑少、啥网页都能跑、教程最多</p>
+      </div>
+      <div class="box">
+        <h3 style="margin-top:0;color:#37d39b">Tauri 2</h3>
+        <p>做法是：用<b>系统自带的浏览器内核</b>（Win 用 WebView2，Mac 用自带），后端用 Rust 写。所以——</p>
+        <p>• 体积超小：<b>几 MB</b>，比 Electron 小几十倍<br>
+        • 省内存、启动快、更安全<br>
+        • 但：生态新（2026 年 Tauri 2 已成熟）、个别老库不兼容</p>
+      </div>
+    </div>
+    <p style="margin-top:12px"><b>"轻"是啥意思？</b> 就是<b>体积小、占内存少、启动快</b>，和"重"（Electron）相对。说"Tauri 轻"= 它打包出来的软件小巧不吃资源。</p>
+    <div class="callout good" style="margin-top:10px">
+      <b>小白选哪个（直接告诉 AI 的这句）：</b><br>
+      默认说 <code>用 Tauri 2 打包成桌面应用</code> —— 小、快、现代、省资源，2026 年已够稳。<br>
+      只有遇到"某老功能在 Tauri 跑不了"的兼容坑时，再退一步说 <code>换成 Electron</code>。除非你完全不在乎软件大小、且要用很多老插件，否则优先 Tauri。
+    </div>
+  </div>
+
+  <!-- 对决卡 -->
+  <h3>其他同类对决：差在哪、选哪个</h3>
+
+  <div class="deep">
+    <div class="dh">React vs Vue（都是网页框架，干一样的事）</div>
+    <div class="grid2">
+      <div class="box"><h3 style="margin-top:0;color:#61dafb">React</h3><p>Meta(脸书)维护。生态最大、找教程/招人最容易，和 3D/各种库集成最好。写法把 HTML 混在 JS 里(JSX)。</p></div>
+      <div class="box"><h3 style="margin-top:0;color:#42b883">Vue</h3><p>尤雨溪(国人)维护。上手更顺、中文文档好、模板更像普通 HTML，新手更友好。</p></div>
+    </div>
+    <div class="callout" style="margin-top:10px"><b>选哪个：</b>无所谓，跟 AI 说 React 或 Vue 都行。新手用 React 也完全 OK；想更顺手可选 Vue。别纠结，重点是指定"工程化"这件事本身。</div>
+  </div>
+
+  <div class="deep">
+    <div class="dh">Streamlit vs Gradio（都是"几行 Python 出 AI 界面"）</div>
+    <div class="grid2">
+      <div class="box"><h3 style="margin-top:0;color:#ff9f43">Streamlit</h3><p>更灵活，能排复杂界面、像做仪表盘，适合内部工具。</p></div>
+      <div class="box"><h3 style="margin-top:0;color:#b07cff">Gradio</h3><p>专注"传图/文 → 出结果"的框，做 AI demo 最快。</p></div>
+    </div>
+    <div class="callout" style="margin-top:10px"><b>选哪个：</b>做对话/生成类最快 → Gradio；要做带图表控件的内部工具 → Streamlit。</div>
+  </div>
+
+  <div class="deep">
+    <div class="dh">FastAPI vs Node/Express（都是后端）</div>
+    <div class="grid2">
+      <div class="box"><h3 style="margin-top:0;color:#b07cff">FastAPI</h3><p>用 Python 写，和你前面的 Python 脚本无缝衔接，AI/数据场景友好。</p></div>
+      <div class="box"><h3 style="margin-top:0;color:#37d39b">Node/Express</h3><p>用 JS 写，和前端 React 同一门语言，前后端不切换。</p></div>
+    </div>
+    <div class="callout" style="margin-top:10px"><b>选哪个：</b>你本来就用 Python → FastAPI；想前后端一门语言 → Node。</div>
+  </div>
+
+  <div class="deep">
+    <div class="dh">Three.js vs React Three Fiber / R3F（都是 3D）</div>
+    <div class="grid2">
+      <div class="box"><h3 style="margin-top:0;color:#4f8cff">Three.js</h3><p>底层 3D 引擎，直接写，最灵活。</p></div>
+      <div class="box"><h3 style="margin-top:0;color:#61dafb">React Three Fiber</h3><p>Three.js 的 React 封装，用 React 组件写 3D，和前端项目一体。</p></div>
+    </div>
+    <div class="callout" style="margin-top:10px"><b>选哪个：</b>前端用 React → 说 R3F；纯 3D 独立项目 → 说 Three.js。</div>
+  </div>
+
+  <div class="deep">
+    <div class="dh">ECharts vs D3（都是图表）</div>
+    <div class="grid2">
+      <div class="box"><h3 style="margin-top:0;color:#4f8cff">ECharts</h3><p>开箱即用，调个配置就出图，中文文档好。常规图表全覆盖。</p></div>
+      <div class="box"><h3 style="margin-top:0;color:#ff6b6b">D3.js</h3><p>底层可视化，啥奇葩图都能画但要自己写很多，灵活但难。</p></div>
+    </div>
+    <div class="callout" style="margin-top:10px"><b>选哪个：</b>普通图表/大屏 → ECharts；要从没见过的定制图 → D3。</div>
+  </div>
+
+  <div class="deep">
+    <div class="dh">Astro vs Next.js（都是"生成网站"的框架）</div>
+    <div class="grid2">
+      <div class="box"><h3 style="margin-top:0;color:#ff9f43">Astro</h3><p>纯静态、加载最快、最简单，适合展示型（博客/作品集）。</p></div>
+      <div class="box"><h3 style="margin-top:0;color:#4f8cff">Next.js</h3><p>功能全、能服务端渲染、适合复杂动态站/要 SEO 的商站。</p></div>
+    </div>
+    <div class="callout" style="margin-top:10px"><b>选哪个：</b>博客/作品集/落地页 → Astro；要动态/复杂/商城 → Next.js。</div>
+  </div>
+
+  <div class="deep">
+    <div class="dh">uni-app / Taro vs React Native（都是移动端）</div>
+    <div class="grid2">
+      <div class="box"><h3 style="margin-top:0;color:#42b883">uni-app / Taro</h3><p>一套代码发<b>微信小程序 + H5 + App</b>。uni-app 用 Vue，Taro 用 React。适合"还要发小程序"。</p></div>
+      <div class="box"><h3 style="margin-top:0;color:#61dafb">React Native</h3><p>专做<b>真手机 App</b>（上架商店），体验最接近原生。不发小程序。</p></div>
+    </div>
+    <div class="callout" style="margin-top:10px"><b>选哪个：</b>要发微信小程序 → uni-app(Taro)；要真上架手机商店的 App → React Native。</div>
+  </div>
+
+  <div class="deep">
+    <div class="dh">Supabase（托管）vs 自己搭数据库</div>
+    <div class="meta">Supabase = 帮你把数据库(PostgreSQL)+登录+文件存储都托管好的云服务，免运维。</div>
+    <div class="callout" style="margin-top:10px"><b>选哪个：</b>小白直接说 <code>用 Supabase 存数据和登录</code>，别自己搭服务器装数据库，能省一周坑。</div>
+  </div>
+
+  <div class="deep">
+    <div class="dh">WebSocket vs CRDT / Yjs（实时协作的两层）</div>
+    <div class="grid2">
+      <div class="box"><h3 style="margin-top:0;color:#3fd0d6">WebSocket</h3><p>让前后端<b>实时通信的管子</b>，消息能秒达（像微信收发）。</p></div>
+      <div class="box"><h3 style="margin-top:0;color:#f5c451">CRDT / Yjs</h3><p>解决"<b>多人同时改同一份不冲突</b>"的算法规则。</p></div>
+    </div>
+    <div class="callout" style="margin-top:10px"><b>区别：</b>WebSocket 是"管子"，CRDT 是"防撞规则"。要做多人协作，两个都得有。新手优先用现成 SaaS（如飞书文档），别自己造。</div>
+  </div>
+
+  <!-- 单名词典 -->
+  <h3>单名词典（剩下的英文都在这）</h3>
+  <div class="scroll">
+  <table>
+    <tr><th>英文</th><th>白话是啥</th><th>你点名时说</th></tr>
+    <tr><td>Vite</td><td>项目的"构建/运行工具"，负责把代码打包、改完秒看（热更新）。React/Vue 都靠它跑起来。</td><td>"用 Vite 搭项目"</td></tr>
+    <tr><td>Tailwind CSS</td><td>写样式的方式（原子化），不用单独写 CSS 文件，开发快、风格统一。</td><td>"Tailwind 样式"</td></tr>
+    <tr><td>Zustand / Pinia</td><td>管"全局状态"（比如当前登录谁、当前在第几天）。React 用 Zustand，Vue 用 Pinia。</td><td>"状态用 Zustand"</td></tr>
+    <tr><td>IndexedDB / localStorage</td><td>浏览器里的"本地小仓库"，关掉网页数据还在（只存在自己这台电脑）。</td><td>"数据存浏览器本地"</td></tr>
+    <tr><td>Playwright / requests</td><td>Python 爬虫库：Playwright 能模拟真人操作浏览器；requests 只取网页数据。</td><td>"用 Playwright 爬"</td></tr>
+    <tr><td>pandas / openpyxl</td><td>Python 处理表格：pandas 数据分析神器；openpyxl 读写 Excel。</td><td>"用 pandas 处理"</td></tr>
+    <tr><td>pdfplumber / PyPDF</td><td>Python 处理 PDF：提取文字、合并、拆页。</td><td>"用 pdfplumber 提取"</td></tr>
+    <tr><td>Pillow / ffmpeg</td><td>图片处理(Pillow) / 音视频转码剪辑(ffmpeg)。</td><td>"用 ffmpeg 转格式"</td></tr>
+    <tr><td>PostgreSQL</td><td>一种主流数据库（存结构化数据），Supabase 底层就是它。</td><td>（一般让 Supabase 代管）</td></tr>
+    <tr><td>WebView2 / Rust</td><td>Tauri 的底层：WebView2=Win 自带浏览器内核；Rust=Tauri 后端语言（你不用写，AI 写）。</td><td>（不用你管）</td></tr>
+    <tr><td>JSX</td><td>React 里"把 HTML 写在 JS 中"的写法，不是新语言，别怕。</td><td>（不用你管）</td></tr>
+    <tr><td>浏览器扩展(Extension)</td><td>装在 Chrome/Edge 里的插件，嵌在网页上增强功能（如划词翻译）。</td><td>"做成浏览器扩展"</td></tr>
+  </table>
+  </div>
+
+  <!-- ===== 穷尽矩阵 ===== -->
+  <h2>三、穷尽需求分类 × 架构匹配（含边界）</h2>
+  <p class="note">24 类常见需求。每列：<span class="ok">✅适用边界</span> = 什么程度以内用它 OK；<span class="no">🚫不适合信号</span> = 出现这些就别用；<span class="sw">🔁换架构临界点</span> = 到了就升级去哪。</p>
+  <div class="scroll">
+  <table>
+    <tr><th>需求类型</th><th>首选架构</th><th>✅ 适用边界（OK 程度）</th><th>🚫 不适合信号</th><th>🔁 换架构临界点（→ 换去）</th></tr>
+
+    <tr><td>一次性展示页 / 海报 / 单页介绍</td><td><span class="tag t-web">网页</span>单 HTML</td><td class="ok">展示为主、不改或只改 1–2 次、纯前端</td><td class="no">要多人编辑 / 要保存用户操作</td><td class="sw">要交互+多页 → React+Vite</td></tr>
+
+    <tr><td>计算器 / 单位换算 / 小工具</td><td><span class="tag t-web">网页</span>单 HTML</td><td class="ok">功能 ≤3、无数据持久化</td><td class="no">要记录历史 / 多套配置</td><td class="sw">配置变多 → React+Vite+本地存储</td></tr>
+
+    <tr><td>个人清单 / 待办 / 记账</td><td><span class="tag t-web">网页</span>单 HTML 或 React+localStorage</td><td class="ok">单人、数据只存自己浏览器</td><td class="no">要换设备也能看 / 多人共享</td><td class="sw">跨设备/共享 → +后端+数据库</td></tr>
+
+    <tr><td>多页 Web 应用 / 有界面的产品 demo</td><td><span class="tag t-web">网页</span>React 19 + Vite + Tailwind</td><td class="ok">多组件、本地跑、一人/少数人</td><td class="no">要账号体系 / 服务端计算</td><td class="sw">登录+多人 → +后端(FastAPI/Node)+DB</td></tr>
+
+    <tr><td>数据看板 / 报表 / 图表</td><td><span class="tag t-web">网页</span>React+Vite+ECharts 5</td><td class="ok">数据来自文件/接口、本地或部署</td><td class="no">要实时多人改同一份</td><td class="sw">实时协作 → +WebSocket+CRDT</td></tr>
+
+    <tr><td>培训 / 课程陪练系统（如 7 天陪练）</td><td><span class="tag t-web">网页</span>React+Vite+本地存储</td><td class="ok">本地 demo、导师自己电脑跑、内容固定</td><td class="no">多新人各自提交、导师跨设备看</td><td class="sw">多人提交汇总 → +后端+数据库</td></tr>
+
+    <tr><td>客户管理 / CRM（个人/小团队）</td><td><span class="tag t-web">网页</span>React+后端+数据库</td><td class="ok">有客户数据要持久、要查要改</td><td class="no">仅自己记几条（用表格即可）</td><td class="sw">要多人协同 → +实时/权限</td></tr>
+
+    <tr><td>表单 / 问卷 / 报名 / 投票</td><td><span class="tag t-web">网页</span>现成工具（腾讯问卷/金数据）</td><td class="ok">标准收集+统计，别开发</td><td class="no">特殊流程/品牌定制强</td><td class="sw">非要开发 → React+后端+DB</td></tr>
+
+    <tr><td>聊天机器人 / AI 对话界面</td><td><span class="tag t-py">Python</span>Streamlit/Gradio 或 React+API</td><td class="ok">内部用、单机、快速出</td><td class="no">要好看/复杂交互/大量用户</td><td class="sw">正式产品 → React 前端+Python 后端</td></tr>
+
+    <tr><td>AI 工具 / 批量生成 / 调用大模型</td><td><span class="tag t-py">Python</span>Streamlit/Gradio</td><td class="ok">自己/小团队用、原型</td><td class="no">要上生产给很多人</td><td class="sw">生产级 → React+后端(FastAPI)</td></tr>
+
+    <tr><td>3D 展示 / 小游戏 / 粒子 / 旋转</td><td><span class="tag t-web">网页</span>React+Vite+Three.js(R3F)</td><td class="ok">浏览器内能跑的 3D/轻游戏</td><td class="no">大型游戏/主机级画质</td><td class="sw">重负载 → 原生引擎/降配</td></tr>
+
+    <tr><td>爬虫 / 数据采集 / 监控变化</td><td><span class="tag t-py">Python</span>Python+Playwright/requests</td><td class="ok">后台跑、存成文件/库</td><td class="no">要网页界面给人点</td><td class="sw">要界面 → 套 Streamlit/React</td></tr>
+
+    <tr><td>批量文件处理 / 改名 / Excel 报表</td><td><span class="tag t-py">Python</span>Python(pandas/openpyxl)</td><td class="ok">命令行跑、输入输出是文件</td><td class="no">要可视化操作界面</td><td class="sw">要界面 → +前端 或 桌面(Tauri)</td></tr>
+
+    <tr><td>PDF 处理 / 合并 / 提取 / 加水印</td><td><span class="tag t-py">Python</span>Python(pdfplumber/PyPDF)</td><td class="ok">批处理、本地</td><td class="no">要在线多人编辑 PDF</td><td class="sw">在线 → 后端+前端</td></tr>
+
+    <tr><td>图片 / 音视频批处理 / 转格式 / 剪辑</td><td><span class="tag t-py">Python</span>Python(ffmpeg/Pillow)</td><td class="ok">命令行批量、本地</td><td class="no">要在线实时预览编辑</td><td class="sw">在线编辑 → 前端+后端</td></tr>
+
+    <tr><td>定时任务 / 自动推送 / 打卡 / 日报</td><td><span class="tag t-py">Python</span>Python 脚本 + 系统定时/云函数</td><td class="ok">后台周期跑、无界面</td><td class="no">要人工在界面操作</td><td class="sw">要界面 → +前端</td></tr>
+
+    <tr><td>桌面软件 / 离线工具 / 碰本地文件</td><td><span class="tag t-app">桌面</span>Tauri 2（轻）/ Electron</td><td class="ok">离线、双击开、读写本地文件</td><td class="no">要网页分享给别人</td><td class="sw">要分享 → 改成 Web 部署</td></tr>
+
+    <tr><td>手机 App / 小程序</td><td><span class="tag t-app">移动</span>React Native / uni-app(Vue)</td><td class="ok">要上架商店、移动端专属</td><td class="no">纯网页能解决（成本高别上 App）</td><td class="sw">降级 → 做成响应式 Web</td></tr>
+
+    <tr><td>浏览器插件 / 扩展</td><td><span class="tag t-ext">扩展</span>浏览器扩展架构(独立)</td><td class="ok">要嵌在浏览器里增强网页</td><td class="no">独立完整应用（用 Web 而非插件）</td><td class="sw">变复杂 → 抽成独立 Web 应用</td></tr>
+
+    <tr><td>多人实时协作 / 在线文档</td><td><span class="tag t-web">网页</span>React+后端+WebSocket+CRDT(Yjs)</td><td class="ok">多人同改不冲突、需服务器</td><td class="no">单人编辑（过度工程）</td><td class="sw">—（本身就最高级，优先用现成 SaaS）</td></tr>
+
+    <tr><td>电商 / 商城 / 支付 / 下单</td><td><span class="tag t-web">网页</span>后端必需 + SaaS 优先</td><td class="ok">有赞/微店先用，特殊模式才自研</td><td class="no">标准开店（别自研造轮子）</td><td class="sw">自研 → React+后端+支付+DB</td></tr>
+
+    <tr><td>个人网站 / 博客 / 作品集 / 落地页</td><td><span class="tag t-web">网页</span>Astro/Next.js 或 单 HTML</td><td class="ok">展示型、SEO 友好、静态</td><td class="no">要登录后台动态内容</td><td class="sw">动态 → +后端</td></tr>
+
+    <tr><td>知识库 / 笔记系统</td><td><span class="tag t-app">本地</span>现成(Obsidian/Notion) 或 Tauri 本地</td><td class="ok">个人知识管理，先用现成</td><td class="no">要团队实时协同（用 SaaS）</td><td class="sw">团队协同 → 后端+实时</td></tr>
+
+    <tr><td>微信 / 社群自动化 / 自动回复</td><td><span class="tag t-py">Python</span>Python 脚本（注意合规）</td><td class="ok">自己号、规则简单、本地</td><td class="no">要规模群控（合规风险高）</td><td class="sw">合规诉求 → 用企微 SCRM</td></tr>
+  </table>
+  </div>
+
+  <!-- ===== 架构深解 ===== -->
+  <h2>四、5 个关键架构的边界深解</h2>
+  <p class="note">矩阵里出现最多的 5 种架构，单独把"边界"讲透——这是 AI 最不会主动告诉你、却最容易栽跟头的地方。</p>
+
+  <div class="deep">
+    <div class="dh">① 单 HTML</div>
+    <div class="meta">定位：玩具级 / 一次性 / 单页展示</div>
+    <span class="bdg ok">✅ 适合：展示页、计算器、清单、改 ≤2 次就定稿</span>
+    <span class="bdg ok">✅ 适合：纯前端、不需要保存用户输入到下次</span>
+    <span class="bdg no">🚫 不适合：多页面跳转 / 要路由 / 内容会越长越多</span>
+    <span class="bdg no">🚫 不适合：要保存数据、要登录、要多人</span>
+    <span class="bdg sw">🔁 临界点：AI 改第 3 次开始出错/卡，或"刷新数据没了" → 换 React+Vite</span>
+    <p class="note">你工作区里那些 .html（借势课、小账本）大多处在这级。小账本如果只自己记，单 HTML 没问题；要换手机看就到红线了。</p>
+  </div>
+
+  <div class="deep">
+    <div class="dh">② React / Vue + Vite（前端工程化）</div>
+    <div class="meta">定位：有界面的本地能跑的 demo / 产品（解决单 HTML 卡死问题的关键一级）</div>
+    <span class="bdg ok">✅ 适合：多组件、交互多、本地一人/少数人、数据存浏览器本地</span>
+    <span class="bdg ok">✅ 适合：demo 验证想法、内部小工具、导师自己电脑跑的培训系统</span>
+    <span class="bdg no">🚫 不适合：要账号登录 / 多用户共享同一份数据 / 服务端重计算</span>
+    <span class="bdg no">🚫 不适合：要离线双击打开（这是桌面级，见⑤）</span>
+    <span class="bdg sw">🔁 临界点 A：出现"多用户各自提交、跨设备看汇总" → 加后端+数据库</span>
+    <span class="bdg sw">🔁 临界点 B：要离线碰本地文件 → 套 Tauri/Electron</span>
+    <span class="bdg sw">🔁 临界点 C：要上手机商店 → React Native/uni-app</span>
+    <p class="note">一句话：<b>只要"有界面且不止一页/要加功能"，无脑先上这级</b>。它解决了单 HTML 所有痛点。</p>
+  </div>
+
+  <div class="deep">
+    <div class="dh">③ 加后端 + 数据库（FastAPI / Node + Supabase 等）</div>
+    <div class="meta">定位：从"本地玩具"跨进"真能多人用的产品"的红线</div>
+    <span class="bdg ok">✅ 适合：登录、多用户、数据永久保存、跨设备、服务端逻辑（如 AI 推理放服务端）</span>
+    <span class="bdg no">🚫 不适合：纯展示/单人（过度工程，白费劲）</span>
+    <span class="bdg sw">🔁 临界点：要多人同时编辑同一份不冲突 → 加 WebSocket + CRDT(Yjs)</span>
+    <p class="note">判断口诀：<b>"别人的数据你要不要看/存？"</b>——要，就加后端。前端 alone 永远只能存自己浏览器。</p>
+  </div>
+
+  <div class="deep">
+    <div class="dh">④ Python 脚本（无界面）</div>
+    <div class="meta">定位：后台干活的批量劳动（你"批量化处理"的主场）</div>
+    <span class="bdg ok">✅ 适合：改名/Excel/PDF/爬虫/音视频转码/定时任务，输入输出都是文件</span>
+    <span class="bdg ok">✅ 适合：自己用、命令行跑、不需要界面</span>
+    <span class="bdg no">🚫 不适合：要别人也能用界面点 / 要网页访问 / 要多人</span>
+    <span class="bdg sw">🔁 临界点：要给人用界面 → 套 Streamlit/Gradio 或做前端</span>
+    <p class="note">很多人一上来就让 AI "做个网页"，其实要的是"批量处理 500 个文件"——这根本是 Python 脚本，做网页是走弯路。</p>
+  </div>
+
+  <div class="deep">
+    <div class="dh">⑤ 桌面 / 移动封装（Tauri / Electron / RN）</div>
+    <div class="meta">定位：要"离线/双击开"或"上商店"时才需要</div>
+    <span class="bdg ok">✅ 适合：离线工具、碰本地文件、双击打开的软件（桌面）；手机专属体验（移动）</span>
+    <span class="bdg no">🚫 不适合：纯网页能解决（桌面/App 开发调试成本高 3–5 倍）</span>
+    <span class="bdg sw">🔁 临界点：要网页分享给很多人 → 别封装，直接部署 Web</span>
+    <p class="note">新手最常犯的错：明明做个网页就能用，非要"搞个 App"，结果卡在环境配置几个月。</p>
+  </div>
+
+  <!-- ===== 实战推演 ===== -->
+  <h2>五、实战推演：新人 7 天陪练，完整架构决策</h2>
+  <div class="case">
+    <div class="tt">把"新人 7 天陪练"这个例子展开成可执行的架构书</div>
+    <div class="sub">需求拆解 → 逐项落架构 → 标红线</div>
+    <ul>
+      <li class="li"><b>7 天规划 + 每天学习任务</b>：多页/路由 → React Router 拆 7 个模块 ✓（前端级）</li>
+      <li class="li"><b>每天放视频</b>：<code>&lt;video&gt;</code> 标签或外链（B站/对象存储），不塞进代码 ✓</li>
+      <li class="li"><b>模拟客户应对练习题</b>：表单+选项+判分 → 组件 + 本地状态 ✓</li>
+      <li class="li"><b>上传打电话/加微信截图</b>：<code>&lt;input type=file&gt;</code> → 存浏览器本地(IndexedDB) 或 本地文件 ✓（本地 demo 够）</li>
+      <li class="li"><b>导师数据看板</b>：ECharts 读本地提交数据画汇总 ✓（本地 demo 够）</li>
+    </ul>
+    <p><b>本地 demo 架构定稿</b>：<code>React 19 + Vite 5 + Tailwind + Zustand(状态) + IndexedDB(本地存) + ECharts(看板)</code>。视频用外链不进代码。这正是工程化前端"不费劲"的原因。</p>
+    <div class="callout warn" style="margin-top:14px">
+      <b>这个例子的红线（必须换架构的临界点）：</b>
+      <ul>
+        <li class="li">新人不在导师电脑上练 → 数据在导师浏览器，新人看不到 → <b>必须 +后端+数据库</b></li>
+        <li class="li">导师要手机/平板上批阅 → 纯本地 Web 上不了商店 → <b>部署 Web 或做移动端</b></li>
+        <li class="li">多个导师同时看同一批数据 → 要权限/并发 → 后端加权限层</li>
+      </ul>
+    </div>
+    <p class="note">结论：这个「本地 demo」用 React 前端完全正确；等哪天要"真给一批新人用"，就是跨红线升级后端的时候——不是现在。</p>
+  </div>
+
+  <!-- ===== 红线总表 ===== -->
+  <h2>六、切换红线总表（一眼看何时必须换）</h2>
+  <div class="scroll">
+  <table>
+    <tr><th>你现在用的</th><th>出现的信号</th><th>必须换去</th></tr>
+    <tr><td>单 HTML</td><td class="no">改第 3 次 AI 开始卡/改坏 / 要路由多页 / 要存数据</td><td class="sw">React + Vite 前端</td></tr>
+    <tr><td>React 前端 + 本地存储</td><td class="no">多用户各自提交 / 跨设备看 / 要登录</td><td class="sw">+ 后端 + 数据库</td></tr>
+    <tr><td>React 前端</td><td class="no">要离线双击开 / 碰本地文件</td><td class="sw">套 Tauri / Electron</td></tr>
+    <tr><td>React 前端</td><td class="no">要上手机商店</td><td class="sw">React Native / uni-app</td></tr>
+    <tr><td>React + 后端</td><td class="no">多人同时编辑同一份不冲突</td><td class="sw">+ WebSocket + CRDT(Yjs)</td></tr>
+    <tr><td>Python 脚本</td><td class="no">要给人用界面 / 要网页访问</td><td class="sw">套 Streamlit / 做前端</td></tr>
+    <tr><td>任何自研</td><td class="no">是标准表单/问卷/开店/笔记/协同</td><td class="sw">改用现成 SaaS（别造轮子）</td></tr>
+  </table>
+  </div>
+
+  <!-- ===== 指令 ===== -->
+  <h2>七、复制即用的「一句话架构指令」</h2>
+  <div class="callout b">
+    <span class="copy" onclick="copy(this)">复制</span>
+    <b>① 通用保命句（任何网页/界面类需求先甩这句）</b>
+    <pre>请用 React 19 + Vite 5 搭建工程化项目，组件化拆分（每个功能一个文件），Tailwind CSS 样式，Zustand 管理状态。不要输出单个巨大的 HTML 文件，代码写到项目目录多文件，并告诉我怎么用 npm run dev 本地预览。数据先用浏览器本地存储（localStorage/IndexedDB），先不做后端。</pre>
+  </div>
+  <div class="callout b">
+    <span class="copy" onclick="copy(this)">复制</span>
+    <b>② 跨过红线要加后端时（多人/持久/登录）</b>
+    <pre>在上面的 React 前端基础上，加一个轻量后端：用 FastAPI(Python) 提供 API，数据存 Supabase(PostgreSQL)；前端用 Axios 调接口。要支持账号登录和多用户提交。请说明前后端怎么分别启动。</pre>
+  </div>
+  <div class="callout b">
+    <span class="copy" onclick="copy(this)">复制</span>
+    <b>③ 非网页类（脚本/批量/爬虫/定时）</b>
+    <pre>这是一个 Python 脚本任务，不需要做网页界面。请用 Python + 必要库实现，代码写到一个 .py 文件，并告诉我本地用什么命令运行、输入输出分别是什么文件。</pre>
+  </div>
+  <div class="callout b">
+    <span class="copy" onclick="copy(this)">复制</span>
+    <b>④ 快速 AI 工具 demo（内部用）</b>
+    <pre>用 Streamlit 做一个能跑的网页界面，背后调大模型 API，支持批量输入批量输出。先出单机可用版本，不要做复杂前端框架。</pre>
+  </div>
+
+  <!-- ===== 翻车坑 ===== -->
+  <h2>八、小白最常踩的坑（扩充版）</h2>
+  <table>
+    <tr><th>坑</th><th>现象</th><th>正确做法</th></tr>
+    <tr><td>让 AI 默认输出</td><td>给你几千行 HTML，改两次就乱</td><td>界面类需求一开始就点名 React+Vite 工程化</td></tr>
+    <tr><td>把"知道做什么"当"做完了"</td><td>聊架构很嗨，没让 AI 真建项目跑起来</td><td>要 AI 实际建项目、给预览命令、你自己点开看</td></tr>
+    <tr><td>为表单/问卷/开店写代码</td><td>花 3 天，现成工具 3 分钟</td><td>先问"这能不用开发吗"</td></tr>
+    <tr><td>想要 App 却说"做个网页"</td><td>做完上不了商店</td><td>移动端直接指定 RN/uni-app；否则做成响应式 Web</td></tr>
+    <tr><td>要存数据却只有前端</td><td>刷新全没、换设备看不到</td><td>加后端/Supabase，或先用现成 BaaS</td></tr>
+    <tr><td>本地 demo 硬上后端</td><td>配置一天没跑起来，打击信心</td><td>先 LEVEL1 本地存储验证，跨红线再升级</td></tr>
+    <tr><td>把"批量处理"说成"做个网页"</td><td>绕远路做了一堆界面</td><td>后台活直接说"Python 脚本，不用做网页"</td></tr>
+    <tr><td>3D/游戏用单 HTML 硬刚</td><td>卡死、跑不动</td><td>直接 React + Three.js(R3F)，GPU 渲染</td></tr>
+  </table>
+
+  <!-- ===== 怎么用 ===== -->
+  <h2>九、这份地图怎么用</h2>
+  <ul>
+    <li class="li"><b>先翻第三节矩阵</b>找到你的需求类型，看 🟢/🟡/🔴 风险与「换架构临界点」。</li>
+    <li class="li"><b>界面类且不止一页/要加功能</b> → 无脑甩第七节 ① 保命句。</li>
+    <li class="li"><b>后台批量活</b> → 甩 ③「Python 脚本，不用做网页」。</li>
+    <li class="li"><b>出现红线信号</b> → 查第六节总表，升级一级架构，甩对应指令。</li>
+    <li class="li">丢进第二大脑，标签「AI协作 / 技术选型 / 边界 / 避坑」。</li>
+  </ul>
+
+</div>
+<script>
+function copy(el){
+  const pre = el.parentElement.querySelector('pre');
+  if(!pre) return;
+  navigator.clipboard.writeText(pre.innerText).then(()=>{
+    const t = el.innerText; el.innerText='已复制 ✓';
+    setTimeout(()=>el.innerText=t,1200);
+  });
+}
+</script>
+</body>
+</html>

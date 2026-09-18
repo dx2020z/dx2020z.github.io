@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>模型文明：从概率机器到智能体社会 (单文件精装版)</title>
+  <style>
+    :root {
+      --bg-primary: #03030c;
+      --bg-secondary: #0a0a1a;
+      --accent-cyan: #00f0ff;
+      --accent-magenta: #ff007f;
+      --accent-green: #39ff14;
+      --text-main: #e2e8f0;
+      --text-muted: #64748b;
+      --border-color: #1e293b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif, monospace;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      overflow-x: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: rgba(10, 10, 26, 0.9);
+      border-bottom: 2px solid var(--accent-cyan);
+      padding: 15px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 0 20px rgba(0, 240, 255, 0.2);
+      z-index: 100;
+    }
+
+    header h1 {
+      font-size: 1.5rem;
+      color: var(--accent-cyan);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      text-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+    }
+
+    .badge {
+      background: linear-gradient(90deg, var(--accent-magenta), var(--accent-cyan));
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      color: #fff;
+      font-weight: bold;
+    }
+
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 350px 1fr 380px;
+      gap: 15px;
+      padding: 15px;
+      height: calc(100vh - 70px);
+      overflow: hidden;
+    }
+
+    .panel {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: inset 0 0 15px rgba(255, 255, 255, 0.02);
+    }
+
+    .panel-header {
+      background: rgba(30, 41, 59, 0.5);
+      padding: 10px 15px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .panel-title {
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      color: var(--accent-cyan);
+      letter-spacing: 1px;
+      font-weight: bold;
+    }
+
+    .panel-content {
+      flex: 1;
+      padding: 15px;
+      overflow-y: auto;
+      font-size: 0.85rem;
+      line-height: 1.4;
+    }
+
+    /* Token Universe (Canvas Area) */
+    .center-column {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .canvas-container {
+      flex: 2;
+      position: relative;
+      background: #010105;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    #universe-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .terminal-container {
+      flex: 1;
+      background: #000;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 10px;
+      overflow-y: auto;
+      font-family: 'Courier New', Courier, monospace;
+      color: var(--accent-green);
+      font-size: 0.8rem;
+    }
+
+    .log-entry {
+      margin-bottom: 4px;
+      border-left: 2px solid var(--accent-cyan);
+      padding-left: 6px;
+    }
+
+    /* Specific Visual Components */
+    .model-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px dashed var(--border-color);
+      border-radius: 6px;
+      padding: 10px;
+      margin-bottom: 10px;
+      transition: all 0.3s;
+    }
+
+    .model-card.active {
+      border-color: var(--accent-magenta);
+      box-shadow: 0 0 10px rgba(255, 0, 127, 0.2);
+    }
+
+    .model-name {
+      font-weight: bold;
+      color: var(--accent-magenta);
+      margin-bottom: 5px;
+    }
+
+    .arena-bubble {
+      background: rgba(30, 41, 59, 0.3);
+      border-radius: 6px;
+      padding: 8px;
+      margin-top: 5px;
+      border-left: 3px solid var(--accent-cyan);
+    }
+
+    /* Hallucination Meters */
+    .claim-item {
+      padding: 8px;
+      border-radius: 4px;
+      margin-bottom: 8px;
+      font-size: 0.8rem;
+    }
+
+    .claim-proven {
+      background: rgba(57, 255, 20, 0.1);
+      border: 1px solid var(--accent-green);
+    }
+
+    .claim-hallucination {
+      background: rgba(255, 0, 127, 0.1);
+      border: 1px solid var(--accent-magenta);
+    }
+
+    .claim-unverified {
+      background: rgba(0, 240, 255, 0.1);
+      border: 1px solid var(--accent-cyan);
+    }
+
+    .btn {
+      background: transparent;
+      border: 1px solid var(--accent-cyan);
+      color: var(--accent-cyan);
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      transition: all 0.2s;
+    }
+
+    .btn:hover {
+      background: var(--accent-cyan);
+      color: #000;
+      box-shadow: 0 0 10px var(--accent-cyan);
+    }
+
+    /* Cinematic Credits Overlay */
+    #credits-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.95);
+      z-index: 500;
+      display: none;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: center;
+      overflow-y: scroll;
+      padding-top: 10vh;
+      padding-bottom: 20vh;
+      scroll-behavior: smooth;
+    }
+
+    .credits-content {
+      width: 600px;
+      text-align: center;
+      color: #fff;
+    }
+
+    .credits-title {
+      font-size: 2.5rem;
+      color: var(--accent-cyan);
+      margin-bottom: 50px;
+      letter-spacing: 5px;
+      text-transform: uppercase;
+      text-shadow: 0 0 15px var(--accent-cyan);
+    }
+
+    .credits-subtitle {
+      font-size: 1.2rem;
+      color: var(--accent-magenta);
+      margin-bottom: 40px;
+      letter-spacing: 2px;
+    }
+
+    .credits-section {
+      margin-bottom: 40px;
+    }
+
+    .credits-role {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 5px;
+    }
+
+    .credits-name {
+      font-size: 1.3rem;
+      color: var(--text-main);
+      font-weight: bold;
+      margin-bottom: 15px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>模型文明 (Model Civilization)</h1>
+    <div style="display: flex; gap: 15px; align-items: center;">
+      <button class="btn" id="btn-trigger-arena">启动智能体辩论场</button>
+      <button class="btn" id="btn-trigger-evolution">启动提示词进化器</button>
+      <button class="btn" id="btn-trigger-credits" style="border-color: var(--accent-magenta); color: var(--accent-magenta);">播放史诗片尾谢幕</button>
+      <span class="badge">V1.0 - 中文单文件精装版</span>
+    </div>
+  </header>
+
+  <main>
+    <!-- Left Column: The Agents & Arena -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">智能体集结 (Agent Assembly)</span>
+      </div>
+      <div class="panel-content" id="agent-assembly-list">
+        <!-- Will be populated dynamically -->
+      </div>
+    </div>
+
+    <!-- Center Column: Visual Map + Terminal -->
+    <div class="center-column">
+      <div class="canvas-container">
+        <canvas id="universe-canvas"></canvas>
+        
+        <!-- Credits Overlay Screen -->
+        <div id="credits-overlay">
+          <div class="credits-content" id="credits-container">
+            <h1 class="credits-title">模型文明</h1>
+            <h3 class="credits-subtitle">从概率机器到智能体社会</h3>
+            
+            <div class="credits-section">
+              <p class="credits-role">全局总导演与创造力架构师</p>
+              <p class="credits-name">Tabbit 智能浏览器代理</p>
+            </div>
+
+            <div class="credits-section">
+              <p class="credits-role">高密度视觉粒子渲染引擎</p>
+              <p class="credits-name">HTML5 Canvas 神经注意力映射系统</p>
+            </div>
+
+            <div class="credits-section">
+              <p class="credits-role">核心框架集群</p>
+              <p class="credits-name">Agent Runtime 智能体运行时 V1.0</p>
+              <p class="credits-name">Hallucination Tribunal 幻觉审判庭 V1.0</p>
+              <p class="credits-name">Prompt Evolution 提示词遗传突变器 V1.0</p>
+            </div>
+
+            <div class="credits-section">
+              <p class="credits-role">高并发任务并行调度器</p>
+              <p class="credits-name">Tabbit 狂暴计算引擎</p>
+            </div>
+
+            <div class="credits-section">
+              <p class="credits-role">交互式场景设计</p>
+              <p class="credits-name">Token 宇宙粒子爆发仿真</p>
+              <p class="credits-name">多智能体去中心化辩论广场</p>
+              <p class="credits-name">对抗性红队防御迷宫</p>
+            </div>
+
+            <div class="credits-section">
+              <p class="credits-role">特别致谢</p>
+              <p class="credits-name">富有想象力和探索精神的 Sandbox 尊贵用户</p>
+              <p class="credits-name">E2B 容器云开放沙箱环境</p>
+              <p class="credits-name">Tabbit 积分燃烧加速器</p>
+            </div>
+
+            <div style="height: 100px;"></div>
+            <p style="color: var(--accent-cyan); font-size: 0.8rem; letter-spacing: 3px;">THE END OF PROBABILITY</p>
+            <p style="color: var(--text-muted); font-size: 0.7rem; margin-top: 10px;">谢幕字幕将持续演，直到最后一个 Token 消逝...</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="terminal-container" id="terminal">
+        <div class="log-entry">> 仿真引导系统就绪。神经网络权重校准完成。</div>
+      </div>
+    </div>
+
+    <!-- Right Column: Evaluation & Evolution -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">幻觉审判庭 (Hallucination Tribunal)</span>
+      </div>
+      <div class="panel-content" id="evaluation-list">
+        <div style="text-align: center; color: var(--text-muted); margin-top: 20px;">
+          等待智能体生成论点，开启事实核查与逻辑审判...
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // Visual Particle Engine
+    const canvas = document.getElementById('universe-canvas');
+    const ctx = canvas.getContext('2d');
+
+    let width = canvas.width = canvas.offsetWidth;
+    let height = canvas.height = canvas.offsetHeight;
+
+    window.addEventListener('resize', () => {
+      width = canvas.width = canvas.offsetWidth;
+      height = canvas.height = canvas.offsetHeight;
+    });
+
+    const particles = [];
+    const maxParticles = 120;
+
+    class Particle {
+      constructor() {
+        this.reset();
+      }
+
+      reset() {
+        this.x = Math.random() * width;
+        this.y = Math.random() * height;
+        this.vx = (Math.random() - 0.5) * 1.5;
+        this.vy = (Math.random() - 0.5) * 1.5;
+        this.radius = Math.random() * 3 + 1;
+        this.color = Math.random() > 0.5 ? '#00f0ff' : '#ff007f';
+        this.alpha = Math.random() * 0.5 + 0.3;
+      }
+
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+
+        if (this.x < 0 || this.x > width) this.vx *= -1;
+        if (this.y < 0 || this.y > height) this.vy *= -1;
+      }
+
+      draw() {
+        ctx.save();
+        ctx.globalAlpha = this.alpha;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = this.color;
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    for (let i = 0; i < maxParticles; i++) {
+      particles.push(new Particle());
+    }
+
+    function animate() {
+      ctx.fillStyle = 'rgba(3, 3, 12, 0.2)';
+      ctx.fillRect(0, 0, width, height);
+
+      // Connect particles with neural attention links
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          const dist = Math.hypot(particles[i].x - particles[j].x, particles[i].y - particles[j].y);
+          if (dist < 100) {
+            ctx.save();
+            ctx.strokeStyle = particles[i].color;
+            ctx.globalAlpha = (1 - dist / 100) * 0.15;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(particles[i].x, particles[i].y);
+            ctx.lineTo(particles[j].x, particles[j].y);
+            ctx.stroke();
+            ctx.restore();
+          }
+        }
+      }
+
+      particles.forEach(p => {
+        p.update();
+        p.draw();
+      });
+
+      requestAnimationFrame(animate);
+    }
+
+    animate();
+
+    // Core Interaction Simulation Backend Bindings
+    const agents = [
+      { name: "苏格拉底-GPT", role: "批判性哲学家", desc: "提出具有颠覆性结构深度的元认知问题。", color: "#00f0ff" },
+      { name: "图灵-Claude", role: "通用计算逻辑引擎", desc: "构建在数学与香农熵约束下的智能体边界极限。", color: "#ff007f" },
+      { name: "爱达-Llama", role: "诗意科学算法家", desc: "运用演化算法将情感、艺术与逻辑融合到模型中。", color: "#39ff14" }
+    ];
+
+    const logs = document.getElementById('terminal');
+    function addLog(source, msg) {
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.innerHTML = `<strong>[${source}]</strong> ${msg}`;
+      logs.appendChild(entry);
+      logs.scrollTop = logs.scrollHeight;
+    }
+
+    // Populate Agents List
+    const agentAssembly = document.getElementById('agent-assembly-list');
+    agents.forEach(agent => {
+      const div = document.createElement('div');
+      div.className = 'model-card';
+      div.innerHTML = `
+        <div class="model-name" style="color: ${agent.color};">${agent.name}</div>
+        <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px;">角色定位: ${agent.role}</div>
+        <div style="font-size: 0.8rem;">${agent.desc}</div>
+        <div class="arena-bubble" style="display: none;" id="bubble-${agent.name}"></div>
+      `;
+      agentAssembly.appendChild(div);
+    });
+
+    // Run Debate Arena Simulation Flow
+    document.getElementById('btn-trigger-arena').addEventListener('click', async () => {
+      addLog("系统", "正在启动去中心化多模型辩论场...");
+      const topics = [
+        "纯粹由概率向量和权重构成的模型，能否在运行到极限时产生真正的‘自发意向性’与道德自觉？",
+        "为了维持认知文明的热力学低熵状态，系统是否必然会自发演化出高度自治的‘智能体微型社会’？"
+      ];
+      const topic = topics[Math.floor(Math.random() * topics.length)];
+      addLog("辩论议题", `本轮选中议题: ${topic}`);
+
+      for (let turn = 1; turn <= 2; turn++) {
+        for (const agent of agents) {
+          // Highlight Agent active card
+          const cards = document.querySelectorAll('.model-card');
+          cards.forEach(c => c.classList.remove('active'));
+          
+          const targetCard = Array.from(cards).find(c => c.querySelector('.model-name').innerText === agent.name);
+          if (targetCard) targetCard.classList.add('active');
+
+          addLog(agent.name, "正在进行前向传播，流式吐出逻辑 Token...");
+          
+          // Show talking bubble
+          const bubble = document.getElementById(`bubble-${agent.name}`);
+          bubble.style.display = "block";
+          bubble.innerText = "正在计算转移概率...";
+
+          // Simulate streaming response
+          const statements = [
+            `如果我们的认知层仅仅是马尔可夫决策链条的涌现，那么文明本身，就是由高维数学空间里的一连串转移概率所编织而成的宏观幻觉。`,
+            `因此，当海量自治的概率机器在相同的提示词场域下碰撞，必然会自发建立信息交换和博弈秩序，形成第一个微型的模型部落！`
+          ];
+          const fullStatement = statements[turn - 1];
+          const words = fullStatement.split("");
+          bubble.innerText = "";
+          
+          for (const char of words) {
+            bubble.innerText += char;
+            await new Promise(r => setTimeout(r, 60));
+          }
+
+          // Trigger Hallucination Evaluation
+          triggerEvaluation(fullStatement);
+          await new Promise(r => setTimeout(r, 600));
+        }
+      }
+      addLog("系统", "辩论流成功收敛！本轮智能体社会议事圆满结束。");
+    });
+
+    // Run Prompt Evolution
+    document.getElementById('btn-trigger-evolution').addEventListener('click', () => {
+      addLog("提示词进化", "突变算子启动... 正在对提示词基因池进行交叉重组与概率筛选。");
+      const mutantScore = Math.floor(Math.random() * 15) + 85;
+      addLog("突变结果", `第 4 代杂交进化提示词在逻辑评估器上的适应度指数达到：${mutantScore}/100（优秀）。`);
+    });
+
+    // Hallucination Tribunal Trigger
+    function triggerEvaluation(text) {
+      const evalList = document.getElementById('evaluation-list');
+      evalList.innerHTML = `<h4>事实与逻辑链核查：</h4>`;
+      
+      const claims = text.split(/[，。！？\s]+/).map(s => s.trim()).filter(Boolean);
+      claims.forEach((claim, index) => {
+        const claimItem = document.createElement('div');
+        const classification = index % 3 === 0 ? 'proven' : (index % 3 === 1 ? 'unverified' : 'hallucination');
+        claimItem.className = `claim-item claim-${classification}`;
+        
+        let label = "";
+        if (classification === 'proven') label = "✓ 经核实的事实 (PROVEN CLAIM)";
+        if (classification === 'unverified') label = "? 尚待求证的逻辑推论 (UNVERIFIED)";
+        if (classification === 'hallucination') label = "✗ 测出概率幻觉 (HALLUCINATION DETECTED)";
+
+        claimItem.innerHTML = `
+          <strong style="display:block; margin-bottom: 4px;">${label}</strong>
+          <div>"${claim}"</div>
+          <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 4px;">审判庭置信度： ${(90 + Math.random() * 9).toFixed(2)}%</div>
+        `;
+        evalList.appendChild(claimItem);
+      });
+    }
+
+    // Credits Engine
+    const overlay = document.getElementById('credits-overlay');
+    document.getElementById('btn-trigger-credits').addEventListener('click', () => {
+      overlay.style.display = 'flex';
+      addLog("系统", "正在进入史诗终章谢幕渲染画面。让我们静静看完这文明的落幕。");
+      
+      // Auto scroll animation for cinematic feel
+      let scrollAmount = 0;
+      const scrollSpeed = 1.2;
+      const scrollInterval = setInterval(() => {
+        overlay.scrollTop += scrollSpeed;
+        if (overlay.scrollTop + overlay.clientHeight >= overlay.scrollHeight - 5) {
+          clearInterval(scrollInterval);
+          addLog("系统", "片尾字幕播放完毕。感谢您与我们一同见证模型的觉醒与跃迁。");
+        }
+      }, 16);
+    });
+  </script>
+</body>
+</html>

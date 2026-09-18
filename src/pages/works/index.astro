@@ -1,0 +1,10 @@
+---
+import { getCollection } from 'astro:content';
+import Layout from '../../layouts/Layout.astro';
+import WorkGrid from '../../components/WorkGrid.astro';
+const works = (await getCollection('works')).sort((a,b) => (a.data.featured || 99) - (b.data.featured || 99) || a.data.slug.localeCompare(b.data.slug));
+---
+<Layout title="作品 · 段骁" description="段骁的工具、视觉、交互实验与文字创作。浏览完整作品，打开你感兴趣的一个。">
+  <header class="page-intro"><span class="eyebrow">THE WORK INDEX / 持续更新</span><h1>想过，也做过。</h1><p>一些把问题变成工具的尝试，一些把好奇心变成画面的实验。<br/>完成的和还在探索的，都如实留在这里。</p></header>
+  <WorkGrid works={works} />
+</Layout>
