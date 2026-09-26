@@ -2,6 +2,7 @@
 import { getCollection } from 'astro:content';
 import Layout from '../layouts/Layout.astro';
 import WorkCard from '../components/WorkCard.astro';
+import { spaces, spacePath } from '../data/spaces';
 import { withBase } from '../lib/paths.mjs';
 const works = await getCollection('works');
 const featured = works.filter(w => w.data.featured > 0).sort((a,b) => a.data.featured - b.data.featured).slice(0,4);
@@ -27,8 +28,18 @@ const path = (p: string) => withBase(p, import.meta.env.BASE_URL);
     <div class="section-heading"><div><div class="section-label"><span class="number">01 /</span> SELECTED WORKS</div><h2 id="selected-title">从这些作品，认识我。</h2></div><a class="text-link" href={path('/works/')}>全部 {works.length} 件作品 <span aria-hidden="true">↗</span></a></div>
     <div class="selected-grid">{featured.map((work,index) => <WorkCard work={work} index={index} />)}</div>
   </section>
+  <section class="chapter-index" id="spaces" aria-labelledby="chapter-index-title">
+    <div class="chapter-index-heading"><div><div class="section-label"><span class="number">02 /</span> SIX WAYS IN</div><h2 id="chapter-index-title">同一个人，<br/>可以从不同地方认识。</h2></div><p>你不必按顺序，也不必一次看完。选一个与你此刻有关的入口，走进去；随时可以回到这里。</p></div>
+    <div class="chapter-rows">
+      {spaces.map(space => <a class="chapter-row" href={path(spacePath(space.slug))}><span class="chapter-number">{space.number}</span><span class="chapter-name"><span class="chapter-english">{space.english}</span><strong>{space.title}</strong></span><span class="chapter-description">{space.door}</span><span class="chapter-arrow" aria-hidden="true">↗</span></a>)}
+      <details class="chapter-future">
+        <summary class="chapter-row chapter-row-future"><span class="chapter-number">07</span><span class="chapter-name"><span class="chapter-english">TO BE CONTINUED</span><strong>未完待续</strong></span><span class="chapter-description">我还会写、会做，也会改变。</span><span class="chapter-arrow" aria-hidden="true">…</span></summary>
+        <div class="chapter-future-note">每一段新经历、新作品，都会在这里留下入口。先记住这个位置，下一次回来，也许会多一个新的我。</div>
+      </details>
+    </div>
+  </section>
   <section class="about-teaser" aria-labelledby="about-teaser-title">
-    <div><div class="section-label"><span class="number">02 /</span> A LITTLE ABOUT ME</div><h2 id="about-teaser-title">在想法与现实之间，<br/>多走一步。</h2></div>
+    <div><div class="section-label"><span class="number">03 /</span> A LITTLE ABOUT ME</div><h2 id="about-teaser-title">在想法与现实之间，<br/>多走一步。</h2></div>
     <div class="about-teaser-copy"><p>我对工具感兴趣，也对工具背后的人感兴趣。一个问题能不能换一种方式理解？一个想法能不能先做出一个小版本？</p><p>这里有实用工具，有关于颜色的文字，也有暂时说不清用途的交互实验。它们共同记录了我用 AI 探索和创作的过程。</p><a class="text-link" href={path('/about/')}>更多关于我 <span aria-hidden="true">↗</span></a></div>
   </section>
 </Layout>

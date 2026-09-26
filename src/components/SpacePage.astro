@@ -1,0 +1,84 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { spaces, spacePath, type Space } from '../data/spaces';
+import { withBase } from '../lib/paths.mjs';
+
+interface Props { space: Space }
+const { space } = Astro.props;
+const path = (href: string) => withBase(href, import.meta.env.BASE_URL);
+const currentIndex = spaces.findIndex(item => item.slug === space.slug);
+const previous = spaces[(currentIndex + spaces.length - 1) % spaces.length];
+const next = spaces[(currentIndex + 1) % spaces.length];
+const gameLinks = [
+  { href: '/works/star-core-expedition/', title: '星核大合成：引力远征', note: '把规则变成一场带方向感的小游戏' },
+  { href: '/works/weight-of-dust/', title: '尘埃的重量', note: '一间可以被时间和风吹动的房间' },
+  { href: '/works/star-mail-cat/', title: '星邮喵', note: '给星星送信的轻量交互实验' },
+  { href: '/works/compound-interest/', title: '复利', note: '把一个抽象概念做成可拖动的解释器' },
+];
+const featureWork = space.slug === 'life'
+  ? { href: '/works/landelaiyuan/', image: '/covers/landelaiyuan.webp', alt: '《蓝的来处》作品封面', label: '一部虚构随笔 · 蓝的来处' }
+  : space.slug === 'works'
+    ? { href: '/works/cyanotype/', image: '/covers/cyanotype.webp', alt: '蓝晒图谱生成艺术作品封面', label: '视觉实验 · 蓝晒图谱' }
+    : null;
+const related: Record<string, { href: string; title: string; note: string }[]> = {
+  about: [
+    { href: '/about/', title: '关于我', note: '更完整的自我介绍' },
+    { href: '/works/', title: '全部作品', note: '让做过的东西接着说' },
+  ],
+  life: [
+    { href: '/works/landelaiyuan/', title: '蓝的来处', note: '一部以颜色为线索的虚构随笔' },
+    { href: spacePath('notes'), title: '我的想法', note: '从文字继续往里走' },
+  ],
+  ai: [
+    { href: '/works/qian-space/', title: '《潜》空间', note: '一个可探索的概念地图' },
+    { href: '/works/model-civ/', title: '模型文明', note: '关于智能体的概念演示' },
+  ],
+  'can-do': [
+    { href: '/works/wishtocode-table/', title: '开发需求 ↔ 技术架构', note: '看需求怎样变成可比较的方案' },
+    { href: '/works/100angles/', title: '100 个维度拆书', note: '看分散资料怎样拥有检索入口' },
+  ],
+  works: [
+    { href: '/works/', title: '进入完整作品库', note: '工具、视觉、交互与文字' },
+    { href: '/works/landelaiyuan/', title: '蓝的来处', note: '从文字进入另一个现场' },
+  ],
+  notes: [
+    { href: '/works/qian-space/', title: '《潜》空间', note: '让概念关系变成可以探索的画面' },
+    { href: spacePath('life'), title: '生活里的我', note: '回到阅读与写诗的日常' },
+  ],
+};
+---
+<Layout title={`${space.title} · 段骁`} description={`${space.lead} 段骁个人网站中的${space.title}空间。`}>
+  <div class="folio-page">
+    <div class="folio-topline"><a href={path('/#spaces')}>六个入口</a><span aria-hidden="true">/</span><span>{space.number} — {space.title}</span></div>
+    <header class="folio-hero" aria-labelledby="folio-title">
+      <div class="folio-hero-copy"><span class="eyebrow">DUAN XIAO / FIELD NOTE {space.number}</span><h1 id="folio-title">{space.title}<span class="folio-period">。</span></h1><p>{space.lead}</p><a class="folio-scroll-link" href="#chapter-content">继续往里看 <span aria-hidden="true">↓</span></a></div>
+      <div class="folio-hero-feature">
+        {featureWork ? <a class="folio-image-feature" href={path(featureWork.href)}><img src={path(featureWork.image)} alt={featureWork.alt} width="1200" height="900" /><span>{featureWork.label}<b aria-hidden="true">↗</b></span></a> : space.slug === 'notes' ? <div class="folio-type-feature"><span>摘自个人笔记</span><p>读书不是学作者写了什么，<br/>是反推作者在写之前想了什么。</p><i aria-hidden="true">“</i></div> : space.slug === 'ai' ? <div class="folio-process-feature"><span>一段日常的工作关系</span><strong>提问 <i>→</i> 推演 <i>→</i> 检验 <i>→</i> 试做</strong><small>机器能提出可能，人要决定下一步。</small></div> : space.slug === 'can-do' ? <div class="folio-shift-feature"><span>从一句模糊的愿望</span><strong>“我想做个东西”</strong><span>到一个可以点开的初版 <b aria-hidden="true">↗</b></span></div> : <div class="folio-about-feature"><span>THINK</span><span>WRITE</span><span>MAKE</span><small>三条线索，交织成同一个人。</small></div>}
+      </div>
+    </header>
+
+    <div class="folio-layout" id="chapter-content">
+      <nav class="folio-rail" aria-label="切换认识我的入口"><span class="eyebrow">THE INDEX / 01—06</span>{spaces.map(item => <a href={path(spacePath(item.slug))} aria-current={item.slug === space.slug ? 'page' : undefined}><span>{item.number}</span>{item.title}</a>)}</nav>
+      <div class="folio-content">
+        <div class="folio-intro"><span class="eyebrow">{space.english}</span><p>{space.sideNote}</p></div>
+        <div class="folio-essays">{space.sections.map((section, index) => <section><span class="folio-section-num">0{index + 1} / 0{space.sections.length}</span><div><h2>{section.heading}</h2><p>{section.body}</p></div></section>)}</div>
+
+        {space.slug === 'life' && <div class="folio-special folio-reading"><span class="eyebrow">ON READING & WRITING</span><p>一本书，让我追问别人怎样想；一首诗，让我试着说出自己看见了什么。</p><a href={path(spacePath('notes'))}>走进我的想法 <span aria-hidden="true">↗</span></a></div>}
+
+        {space.slug === 'ai' && <div class="folio-special folio-method"><span class="eyebrow">A SMALL LOOP</span><ol><li><b>01</b><span>把真正的问题说清楚</span></li><li><b>02</b><span>借 AI 打开不同的可能</span></li><li><b>03</b><span>检查它遗漏了什么</span></li><li><b>04</b><span>做一个能亲手试的版本</span></li></ol></div>}
+
+        {space.slug === 'can-do' && <div class="folio-special folio-scenarios"><span class="eyebrow">WE CAN START HERE</span><div><span>你带来</span><p>一个真实场景、一堆难整理的资料，或一个还说不清的想法。</p></div><div><span>我们先做</span><p>问题和目标的梳理，再选一件最小的事，做成页面、检索入口或交互原型。</p></div><div><span>我想要</span><p>具体的使用反馈，以及愿意一起把第一版继续磨下去的人。</p></div></div>}
+
+        {space.slug === 'works' && <div class="folio-special folio-work-pair"><a href={path('/works/qian-space/')}><img src={path('/covers/qian-space.webp')} alt="《潜》空间作品封面" width="1200" height="900" loading="lazy" /><span>《潜》空间 <b aria-hidden="true">↗</b></span></a><a href={path('/works/wishtocode-table/')}><img src={path('/covers/wishtocode-table.webp')} alt="开发需求与技术架构对照表封面" width="1200" height="900" loading="lazy" /><span>开发需求 ↔ 技术架构 <b aria-hidden="true">↗</b></span></a></div>}
+
+        {space.slug === 'works' && <section class="folio-special folio-game-index" aria-labelledby="game-index-title"><div class="folio-game-heading"><div><span class="eyebrow">PLAY / MAKE / REPEAT</span><h2 id="game-index-title">最近做的几个小游戏。</h2></div><p>它们还在持续打磨，但已经可以打开、可以玩，也可以直接告诉我哪里值得继续。</p></div><div class="folio-game-links">{gameLinks.map(game => <a href={path(game.href)}><span><strong>{game.title}</strong><small>{game.note}</small></span><b aria-hidden="true">↗</b></a>)}</div></section>}
+
+        {space.slug === 'notes' && <div class="folio-special folio-notes"><span class="eyebrow">TWO FRAGMENTS</span><blockquote><p>“读书不是学作者写了什么，是反推作者在写之前想了什么。”</p><cite>阅读笔记</cite></blockquote><blockquote><p>“写作才是自己思考的过程，直接 AI 写就是认知外包了。”</p><cite>写作笔记</cite></blockquote></div>}
+
+        <section class="folio-related" aria-labelledby="folio-related-title"><div class="section-label"><span class="number">→ /</span> FOLLOW THE THREAD</div><h2 id="folio-related-title">顺着这条线索，再走一步。</h2>{related[space.slug].map(item => <a href={path(item.href)}><span><strong>{item.title}</strong><small>{item.note}</small></span><b aria-hidden="true">↗</b></a>)}</section>
+      </div>
+    </div>
+
+    <nav class="folio-bottom-nav" aria-label="继续探索其他空间"><a href={path(spacePath(previous.slug))}><span>← 上一个空间</span><strong>{previous.title}</strong></a><a href={path('/#spaces')} class="folio-back">返回六个入口</a><a href={path(spacePath(next.slug))}><span>下一个空间 →</span><strong>{next.title}</strong></a></nav>
+  </div>
+</Layout>

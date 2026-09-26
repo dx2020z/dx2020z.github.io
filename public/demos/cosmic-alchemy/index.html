@@ -1,0 +1,1106 @@
+
+
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌌 宇宙炼金术 - Cosmic Alchemy</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+```
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #0a0a1f 0%, #1a0a2e 50%, #2d1b3d 100%);
+        min-height: 100vh;
+        overflow-x: hidden;
+        position: relative;
+    }
+
+    .stars {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    .star {
+        position: absolute;
+        width: 2px;
+        height: 2px;
+        background: white;
+        border-radius: 50%;
+        animation: twinkle 3s infinite;
+    }
+
+    @keyframes twinkle {
+        0%, 100% { opacity: 0.3; }
+        50% { opacity: 1; }
+    }
+
+    .container {
+        position: relative;
+        z-index: 1;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .header {
+        text-align: center;
+        margin-bottom: 20px;
+        animation: fadeInDown 1s ease;
+    }
+
+    .title {
+        font-size: 2.5em;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 10px;
+        animation: glow 2s ease-in-out infinite;
+    }
+
+    @keyframes glow {
+        0%, 100% { filter: brightness(1); }
+        50% { filter: brightness(1.3); }
+    }
+
+    .subtitle {
+        color: #a8b2d1;
+        font-size: 1em;
+    }
+
+    .game-layout {
+        display: grid;
+        grid-template-columns: 1fr 350px;
+        gap: 20px;
+        animation: fadeIn 1s ease 0.3s both;
+    }
+
+    .main-area {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .game-info {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 15px;
+        padding: 20px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 20px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .info-item {
+        text-align: center;
+    }
+
+    .info-label {
+        color: #8892b0;
+        font-size: 0.85em;
+        margin-bottom: 5px;
+    }
+
+    .info-value {
+        color: #64ffda;
+        font-size: 1.5em;
+        font-weight: bold;
+        text-shadow: 0 0 10px rgba(100, 255, 218, 0.5);
+    }
+
+    .game-board {
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 20px;
+        padding: 25px;
+        backdrop-filter: blur(20px);
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        min-height: 500px;
+    }
+
+    .board-title {
+        color: #64ffda;
+        font-size: 1.3em;
+        margin-bottom: 15px;
+        font-weight: bold;
+    }
+
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+
+    .cell {
+        aspect-ratio: 1;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 15px;
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .cell:hover {
+        background: rgba(255, 255, 255, 0.08);
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .cell.selected {
+        border-color: #64ffda;
+        background: rgba(100, 255, 218, 0.1);
+        box-shadow: 0 0 20px rgba(100, 255, 218, 0.3);
+    }
+
+    .cell.mergeable {
+        border-color: #FFD700;
+        animation: mergePulse 1s ease-in-out infinite;
+    }
+
+    @keyframes mergePulse {
+        0%, 100% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.3); }
+        50% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.6); }
+    }
+
+    .element-icon {
+        font-size: 2em;
+        filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.3));
+        z-index: 1;
+    }
+
+    .element-level {
+        position: absolute;
+        top: 3px;
+        right: 3px;
+        background: rgba(0, 0, 0, 0.6);
+        color: #64ffda;
+        padding: 2px 6px;
+        border-radius: 8px;
+        font-size: 0.65em;
+        font-weight: bold;
+        z-index: 1;
+    }
+
+    .sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .panel {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 20px;
+        padding: 20px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .panel-title {
+        color: #64ffda;
+        font-size: 1.2em;
+        margin-bottom: 15px;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .generator {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .gen-item {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        padding: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .gen-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .gen-icon {
+        font-size: 1.5em;
+    }
+
+    .gen-details {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .gen-name {
+        color: white;
+        font-weight: bold;
+        font-size: 0.9em;
+    }
+
+    .gen-rate {
+        color: #8892b0;
+        font-size: 0.75em;
+    }
+
+    .gen-progress {
+        width: 100%;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 2px;
+        overflow: hidden;
+        margin-top: 5px;
+    }
+
+    .gen-progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, #667eea, #764ba2);
+        transition: width 0.1s linear;
+    }
+
+    .shop-item {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        padding: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        margin-bottom: 10px;
+    }
+
+    .shop-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 8px;
+    }
+
+    .shop-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .shop-icon {
+        font-size: 1.5em;
+    }
+
+    .shop-name {
+        color: white;
+        font-weight: bold;
+        font-size: 0.9em;
+    }
+
+    .shop-btn {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        border: none;
+        color: white;
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 0.85em;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .shop-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .shop-btn:disabled {
+        background: rgba(255, 255, 255, 0.1);
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .shop-price {
+        color: #FFD700;
+        font-size: 0.8em;
+        margin-top: 5px;
+    }
+
+    .controls {
+        display: flex;
+        gap: 10px;
+    }
+
+    .btn {
+        flex: 1;
+        padding: 12px;
+        border: none;
+        border-radius: 12px;
+        font-size: 1em;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        color: white;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+    }
+
+    .btn-secondary {
+        background: linear-gradient(135deg, #f093fb, #f5576c);
+    }
+
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .btn:disabled {
+        background: rgba(255, 255, 255, 0.1);
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .discoveries {
+        max-height: 200px;
+        overflow-y: auto;
+    }
+
+    .discoveries::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .discoveries::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 3px;
+    }
+
+    .discoveries::-webkit-scrollbar-thumb {
+        background: rgba(100, 255, 218, 0.3);
+        border-radius: 3px;
+    }
+
+    .discovery-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 8px;
+        margin-bottom: 5px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .discovery-icon {
+        font-size: 1.5em;
+    }
+
+    .discovery-info {
+        flex: 1;
+    }
+
+    .discovery-name {
+        color: white;
+        font-size: 0.85em;
+        font-weight: bold;
+    }
+
+    .discovery-level {
+        color: #8892b0;
+        font-size: 0.75em;
+    }
+
+    .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        padding: 15px 25px;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        z-index: 10000;
+        animation: slideInRight 0.5s ease, slideOutRight 0.5s ease 2.5s forwards;
+        max-width: 300px;
+    }
+
+    @keyframes slideInRight {
+        from {
+            transform: translateX(400px);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+    @keyframes slideOutRight {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(400px);
+            opacity: 0;
+        }
+    }
+
+    @keyframes fadeInDown {
+        from {
+            opacity: 0;
+            transform: translateY(-50px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    .tutorial {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.9);
+        z-index: 10001;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: fadeIn 0.5s ease;
+    }
+
+    .tutorial-content {
+        background: linear-gradient(135deg, #1a0a2e 0%, #2d1b3d 100%);
+        border-radius: 25px;
+        padding: 35px;
+        max-width: 550px;
+        border: 2px solid rgba(100, 255, 218, 0.5);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+    }
+
+    .tutorial-title {
+        font-size: 2em;
+        color: #64ffda;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+
+    .tutorial-text {
+        color: #a8b2d1;
+        font-size: 1.05em;
+        line-height: 1.7;
+        margin-bottom: 25px;
+    }
+
+    .tutorial-button {
+        width: 100%;
+        padding: 15px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        border: none;
+        border-radius: 12px;
+        color: white;
+        font-size: 1.2em;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .tutorial-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.5);
+    }
+
+    @media (max-width: 968px) {
+        .game-layout {
+            grid-template-columns: 1fr;
+        }
+        
+        .grid {
+            grid-template-columns: repeat(5, 1fr);
+        }
+    }
+
+    @media (max-width: 640px) {
+        .title {
+            font-size: 1.8em;
+        }
+        
+        .game-info {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .grid {
+            grid-template-columns: repeat(4, 1fr);
+        }
+    }
+</style>
+```
+
+</head>
+<body>
+    <div class="stars" id="stars"></div>
+
+```
+<div class="container">
+    <div class="header">
+        <h1 class="title">🌌 宇宙炼金术</h1>
+        <p class="subtitle">点击相邻的相同元素进行合成 • 自动生成器持续产出 • 探索30种宇宙奇迹</p>
+    </div>
+
+    <div class="game-info">
+        <div class="info-item">
+            <div class="info-label">💰 能量</div>
+            <div class="info-value" id="energy">100</div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">📊 分数</div>
+            <div class="info-value" id="score">0</div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">🎯 连击</div>
+            <div class="info-value" id="combo">0</div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">🔍 发现</div>
+            <div class="info-value" id="discovered">3/30</div>
+        </div>
+    </div>
+
+    <div class="game-layout">
+        <div class="main-area">
+            <div class="game-board">
+                <div class="board-title">🎮 炼金术工作台</div>
+                <div class="grid" id="grid"></div>
+                <div class="controls">
+                    <button class="btn btn-primary" id="shuffleBtn">🔀 重排</button>
+                    <button class="btn btn-secondary" id="clearBtn">💫 清空选择</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <div class="panel">
+                <div class="panel-title">⚡ 自动生成器</div>
+                <div class="generator" id="generators"></div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">🛒 能量商店</div>
+                <div id="shop"></div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">📚 发现图鉴</div>
+                <div class="discoveries" id="discoveries"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const ELEMENTS = {
+        1: { name: '火花', icon: '✨', color: '#FF6B6B' },
+        2: { name: '火焰', icon: '🔥', color: '#FF4500' },
+        3: { name: '熔岩', icon: '🌋', color: '#8B0000' },
+        4: { name: '陨石', icon: '☄️', color: '#8B4513' },
+        5: { name: '小行星', icon: '🪨', color: '#696969' },
+        6: { name: '水星', icon: '🌑', color: '#A9A9A9' },
+        7: { name: '金星', icon: '🌕', color: '#FFD700' },
+        8: { name: '地球', icon: '🌍', color: '#4169E1' },
+        9: { name: '火星', icon: '🔴', color: '#CD5C5C' },
+        10: { name: '木星', icon: '🟤', color: '#DAA520' },
+        11: { name: '土星', icon: '🪐', color: '#F4A460' },
+        12: { name: '天王星', icon: '🔵', color: '#4682B4' },
+        13: { name: '海王星', icon: '💙', color: '#000080' },
+        14: { name: '白矮星', icon: '⚪', color: '#F0F8FF' },
+        15: { name: '红巨星', icon: '🔴', color: '#FF0000' },
+        16: { name: '蓝巨星', icon: '🔵', color: '#0000FF' },
+        17: { name: '中子星', icon: '⭐', color: '#FFD700' },
+        18: { name: '脉冲星', icon: '💫', color: '#FF1493' },
+        19: { name: '黑洞', icon: '⚫', color: '#000000' },
+        20: { name: '类星体', icon: '🌟', color: '#FFFF00' },
+        21: { name: '星云', icon: '🌌', color: '#9370DB' },
+        22: { name: '球状星团', icon: '✨', color: '#FFD700' },
+        23: { name: '旋涡星系', icon: '🌀', color: '#4169E1' },
+        24: { name: '椭圆星系', icon: '🔵', color: '#6495ED' },
+        25: { name: '不规则星系', icon: '💫', color: '#FF1493' },
+        26: { name: '星系团', icon: '🌌', color: '#9400D3' },
+        27: { name: '超星系团', icon: '✨', color: '#FFD700' },
+        28: { name: '宇宙网', icon: '🕸️', color: '#4B0082' },
+        29: { name: '多元宇宙', icon: '🌐', color: '#FF00FF' },
+        30: { name: '∞ 无限', icon: '♾️', color: '#FFFFFF' }
+    };
+
+    const GRID_SIZE = 36;
+    const GENERATORS = [
+        { id: 1, level: 1, interval: 5000, cost: 0, owned: 1 },
+        { id: 2, level: 2, interval: 8000, cost: 50, owned: 0 },
+        { id: 3, level: 3, interval: 12000, cost: 200, owned: 0 }
+    ];
+
+    let gameState = {
+        grid: [],
+        energy: 100,
+        score: 0,
+        combo: 0,
+        maxCombo: 0,
+        discovered: new Set([1, 2, 3]),
+        selectedCell: null,
+        generators: [...GENERATORS],
+        generatorProgress: {}
+    };
+
+    function initStars() {
+        const starsContainer = document.getElementById('stars');
+        for (let i = 0; i < 100; i++) {
+            const star = document.createElement('div');
+            star.className = 'star';
+            star.style.left = Math.random() * 100 + '%';
+            star.style.top = Math.random() * 100 + '%';
+            star.style.animationDelay = Math.random() * 3 + 's';
+            starsContainer.appendChild(star);
+        }
+    }
+
+    function initGame() {
+        gameState.grid = Array(GRID_SIZE).fill(null).map(() => ({
+            level: Math.random() < 0.7 ? 1 : (Math.random() < 0.8 ? 2 : 3),
+            id: Math.random()
+        }));
+        
+        renderGrid();
+        renderGenerators();
+        renderShop();
+        renderDiscoveries();
+        updateStats();
+        startGenerators();
+    }
+
+    function renderGrid() {
+        const gridEl = document.getElementById('grid');
+        gridEl.innerHTML = '';
+        
+        gameState.grid.forEach((cell, index) => {
+            const cellEl = document.createElement('div');
+            cellEl.className = 'cell';
+            
+            if (cell) {
+                const element = ELEMENTS[cell.level];
+                cellEl.innerHTML = `
+                    <div class="element-level">${cell.level}</div>
+                    <div class="element-icon">${element.icon}</div>
+                `;
+                cellEl.style.background = `linear-gradient(135deg, ${element.color}, ${adjustColor(element.color, -30)})`;
+                
+                if (gameState.selectedCell === index) {
+                    cellEl.classList.add('selected');
+                }
+                
+                // 检查是否可合并
+                if (gameState.selectedCell !== null && canMerge(gameState.selectedCell, index)) {
+                    cellEl.classList.add('mergeable');
+                }
+            }
+            
+            cellEl.addEventListener('click', () => handleCellClick(index));
+            gridEl.appendChild(cellEl);
+        });
+    }
+
+    function handleCellClick(index) {
+        const cell = gameState.grid[index];
+        if (!cell) return;
+        
+        if (gameState.selectedCell === null) {
+            gameState.selectedCell = index;
+        } else if (gameState.selectedCell === index) {
+            gameState.selectedCell = null;
+        } else if (canMerge(gameState.selectedCell, index)) {
+            performMerge(gameState.selectedCell, index);
+            gameState.selectedCell = null;
+        } else {
+            gameState.selectedCell = index;
+        }
+        
+        renderGrid();
+    }
+
+    function canMerge(index1, index2) {
+        const cell1 = gameState.grid[index1];
+        const cell2 = gameState.grid[index2];
+        
+        if (!cell1 || !cell2) return false;
+        if (cell1.level !== cell2.level) return false;
+        
+        const row1 = Math.floor(index1 / 6);
+        const col1 = index1 % 6;
+        const row2 = Math.floor(index2 / 6);
+        const col2 = index2 % 6;
+        
+        const distance = Math.abs(row1 - row2) + Math.abs(col1 - col2);
+        return distance === 1;
+    }
+
+    function performMerge(index1, index2) {
+        const level = gameState.grid[index1].level;
+        const nextLevel = level + 1;
+        
+        if (nextLevel > 30) {
+            showNotification('🎉 已达最高等级！', '恭喜你创造了无限！');
+            return;
+        }
+        
+        gameState.grid[index1] = {
+            level: nextLevel,
+            id: Math.random()
+        };
+        gameState.grid[index2] = null;
+        
+        gameState.combo++;
+        gameState.maxCombo = Math.max(gameState.maxCombo, gameState.combo);
+        gameState.score += nextLevel * 10 * gameState.combo;
+        gameState.energy += nextLevel * 2;
+        gameState.discovered.add(nextLevel);
+        
+        fillEmptyCells();
+        updateStats();
+        renderDiscoveries();
+        
+        showNotification('✨ 合成成功！', `获得 ${ELEMENTS[nextLevel].name} +${nextLevel * 2}能量`);
+        
+        playSound('merge');
+    }
+
+    function fillEmptyCells() {
+        gameState.grid.forEach((cell, index) => {
+            if (!cell) {
+                const level = Math.random() < 0.8 ? 1 : (Math.random() < 0.9 ? 2 : 3);
+                gameState.grid[index] = {
+                    level: level,
+                    id: Math.random()
+                };
+            }
+        });
+    }
+
+    function startGenerators() {
+        gameState.generators.forEach(gen => {
+            if (gen.owned > 0) {
+                gameState.generatorProgress[gen.id] = 0;
+                
+                setInterval(() => {
+                    if (gen.owned > 0) {
+                        gameState.generatorProgress[gen.id] = (gameState.generatorProgress[gen.id] || 0) + 100;
+                        
+                        if (gameState.generatorProgress[gen.id] >= gen.interval) {
+                            gameState.generatorProgress[gen.id] = 0;
+                            
+                            // 生成元素
+                            const emptyIndex = gameState.grid.findIndex(cell => !cell);
+                            if (emptyIndex !== -1) {
+                                gameState.grid[emptyIndex] = {
+                                    level: gen.level,
+                                    id: Math.random()
+                                };
+                                renderGrid();
+                            }
+                        }
+                        
+                        renderGenerators();
+                    }
+                }, 100);
+            }
+        });
+    }
+
+    function renderGenerators() {
+        const container = document.getElementById('generators');
+        container.innerHTML = '';
+        
+        gameState.generators.forEach(gen => {
+            if (gen.owned > 0) {
+                const element = ELEMENTS[gen.level];
+                const progress = (gameState.generatorProgress[gen.id] || 0) / gen.interval * 100;
+                
+                const div = document.createElement('div');
+                div.className = 'gen-item';
+                div.innerHTML = `
+                    <div class="gen-info">
+                        <div class="gen-icon">${element.icon}</div>
+                        <div class="gen-details">
+                            <div class="gen-name">${element.name} 生成器 x${gen.owned}</div>
+                            <div class="gen-rate">${(gen.interval / 1000).toFixed(1)}秒/个</div>
+                            <div class="gen-progress">
+                                <div class="gen-progress-bar" style="width: ${progress}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(div);
+            }
+        });
+        
+        if (container.innerHTML === '') {
+            container.innerHTML = '<div style="color: #8892b0; text-align: center; padding: 20px;">在商店购买生成器</div>';
+        }
+    }
+
+    function renderShop() {
+        const shop = document.getElementById('shop');
+        shop.innerHTML = '';
+        
+        // 生成器商店
+        gameState.generators.forEach(gen => {
+            const element = ELEMENTS[gen.level];
+            const div = document.createElement('div');
+            div.className = 'shop-item';
+            
+            const canAfford = gameState.energy >= gen.cost;
+            
+            div.innerHTML = `
+                <div class="shop-header">
+                    <div class="shop-info">
+                        <div class="shop-icon">${element.icon}</div>
+                        <div>
+                            <div class="shop-name">${element.name}生成器</div>
+                            <div class="shop-price">💰 ${gen.cost} 能量</div>
+                        </div>
+                    </div>
+                    <button class="shop-btn" ${!canAfford ? 'disabled' : ''} onclick="buyGenerator(${gen.id})">
+                        购买
+                    </button>
+                </div>
+            `;
+            
+            shop.appendChild(div);
+        });
+        
+        // 特殊商品
+        const specialItems = [
+            { name: '随机高级元素', icon: '🎁', cost: 100, action: () => addRandomElement(5, 10) },
+            { name: '清空棋盘', icon: '🗑️', cost: 50, action: () => clearBoard() },
+            { name: '连击加倍', icon: '💥', cost: 150, action: () => doubleCombo() }
+        ];
+        
+        specialItems.forEach(item => {
+            const canAfford = gameState.energy >= item.cost;
+            const div = document.createElement('div');
+            div.className = 'shop-item';
+            div.innerHTML = `
+                <div class="shop-header">
+                    <div class="shop-info">
+                        <div class="shop-icon">${item.icon}</div>
+                        <div>
+                            <div class="shop-name">${item.name}</div>
+                            <div class="shop-price">💰 ${item.cost} 能量</div>
+                        </div>
+                    </div>
+                    <button class="shop-btn" ${!canAfford ? 'disabled' : ''}>
+                        购买
+                    </button>
+                </div>
+            `;
+            div.querySelector('.shop-btn').addEventListener('click', () => {
+                if (gameState.energy >= item.cost) {
+                    gameState.energy -= item.cost;
+                    item.action();
+                    updateStats();
+                    renderShop();
+                }
+            });
+            shop.appendChild(div);
+        });
+    }
+
+    function buyGenerator(id) {
+        const gen = gameState.generators.find(g => g.id === id);
+        if (gameState.energy >= gen.cost) {
+            gameState.energy -= gen.cost;
+            gen.owned++;
+            gen.cost = Math.floor(gen.cost * 1.5);
+            
+            if (gen.owned === 1) {
+                gameState.generatorProgress[gen.id] = 0;
+                startGenerators();
+            }
+            
+            updateStats();
+            renderGenerators();
+            renderShop();
+            showNotification('🎉 购买成功！', `${ELEMENTS[gen.level].name}生成器已激活`);
+        }
+    }
+
+    function addRandomElement(minLevel, maxLevel) {
+        const level = Math.floor(Math.random() * (maxLevel - minLevel + 1)) + minLevel;
+        const emptyIndex = gameState.grid.findIndex(cell => !cell);
+        
+        if (emptyIndex !== -1) {
+            gameState.grid[emptyIndex] = {
+                level: level,
+                id: Math.random()
+            };
+            gameState.discovered.add(level);
+            renderGrid();
+            renderDiscoveries();
+            showNotification('🎁 获得奖励！', `${ELEMENTS[level].name}`);
+        }
+    }
+
+    function clearBoard() {
+        gameState.grid = gameState.grid.map(() => null);
+        fillEmptyCells();
+        renderGrid();
+        showNotification('🗑️ 已清空', '重新开始吧！');
+    }
+
+    function doubleCombo() {
+        gameState.combo *= 2;
+        updateStats();
+        showNotification('💥 连击加倍！', `当前连击: ${gameState.combo}x`);
+    }
+
+    function renderDiscoveries() {
+        const container = document.getElementById('discoveries');
+        container.innerHTML = '';
+        
+        const sorted = Array.from(gameState.discovered).sort((a, b) => b - a);
+        
+        sorted.forEach(level => {
+            const element = ELEMENTS[level];
+            const div = document.createElement('div');
+            div.className = 'discovery-item';
+            div.innerHTML = `
+                <div class="discovery-icon">${element.icon}</div>
+                <div class="discovery-info">
+                    <div class="discovery-name">${element.name}</div>
+                    <div class="discovery-level">等级 ${level}</div>
+                </div>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    function updateStats() {
+        document.getElementById('energy').textContent = gameState.energy;
+        document.getElementById('score').textContent = gameState.score;
+        document.getElementById('combo').textContent = gameState.combo;
+        document.getElementById('discovered').textContent = `${gameState.discovered.size}/30`;
+    }
+
+    document.getElementById('shuffleBtn').addEventListener('click', () => {
+        if (gameState.energy >= 30) {
+            gameState.energy -= 30;
+            
+            // 随机重排
+            for (let i = gameState.grid.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [gameState.grid[i], gameState.grid[j]] = [gameState.grid[j], gameState.grid[i]];
+            }
+            
+            gameState.selectedCell = null;
+            renderGrid();
+            updateStats();
+            showNotification('🔀 重排完成', '-30 能量');
+        } else {
+            showNotification('❌ 能量不足', '需要 30 能量');
+        }
+    });
+
+    document.getElementById('clearBtn').addEventListener('click', () => {
+        gameState.selectedCell = null;
+        gameState.combo = 0;
+        renderGrid();
+        updateStats();
+    });
+
+    function adjustColor(color, amount) {
+        const num = parseInt(color.replace('#', ''), 16);
+        const r = Math.max(0, Math.min(255, (num >> 16) + amount));
+        const g = Math.max(0, Math.min(255, ((num >> 8) & 0x00FF) + amount));
+        const b = Math.max(0, Math.min(255, (num & 0x0000FF) + amount));
+        return '#' + ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0');
+    }
+
+    function showNotification(title, text) {
+        const notification = document.createElement('div');
+        notification.className = 'notification';
+        notification.innerHTML = `<div style="font-weight: bold; margin-bottom: 5px;">${title}</div><div style="font-size: 0.9em; opacity: 0.9;">${text}</div>`;
+        document.body.appendChild(notification);
+        setTimeout(() => notification.remove(), 3000);
+    }
+
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    function playSound(type) {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        if (type === 'merge') {
+            oscillator.frequency.value = 880;
+            gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.3);
+        }
+    }
+
+    function showTutorial() {
+        const tutorial = document.createElement('div');
+        tutorial.className = 'tutorial';
+        tutorial.innerHTML = `
+            <div class="tutorial-content">
+                <h2 class="tutorial-title">🌌 欢迎来到宇宙炼金术</h2>
+                <div class="tutorial-text">
+                    <p><strong>🎮 玩法说明：</strong></p>
+                    <p>• 点击两个<strong>相邻且相同</strong>的元素进行合成</p>
+                    <p>• 合成获得能量，用能量购买生成器和道具</p>
+                    <p>• 生成器会自动生成对应等级的元素</p>
+                    <p>• 保持连击获得分数加成！</p>
+                    <br>
+                    <p><strong>💡 策略提示：</strong></p>
+                    <p>• 优先购买低级生成器保证元素供应</p>
+                    <p>• 使用重排功能创造合成机会</p>
+                    <p>• 探索30种宇宙元素，从火花到无限！</p>
+                </div>
+                <button class="tutorial-button" onclick="this.parentElement.parentElement.remove()">
+                    开始探索 🚀
+                </button>
+            </div>
+        `;
+        document.body.appendChild(tutorial);
+    }
+
+    initStars();
+    initGame();
+    showTutorial();
+</script>
+```
+
+</body>
+</html>
+</content>
+</write_file>

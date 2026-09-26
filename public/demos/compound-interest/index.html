@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>复利为什么这么强大</title>
+<style>
+:root{
+  --bg:#fbfaf7; --fg:#17181a; --muted:#6b7280; --card:#ffffff;
+  --border:#e6e6e2; --grid:#eceae4; --soft:#f4f3ef;
+  --principal:#3B82F6; --rate:#F59E0B; --years:#8B5CF6;
+  --contrib:#14B8A6; --gain:#10B981; --danger:#EF4444;
+  --principal-t:#3B82F63A; --rate-t:#F59E0B3A;
+  --years-t:#8B5CF63A; --contrib-t:#14B8A63A;
+  --gain-soft:#10B98122; --danger-soft:#EF444418;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#131519; --fg:#e9e9e6; --muted:#9aa0a8; --card:#1b1e23;
+    --border:#2b3037; --grid:#24282e; --soft:#1f2329;
+    --principal:#60A5FA; --rate:#FBBF24; --years:#A78BFA;
+    --contrib:#2DD4BF; --gain:#34D399; --danger:#F87171;
+    --principal-t:#60A5FA4A; --rate-t:#FBBF244A;
+    --years-t:#A78BFA4A; --contrib-t:#2DD4BF4A;
+    --gain-soft:#34D39926; --danger-soft:#F8717122;
+  }
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--bg); color:var(--fg);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  font-size:17px; line-height:1.78; letter-spacing:.005em;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:900px; margin:0 auto; padding:0 22px 120px}
+
+/* ---------- hero ---------- */
+.hero{padding:72px 0 44px; border-bottom:1px solid var(--border); margin-bottom:16px}
+.kicker{font-size:13px; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); margin:0 0 14px}
+h1{font-size:clamp(30px,5.2vw,46px); line-height:1.18; margin:0 0 20px; letter-spacing:-.02em; font-weight:800}
+.sub{color:var(--muted); font-size:17px; max-width:60ch; margin:0}
+.sub br{display:none}
+@media(min-width:640px){.sub br{display:inline}}
+
+/* ---------- module ---------- */
+.mod{padding:64px 0 8px}
+.mod-head{display:flex; align-items:baseline; gap:14px; margin-bottom:22px}
+.mod-num{
+  font-size:12px; font-weight:800; letter-spacing:.1em;
+  color:var(--muted); font-variant-numeric:tabular-nums;
+  border:1px solid var(--border); border-radius:999px; padding:2px 9px;
+  flex:none; transform:translateY(-4px);
+}
+h2{font-size:clamp(22px,3.4vw,30px); margin:0; letter-spacing:-.015em; font-weight:750; line-height:1.3}
+.prose{max-width:62ch; margin:0 0 16px}
+.prose b{font-weight:650}
+
+/* ---------- panel ---------- */
+.panel{
+  background:var(--card); border:1px solid var(--border);
+  border-radius:18px; padding:20px 18px 16px; margin:24px 0 0;
+  box-shadow:0 1px 2px rgba(0,0,0,.03), 0 8px 28px -18px rgba(0,0,0,.16);
+}
+@media(min-width:640px){.panel{padding:26px 26px 20px}}
+
+/* ---------- control ---------- */
+.ctrl{margin-bottom:14px}
+.ctrl-head{display:flex; justify-content:space-between; align-items:baseline; gap:12px; margin-bottom:2px}
+.ctrl-name{font-size:14px; color:var(--muted)}
+.ctrl-val{font-size:16px; font-weight:700; font-variant-numeric:tabular-nums; letter-spacing:-.01em}
+.slider{
+  -webkit-appearance:none; appearance:none; width:100%; height:34px;
+  background:transparent; cursor:pointer; margin:0; display:block;
+  touch-action:pan-y;
+}
+.slider::-webkit-slider-runnable-track{height:6px; border-radius:99px; background:var(--track)}
+.slider::-webkit-slider-thumb{
+  -webkit-appearance:none; width:24px; height:24px; border-radius:50%;
+  background:var(--thumb); margin-top:-9px;
+  border:3px solid var(--card); box-shadow:0 1px 5px rgba(0,0,0,.28);
+}
+.slider::-moz-range-track{height:6px; border-radius:99px; background:var(--track)}
+.slider::-moz-range-thumb{
+  width:19px; height:19px; border-radius:50%; background:var(--thumb);
+  border:3px solid var(--card); box-shadow:0 1px 5px rgba(0,0,0,.28);
+}
+.s-principal{--thumb:var(--principal); --track:var(--principal-t)}
+.s-rate{--thumb:var(--rate); --track:var(--rate-t)}
+.s-years{--thumb:var(--years); --track:var(--years-t)}
+.s-contrib{--thumb:var(--contrib); --track:var(--contrib-t)}
+
+/* ---------- svg ---------- */
+svg.chart{display:block; width:100%; height:auto; margin:6px 0 2px; overflow:visible}
+svg text{font-family:inherit}
+.bar-cap{font-size:13px; color:var(--muted); margin:16px 0 0}
+
+/* ---------- legend ---------- */
+.legend{display:flex; flex-wrap:wrap; gap:8px 18px; font-size:13.5px; color:var(--muted); margin:10px 0 0}
+.legend span{display:inline-flex; align-items:center; gap:7px}
+.legend i{width:12px; height:12px; border-radius:4px; display:inline-block}
+
+/* ---------- readout ---------- */
+.readout{
+  margin:20px 0 0; padding:16px 18px; background:var(--soft);
+  border-radius:12px; font-size:16px; line-height:1.8;
+}
+.readout p{margin:0 0 8px; max-width:60ch}
+.readout p:last-child{margin-bottom:0}
+.readout b{font-weight:700; font-variant-numeric:tabular-nums}
+.readout .hint{color:var(--muted); font-size:15px; margin-top:12px}
+.readout .danger-text{color:var(--danger)}
+
+/* ---------- guess ---------- */
+.guess{
+  background:var(--soft); border:1px dashed var(--border); border-radius:14px;
+  padding:16px 18px; margin:22px 0 0;
+}
+.guess-q{margin:0 0 12px; font-size:15.5px; font-weight:600; max-width:58ch}
+.guess-opts{display:flex; flex-wrap:wrap; gap:9px}
+.guess-btn{
+  font:inherit; font-size:14.5px; padding:9px 15px; border-radius:10px;
+  border:1.5px solid var(--border); background:var(--card); color:var(--fg);
+  cursor:pointer; transition:border-color .18s, background .18s, transform .1s;
+}
+.guess-btn:hover{border-color:var(--muted)}
+.guess-btn:active{transform:scale(.97)}
+.guess-btn.correct{border-color:var(--gain); background:var(--gain-soft); color:var(--gain); font-weight:600}
+.guess-btn.wrong{border-color:var(--danger); background:var(--danger-soft); color:var(--danger); opacity:.85}
+
+/* ---------- compare bars ---------- */
+.cmp{margin:20px 0 0; display:flex; flex-direction:column; gap:9px}
+.cmp-row{display:flex; align-items:center; gap:12px; font-size:14px}
+.cmp-name{width:56px; flex:none; text-align:right; font-weight:700; font-variant-numeric:tabular-nums; font-size:14.5px}
+.cmp-track{flex:1; height:22px; background:var(--soft); border-radius:7px; overflow:hidden; min-width:0}
+.cmp-fill{height:100%; border-radius:7px; transition:width .08s linear}
+.cmp-num{width:112px; flex:none; text-align:right; font-variant-numeric:tabular-nums; font-size:14px; color:var(--muted)}
+@media(max-width:560px){
+  .cmp-name{width:44px; font-size:13px}
+  .cmp-num{width:88px; font-size:12.5px}
+  .cmp-track{height:18px}
+}
+
+/* ---------- buttons / switches ---------- */
+.presets{display:flex; flex-wrap:wrap; gap:8px; margin:6px 0 18px}
+.preset{
+  font:inherit; font-size:13.5px; padding:7px 13px; border-radius:9px;
+  border:1.5px solid var(--border); background:var(--card); color:var(--fg);
+  cursor:pointer; transition:.18s;
+}
+.preset:hover{border-color:var(--rate); color:var(--rate)}
+.preset.on{border-color:var(--rate); background:var(--rate-t); color:var(--rate); font-weight:600}
+
+.switch-row{display:flex; align-items:center; gap:12px; margin:16px 0 6px; font-size:15px}
+.switch{position:relative; width:46px; height:27px; flex:none}
+.switch input{opacity:0; width:0; height:0; position:absolute}
+.switch .knob{
+  position:absolute; inset:0; background:var(--border); border-radius:99px;
+  transition:.22s; cursor:pointer;
+}
+.switch .knob::after{
+  content:''; position:absolute; top:3px; left:3px; width:21px; height:21px;
+  border-radius:50%; background:#fff; transition:.22s; box-shadow:0 1px 3px rgba(0,0,0,.25);
+}
+.switch input:checked + .knob{background:var(--danger)}
+.switch input:checked + .knob::after{transform:translateX(19px)}
+
+.reset{
+  display:block; margin:18px 0 0 auto; font:inherit; font-size:13.5px;
+  padding:7px 15px; border-radius:9px; border:1.5px solid var(--border);
+  background:transparent; color:var(--muted); cursor:pointer; transition:.18s;
+}
+.reset:hover{border-color:var(--fg); color:var(--fg)}
+
+/* ---------- footer ---------- */
+.foot{
+  margin-top:72px; padding-top:28px; border-top:1px solid var(--border);
+  color:var(--muted); font-size:14.5px; max-width:62ch;
+}
+.foot b{color:var(--fg)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <p class="kicker">可交互解释</p>
+    <h1>复利为什么这么强大</h1>
+    <p class="sub">不是「每年多赚一点」，而是「赚来的钱也会去赚钱」。<br>下面四个模块，请你自己动手拖一拖。</p>
+  </header>
+
+  <!-- ============ 模块 1 ============ -->
+  <section class="mod" id="mod1">
+    <div class="mod-head"><span class="mod-num">01</span><h2>抽屉里的 1 万块</h2></div>
+    <p class="prose">大二暑假你打工攒了 <b class="c-principal">¥10,000</b>。室友说：放抽屉里也是放，放个年化 <b class="c-rate">8%</b> 的地方也是放。</p>
+    <p class="prose">你可能觉得，8% 就是每年多 800 块。拖一拖下面的滑块，看看第 <b class="c-years">25</b> 年时到底有多少。</p>
+
+    <div class="panel">
+      <div class="ctrl">
+        <div class="ctrl-head">
+          <span class="ctrl-name">投资年限</span>
+          <span class="ctrl-val c-years" id="m1-nv">25 年</span>
+        </div>
+        <input type="range" id="m1-n" min="1" max="50" step="1" value="25" class="slider s-years">
+      </div>
+
+      <svg class="chart" id="m1-svg" viewBox="0 0 820 400" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="legend">
+        <span><i style="background:var(--principal)"></i>本金</span>
+        <span><i style="background:var(--gain)"></i>复利收益</span>
+      </div>
+
+      <p class="bar-cap">每年赚到的钱（柱子的高度）</p>
+      <svg class="chart" id="m1-bars" viewBox="0 0 820 170" preserveAspectRatio="xMidYMid meet"></svg>
+
+      <div class="readout" id="m1-out"></div>
+      <button class="reset" data-reset="m1">重置</button>
+    </div>
+  </section>
+
+  <!-- ============ 模块 2 ============ -->
+  <section class="mod" id="mod2">
+    <div class="mod-head"><span class="mod-num">02</span><h2>4% 和 8%，差多少？</h2></div>
+    <p class="prose">同样是 <b class="c-principal">¥10,000</b> 放 30 年。余额宝大概 <b class="c-rate">4%</b>，宽基指数基金长期大概 <b>8%</b>。</p>
+
+    <div class="guess" id="m2-guess">
+      <p class="guess-q">猜一猜：收益率从 4% 提到 8%，最后的钱会变成几倍？</p>
+      <div class="guess-opts">
+        <button class="guess-btn" data-ans="2">大约 2 倍</button>
+        <button class="guess-btn" data-ans="3">大约 3 倍</button>
+        <button class="guess-btn" data-ans="5">大约 5 倍</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="ctrl">
+        <div class="ctrl-head">
+          <span class="ctrl-name">年化收益率</span>
+          <span class="ctrl-val c-rate" id="m2-rv">4%</span>
+        </div>
+        <input type="range" id="m2-r" min="0" max="15" step="0.5" value="4" class="slider s-rate">
+      </div>
+
+      <svg class="chart" id="m2-svg" viewBox="0 0 820 400" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="legend">
+        <span><i style="background:var(--rate)"></i>当前收益率</span>
+        <span><i style="background:var(--muted)"></i>8% 参考线</span>
+      </div>
+
+      <div class="cmp" id="m2-cmp"></div>
+      <div class="readout" id="m2-out"></div>
+      <button class="reset" data-reset="m2">重置</button>
+    </div>
+  </section>
+
+  <!-- ============ 模块 3 ============ -->
+  <section class="mod" id="mod3">
+    <div class="mod-head"><span class="mod-num">03</span><h2>每年再添一点</h2></div>
+    <p class="prose">工作以后，你每年能存下 <b class="c-contrib">¥10,000</b>。加上一开始的 <b class="c-principal">¥10,000</b> 本金，年化 <b class="c-rate">8%</b>。</p>
+
+    <div class="guess" id="m3-guess">
+      <p class="guess-q">猜一猜：每年投 1 万，连续投 30 年，30 年后账户里大概有多少？</p>
+      <div class="guess-opts">
+        <button class="guess-btn" data-ans="31">约 31 万（差不多就是本金总和）</button>
+        <button class="guess-btn" data-ans="60">约 60 万</button>
+        <button class="guess-btn" data-ans="120">约 120 万</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="ctrl">
+        <div class="ctrl-head">
+          <span class="ctrl-name">每年追加投入</span>
+          <span class="ctrl-val c-contrib" id="m3-cv">¥10,000</span>
+        </div>
+        <input type="range" id="m3-c" min="0" max="20000" step="500" value="10000" class="slider s-contrib">
+      </div>
+      <div class="ctrl">
+        <div class="ctrl-head">
+          <span class="ctrl-name">投资年限</span>
+          <span class="ctrl-val c-years" id="m3-nv">30 年</span>
+        </div>
+        <input type="range" id="m3-n" min="1" max="50" step="1" value="30" class="slider s-years">
+      </div>
+
+      <svg class="chart" id="m3-svg" viewBox="0 0 820 400" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="legend">
+        <span><i style="background:var(--contrib)"></i>你投进去的钱</span>
+        <span><i style="background:var(--principal)"></i>初始本金</span>
+        <span><i style="background:var(--gain)"></i>钱自己生的钱</span>
+      </div>
+
+      <div class="readout" id="m3-out"></div>
+      <button class="reset" data-reset="m3">重置</button>
+    </div>
+  </section>
+
+  <!-- ============ 模块 4 ============ -->
+  <section class="mod" id="mod4">
+    <div class="mod-head"><span class="mod-num">04</span><h2>现在，你自己来</h2></div>
+    <p class="prose">四个变量全部打开。注意看图表下面那两根对比条 —— 它们会告诉你，时间到底值多少钱。</p>
+
+    <div class="panel">
+      <div class="presets" id="m4-presets">
+        <button class="preset" data-r="2">银行定存 2%</button>
+        <button class="preset" data-r="4">债券 4%</button>
+        <button class="preset" data-r="8">指数基金 8%</button>
+        <button class="preset" data-r="12">激进 12%</button>
+      </div>
+
+      <div class="ctrl">
+        <div class="ctrl-head"><span class="ctrl-name">初始本金</span><span class="ctrl-val c-principal" id="m4-pv">¥10,000</span></div>
+        <input type="range" id="m4-p" min="1000" max="200000" step="1000" value="10000" class="slider s-principal">
+      </div>
+      <div class="ctrl">
+        <div class="ctrl-head"><span class="ctrl-name">年化收益率</span><span class="ctrl-val c-rate" id="m4-rv">8%</span></div>
+        <input type="range" id="m4-r" min="0" max="15" step="0.5" value="8" class="slider s-rate">
+      </div>
+      <div class="ctrl">
+        <div class="ctrl-head"><span class="ctrl-name">投资年限</span><span class="ctrl-val c-years" id="m4-nv">30 年</span></div>
+        <input type="range" id="m4-n" min="1" max="50" step="1" value="30" class="slider s-years">
+      </div>
+      <div class="ctrl">
+        <div class="ctrl-head"><span class="ctrl-name">每年追加投入</span><span class="ctrl-val c-contrib" id="m4-cv">¥0</span></div>
+        <input type="range" id="m4-c" min="0" max="20000" step="500" value="0" class="slider s-contrib">
+      </div>
+
+      <div class="switch-row">
+        <label class="switch">
+          <input type="checkbox" id="m4-late">
+          <span class="knob"></span>
+        </label>
+        <label for="m4-late" style="cursor:pointer">如果晚开始 10 年</label>
+      </div>
+
+      <svg class="chart" id="m4-svg" viewBox="0 0 820 400" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="legend">
+        <span><i style="background:var(--contrib)"></i>你投进去的钱</span>
+        <span><i style="background:var(--principal)"></i>初始本金</span>
+        <span><i style="background:var(--gain)"></i>钱自己生的钱</span>
+        <span><i style="background:var(--danger)"></i>晚开始 10 年</span>
+      </div>
+
+      <p class="bar-cap">前 2/3 时间的增长 &nbsp;vs&nbsp; 最后 1/3 时间的增长</p>
+      <div class="cmp" id="m4-cmp"></div>
+
+      <div class="readout" id="m4-out"></div>
+      <button class="reset" data-reset="m4">重置</button>
+    </div>
+  </section>
+
+  <div class="foot">
+    <p>页面里每一个数字，都由同一个公式算出来：<b>FV = P·(1+r)ⁿ + c·[((1+r)ⁿ−1)/r]</b>。没有任何写死的假数据。</p>
+    <p>你刚才看到的「最后 1/3 时间赚得比前 2/3 还多」，就是这条公式的形状本身 —— 它不是巧合，是复利的定义。</p>
+  </div>
+
+</div>
+
+<script>
+'use strict';
+
+/* ============================================================
+   1. 模型
+   ============================================================ */
+function fv(P, r, n, c){
+  if (r === 0) return P + c * n;
+  const g = Math.pow(1 + r, n);
+  return P * g + c * (g - 1) / r;
+}
+
+function niceMax(v){
+  if (!isFinite(v) || v <= 0) return 1;
+  const e = Math.floor(Math.log10(v));
+  const b = Math.pow(10, e);
+  const f = v / b;
+  let m;
+  if (f <= 1) m = 1;
+  else if (f <= 2) m = 2;
+  else if (f <= 5) m = 5;
+  else m = 10;
+  return m * b;
+}
+
+function fmtMoney(v){
+  const a = Math.abs(v);
+  if (a >= 1e8) return '¥' + (v / 1e8).toFixed(2) + '亿';
+  return '¥' + Math.round(v).toLocaleString('en-US');
+}
+
+function fmtAxis(v){
+  if (v === 0) return '0';
+  if (v >= 1e8) return (v / 1e8).toFixed(1).replace(/\.0$/, '') + '亿';
+  if (v >= 1e4) return (v / 1e4).toFixed(1).replace(/\.0$/, '') + '万';
+  return Math.round(v).toLocaleString('en-US');
+}
+
+function fmtPct(v){ return (Math.round(v * 10) / 10) + '%'; }
+
+/* ============================================================
+   2. 状态
+   ============================================================ */
+const st = {
+  m1: { n: 25 },
+  m2: { r: 4, answered: false },
+  m3: { c: 10000, n: 30, answered: false },
+  m4: { P: 10000, r: 8, n: 30, c: 0, late: false }
+};
+const DEF = JSON.parse(JSON.stringify(st));
+
+/* ============================================================
+   3. 绘图基础设施
+   ============================================================ */
+let CW = 820, CH = 400, BCH = 170;
+let ML = 80, MR = 28, MT = 24, MB = 50;
+let PW = CW - ML - MR, PH = CH - MT - MB;
+
+function updateDims(){
+  const host = document.querySelector('.wrap');
+  const w = host ? host.clientWidth : 820;
+  const narrow = w < 560;
+  CH  = narrow ? 470 : 400;
+  BCH = narrow ? 200 : 170;
+  ML  = narrow ? 56 : 80;
+  MR  = narrow ? 14 : 28;
+  MT  = 22;
+  MB  = narrow ? 44 : 50;
+  PW = CW - ML - MR;
+  PH = CH - MT - MB;
+}
+
+function sx(y, xMax){ return ML + (y / xMax) * PW; }
+function sy(v, yMax){ return MT + PH - (v / yMax) * PH; }
+
+function linePath(pts){
+  if (!pts.length) return '';
+  let d = 'M' + pts[0][0].toFixed(1) + ',' + pts[0][1].toFixed(1);
+  for (let i = 1; i < pts.length; i++){
+    d += 'L' + pts[i][0].toFixed(1) + ',' + pts[i][1].toFixed(1);
+  }
+  return d;
+}
+
+function areaPath(top, bottom){
+  const b = bottom.slice().reverse();
+  if (!top.length || !b.length) return '';
+  let d = linePath(top);
+  d += 'L' + b[0][0].toFixed(1) + ',' + b[0][1].toFixed(1);
+  for (let i = 1; i < b.length; i++){
+    d += 'L' + b[i][0].toFixed(1) + ',' + b[i][1].toFixed(1);
+  }
+  return d + 'Z';
+}
+
+function axes(xMax, yMax, xStep){
+  let s = '';
+  const yStep = yMax / 5;
+  for (let i = 0; i <= 5; i++){
+    const v = i * yStep;
+    const y = sy(v, yMax);
+    s += '<line x1="' + ML + '" y1="' + y.toFixed(1) + '" x2="' + (CW - MR) + '" y2="' + y.toFixed(1) + '" style="stroke:var(--grid);stroke-width:1"/>';
+    s += '<text x="' + (ML - 10) + '" y="' + (y + 4).toFixed(1) + '" text-anchor="end" style="fill:var(--muted);font-size:12px">' + fmtAxis(v) + '</text>';
+  }
+  for (let t = 0; t <= xMax + 1e-6; t += xStep){
+    const x = sx(t, xMax);
+    s += '<text x="' + x.toFixed(1) + '" y="' + (MT + PH + 24) + '" text-anchor="middle" style="fill:var(--muted);font-size:12px">' + Math.round(t) + '</text>';
+  }
+  s += '<line x1="' + ML + '" y1="' + (MT + PH) + '" x2="' + (CW - MR) + '" y2="' + (MT + PH) + '" style="stroke:var(--border);stroke-width:1.5"/>';
+  s += '<text x="' + (CW - MR) + '" y="' + (MT + PH + 44) + '" text-anchor="end" style="fill:var(--muted);font-size:12px">年</text>';
+  return s;
+}
+
+/* ============================================================
+   4. 渲染调度（rAF 合并）
+   ============================================================ */
+const queue = new Set();
+let scheduled = false;
+function schedule(fn){
+  queue.add(fn);
+  if (scheduled) return;
+  scheduled = true;
+  requestAnimationFrame(() => {
+    scheduled = false;
+    const fns = Array.from(queue);
+    queue.clear();
+    for (const f of fns) f();
+  });
+}
+
+/* ============================================================
+   5. 模块 1
+   ============================================================ */
+function drawM1(){
+  const P = 10000, r = 0.08, c = 0;
+  const n = st.m1.n;
+  const xMax = 50;
+  const F = k => fv(P, r, k, c);
+  const yMax = niceMax(F(50) * 1.06);
+
+  let s = axes(xMax, yMax, 10);
+
+  const xa = sx(0, xMax), xb = sx(n, xMax);
+  const yZero = sy(0, yMax), yP = sy(P, yMax);
+
+  // 本金带
+  s += '<rect x="' + xa.toFixed(1) + '" y="' + yP.toFixed(1) + '" width="' + (xb - xa).toFixed(1) + '" height="' + (yZero - yP).toFixed(1) + '" style="fill:var(--principal)" opacity="0.30"/>';
+
+  // 复利收益带
+  const N = Math.max(6, Math.round(n * 10));
+  const top = [], bot = [];
+  for (let i = 0; i <= N; i++){
+    const k = n * i / N;
+    top.push([sx(k, xMax), sy(F(k), yMax)]);
+    bot.push([sx(k, xMax), sy(P, yMax)]);
+  }
+  s += '<path d="' + areaPath(top, bot) + '" style="fill:var(--gain)" opacity="0.42"/>';
+  s += '<path d="' + linePath(top) + '" fill="none" style="stroke:var(--gain);stroke-width:2.5" stroke-linejoin="round"/>';
+
+  // 未来投影
+  if (n < xMax - 0.5){
+    const N2 = Math.max(6, Math.round((xMax - n) * 8));
+    const fut = [];
+    for (let i = 0; i <= N2; i++){
+      const k = n + (xMax - n) * i / N2;
+      fut.push([sx(k, xMax), sy(F(k), yMax)]);
+    }
+    s += '<path d="' + linePath(fut) + '" fill="none" style="stroke:var(--gain);stroke-width:2" stroke-dasharray="6 6" opacity="0.32"/>';
+    s += '<line x1="' + xb.toFixed(1) + '" y1="' + yP.toFixed(1) + '" x2="' + sx(xMax, xMax).toFixed(1) + '" y2="' + yP.toFixed(1) + '" style="stroke:var(--principal);stroke-width:1.5" stroke-dasharray="6 6" opacity="0.32"/>';
+  }
+
+  // 当前年份标记
+  s += '<line x1="' + xb.toFixed(1) + '" y1="' + MT + '" x2="' + xb.toFixed(1) + '" y2="' + (MT + PH) + '" style="stroke:var(--years);stroke-width:1.5" stroke-dasharray="4 5" opacity="0.6"/>';
+  s += '<circle cx="' + xb.toFixed(1) + '" cy="' + sy(F(n), yMax).toFixed(1) + '" r="6" style="fill:var(--gain)" stroke="var(--card)" stroke-width="2.5"/>';
+
+  document.getElementById('m1-svg').innerHTML = s;
+}
+
+function drawM1Bars(){
+  const P = 10000, r = 0.08;
+  const n = st.m1.n;
+  const xMax = 50;
+
+  const BML = ML, BMR = MR, BMT = 14, BMB = 34;
+  const BPW = CW - BML - BMR;
+  const BPH = BCH - BMT - BMB;
+
+  const dMax = P * Math.pow(1 + r, Math.max(1, n) - 1) * r;
+  const yMax = niceMax(dMax * 1.15);
+
+  const bx = k => BML + (k / xMax) * BPW;
+  const by = v => BMT + BPH - (v / yMax) * BPH;
+
+  let s = '';
+  s += '<line x1="' + BML + '" y1="' + (BMT + BPH) + '" x2="' + (CW - BMR) + '" y2="' + (BMT + BPH) + '" style="stroke:var(--border);stroke-width:1.5"/>';
+
+  const slot = BPW / xMax;
+  const bw = Math.max(3, slot * 0.62);
+
+  for (let k = 1; k <= n; k++){
+    const d = P * Math.pow(1 + r, k - 1) * r;
+    const cx = bx(k - 0.5);
+    const x = cx - bw / 2;
+    const y = by(d);
+    const h = BMT + BPH - y;
+    const op = 0.42 + 0.58 * Math.min(1, d / dMax);
+    s += '<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + Math.max(1.2, h).toFixed(1) + '" rx="' + Math.min(2, bw / 2).toFixed(1) + '" style="fill:var(--gain)" opacity="' + op.toFixed(2) + '"/>';
+  }
+
+  s += '<text x="' + (BML - 10) + '" y="' + (BMT + BPH + 5) + '" text-anchor="end" style="fill:var(--muted);font-size:11px">0</text>';
+  s += '<text x="' + (BML - 10) + '" y="' + (BMT + 10) + '" text-anchor="end" style="fill:var(--muted);font-size:11px">' + fmtAxis(yMax) + '</text>';
+  for (let t = 0; t <= xMax; t += 10){
+    s += '<text x="' + bx(t).toFixed(1) + '" y="' + (BMT + BPH + 20) + '" text-anchor="middle" style="fill:var(--muted);font-size:11px">' + t + '</text>';
+  }
+
+  document.getElementById('m1-bars').innerHTML = s;
+}
+
+function textM1(){
+  const P = 10000, r = 0.08;
+  const n = st.m1.n;
+  const total = fv(P, r, n, 0);
+  const gain = total - P;
+  const dN = P * Math.pow(1 + r, n - 1) * r;
+
+  document.getElementById('m1-out').innerHTML =
+    '<p>第 <b style="color:var(--years)">' + n + '</b> 年，你的 <b style="color:var(--principal)">¥10,000</b> 变成了 <b style="color:var(--gain)">' + fmtMoney(total) + '</b>。</p>' +
+    '<p>其中 <b style="color:var(--gain)">' + fmtMoney(gain) + '</b> 是钱自己生出来的钱，已经是你本金的 <b>' + (gain / P).toFixed(1) + '</b> 倍。</p>' +
+    '<p>再看那排柱子：第 1 年你只赚了 <b>' + fmtMoney(P * r) + '</b>，第 ' + n + ' 年却赚了 <b style="color:var(--gain)">' + fmtMoney(dN) + '</b>。同样是 8%，赚的钱自己在变大。</p>';
+}
+
+function renderM1(){ drawM1(); drawM1Bars(); textM1(); }
+
+/* ============================================================
+   6. 模块 2
+   ============================================================ */
+function drawM2(){
+  const P = 10000, n = 30, refR = 0.08;
+  const r = st.m2.r / 100;
+  const xMax = 30;
+
+  const vCur = fv(P, r, n, 0);
+  const vRef = fv(P, refR, n, 0);
+  const yMax = niceMax(Math.max(vCur, vRef, 30000) * 1.1);
+
+  let s = axes(xMax, yMax, 5);
+
+  // 8% 参考曲线
+  const ref = [];
+  for (let i = 0; i <= 150; i++){
+    const k = n * i / 150;
+    ref.push([sx(k, xMax), sy(fv(P, refR, k, 0), yMax)]);
+  }
+  s += '<path d="' + linePath(ref) + '" fill="none" style="stroke:var(--muted);stroke-width:2;stroke-dasharray:7 5" opacity="0.6"/>';
+
+  // 当前曲线
+  const cur = [];
+  for (let i = 0; i <= 150; i++){
+    const k = n * i / 150;
+    cur.push([sx(k, xMax), sy(fv(P, r, k, 0), yMax)]);
+  }
+  const bot = cur.map(p => [p[0], sy(0, yMax)]);
+  s += '<path d="' + areaPath(cur, bot) + '" style="fill:var(--rate)" opacity="0.16"/>';
+  s += '<path d="' + linePath(cur) + '" fill="none" style="stroke:var(--rate);stroke-width:3" stroke-linejoin="round"/>';
+
+  // 端点
+  s += '<circle cx="' + sx(n, xMax).toFixed(1) + '" cy="' + sy(vRef, yMax).toFixed(1) + '" r="5" style="fill:var(--muted)" stroke="var(--card)" stroke-width="2.5"/>';
+  s += '<circle cx="' + sx(n, xMax).toFixed(1) + '" cy="' + sy(vCur, yMax).toFixed(1) + '" r="6" style="fill:var(--rate)" stroke="var(--card)" stroke-width="2.5"/>';
+
+  document.getElementById('m2-svg').innerHTML = s;
+}
+
+function cmpM2(){
+  const P = 10000, n = 30;
+  const r = st.m2.r / 100;
+  const curV = fv(P, r, n, 0);
+  const refV = fv(P, 0.08, n, 0);
+  const maxV = Math.max(curV, refV, 1);
+
+  document.getElementById('m2-cmp').innerHTML =
+    '<div class="cmp-row">' +
+      '<span class="cmp-name" style="color:var(--rate)">' + fmtPct(st.m2.r) + '</span>' +
+      '<div class="cmp-track"><div class="cmp-fill" style="width:' + (curV / maxV * 100).toFixed(1) + '%;background:var(--rate)"></div></div>' +
+      '<span class="cmp-num">' + fmtMoney(curV) + '</span>' +
+    '</div>' +
+    '<div class="cmp-row">' +
+      '<span class="cmp-name" style="color:var(--muted)">8%</span>' +
+      '<div class="cmp-track"><div class="cmp-fill" style="width:' + (refV / maxV * 100).toFixed(1) + '%;background:var(--muted)"></div></div>' +
+      '<span class="cmp-num">' + fmtMoney(refV) + '</span>' +
+    '</div>';
+}
+
+function textM2(){
+  const P = 10000, n = 30;
+  const r = st.m2.r / 100;
+  const curV = fv(P, r, n, 0);
+  const refV = fv(P, 0.08, n, 0);
+  const ratio = refV > 0 ? curV / refV : 0;
+  const rPct = fmtPct(st.m2.r);
+  const t2 = r > 0 ? Math.log(2) / Math.log(1 + r) : Infinity;
+  const t2s = isFinite(t2) ? t2.toFixed(1) + ' 年' : '永远不会';
+  const t2ref = (Math.log(2) / Math.log(1.08)).toFixed(1);
+
+  document.getElementById('m2-out').innerHTML =
+    '<p>按 <b style="color:var(--rate)">' + rPct + '</b>，30 年后你有 <b style="color:var(--rate)">' + fmtMoney(curV) + '</b>。</p>' +
+    '<p>同样一笔钱按 <b>8%</b>，是 <b>' + fmtMoney(refV) + '</b> —— 两者相差 <b>' + ratio.toFixed(2) + ' 倍</b>。</p>' +
+    '<p>换个角度：按 ' + rPct + '，你的钱 <b>' + t2s + '</b> 才翻一倍；按 8%，只要 <b>' + t2ref + ' 年</b>。</p>' +
+    '<p class="hint">利率不是在结果上加一点，它是在<b>指数上</b>乘一点。</p>';
+}
+
+function renderM2(){ drawM2(); cmpM2(); textM2(); }
+
+/* ============================================================
+   7. 模块 3
+   ============================================================ */
+function drawM3(){
+  const P = 10000, r = 0.08;
+  const c = st.m3.c;
+  const n = st.m3.n;
+  const xMax = 50;
+  const F = k => fv(P, r, k, c);
+  const yMax = niceMax(F(n) * 1.08);
+
+  let s = axes(xMax, yMax, 10);
+
+  const N = Math.max(8, Math.round(n * 10));
+  const tCyan = [], tBlue = [], tGreen = [];
+  for (let i = 0; i <= N; i++){
+    const k = n * i / N;
+    const x = sx(k, xMax);
+    tCyan.push([x, sy(c * k, yMax)]);
+    tBlue.push([x, sy(c * k + P, yMax)]);
+    tGreen.push([x, sy(F(k), yMax)]);
+  }
+  const base = tCyan.map(p => [p[0], sy(0, yMax)]);
+
+  s += '<path d="' + areaPath(tGreen, tBlue) + '" style="fill:var(--gain)" opacity="0.42"/>';
+  s += '<path d="' + areaPath(tBlue, tCyan) + '" style="fill:var(--principal)" opacity="0.45"/>';
+  if (c > 0) s += '<path d="' + areaPath(tCyan, base) + '" style="fill:var(--contrib)" opacity="0.42"/>';
+
+  s += '<path d="' + linePath(tGreen) + '" fill="none" style="stroke:var(--gain);stroke-width:2.5"/>';
+  s += '<path d="' + linePath(tBlue) + '" fill="none" style="stroke:var(--principal);stroke-width:1.5" opacity="0.75"/>';
+  if (c > 0) s += '<path d="' + linePath(tCyan) + '" fill="none" style="stroke:var(--contrib);stroke-width:1.5" opacity="0.75"/>';
+
+  // 交叉点：钱生的钱 > 你投的钱
+  let cross = -1;
+  for (let k = 0.25; k <= n; k += 0.25){
+    const tot = F(k), inv = P + c * k;
+    if (tot - inv > inv){ cross = k; break; }
+  }
+  if (cross > 0 && cross <= n){
+    const cx = sx(cross, xMax);
+    const cy = sy(F(cross), yMax);
+    s += '<circle cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="6" style="fill:var(--card);stroke:var(--contrib);stroke-width:2.5"/>';
+    const anchor = cx > CW * 0.58 ? 'end' : 'middle';
+    const tx = anchor === 'end' ? (CW - MR) : cx;
+    s += '<text x="' + tx.toFixed(1) + '" y="' + (cy - 15).toFixed(1) + '" text-anchor="' + anchor + '" style="fill:var(--contrib);font-size:12.5px;font-weight:650">钱生的钱，从这儿开始超过你投的钱</text>';
+  }
+
+  s += '<line x1="' + sx(n, xMax).toFixed(1) + '" y1="' + MT + '" x2="' + sx(n, xMax).toFixed(1) + '" y2="' + (MT + PH) + '" style="stroke:var(--years);stroke-width:1.5" stroke-dasharray="4 5" opacity="0.45"/>';
+
+  document.getElementById('m3-svg').innerHTML = s;
+}
+
+function textM3(){
+  const P = 10000, r = 0.08;
+  const c = st.m3.c, n = st.m3.n;
+  const total = fv(P, r, n, c);
+  const invested = P + c * n;
+  const gain = total - invested;
+  const dN = total - fv(P, r, n - 1, c);
+
+  let html =
+    '<p>到第 <b style="color:var(--years)">' + n + '</b> 年，你一共掏了 <b style="color:var(--contrib)">' + fmtMoney(invested) + '</b>。</p>' +
+    '<p>账户里却有 <b>' + fmtMoney(total) + '</b> —— 多出来的 <b style="color:var(--gain)">' + fmtMoney(gain) + '</b> 是钱自己生的。</p>' +
+    '<p>第 ' + n + ' 年这一年，账户就长了 <b style="color:var(--gain)">' + fmtMoney(dN) + '</b>。</p>';
+
+  if (gain > invested && invested > 0){
+    html += '<p class="hint">你已经跨过那个点了：<b>钱生的钱，比你自己投进去的还多。</b></p>';
+  }
+  document.getElementById('m3-out').innerHTML = html;
+}
+
+function renderM3(){ drawM3(); textM3(); }
+
+/* ============================================================
+   8. 模块 4
+   ============================================================ */
+function drawM4(){
+  const P = st.m4.P, r = st.m4.r / 100, n = st.m4.n, c = st.m4.c;
+  const xMax = 50;
+  const F = k => fv(P, r, k, c);
+  const yMax = niceMax(F(n) * 1.12);
+
+  let s = axes(xMax, yMax, 10);
+
+  const N = Math.max(8, Math.round(n * 10));
+  const tCyan = [], tBlue = [], tGreen = [];
+  for (let i = 0; i <= N; i++){
+    const k = n * i / N;
+    const x = sx(k, xMax);
+    tCyan.push([x, sy(c * k, yMax)]);
+    tBlue.push([x, sy(c * k + P, yMax)]);
+    tGreen.push([x, sy(F(k), yMax)]);
+  }
+  const base = tCyan.map(p => [p[0], sy(0, yMax)]);
+
+  s += '<path d="' + areaPath(tGreen, tBlue) + '" style="fill:var(--gain)" opacity="0.40"/>';
+  s += '<path d="' + areaPath(tBlue, tCyan) + '" style="fill:var(--principal)" opacity="0.45"/>';
+  if (c > 0) s += '<path d="' + areaPath(tCyan, base) + '" style="fill:var(--contrib)" opacity="0.40"/>';
+
+  s += '<path d="' + linePath(tGreen) + '" fill="none" style="stroke:var(--gain);stroke-width="2.5"/>';
+
+  // 晚开始 10 年
+  if (st.m4.late && n > 10){
+    const n2 = n - 10;
+    const N2 = Math.max(6, Math.round(n2 * 10));
+    const pts = [];
+    for (let i = 0; i <= N2; i++){
+      const k = n2 * i / N2;
+      pts.push([sx(k, xMax), sy(fv(P, r, k, c), yMax)]);
+    }
+    const b2 = pts.map(p => [p[0], sy(0, yMax)]);
+    s += '<path d="' + areaPath(pts, b2) + '" style="fill:var(--danger)" opacity="0.07"/>';
+    s += '<path d="' + linePath(pts) + '" fill="none" style="stroke:var(--danger);stroke-width:2.5;stroke-dasharray:7 5"/>';
+
+    const cx = sx(n2, xMax), cy = sy(fv(P, r, n2, c), yMax);
+    s += '<circle cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="5.5" style="fill:var(--danger)" stroke="var(--card)" stroke-width="2.5"/>';
+  }
+
+  // 当前端点
+  s += '<circle cx="' + sx(n, xMax).toFixed(1) + '" cy="' + sy(F(n), yMax).toFixed(1) + '" r="6" style="fill:var(--gain)" stroke="var(--card)" stroke-width="2.5"/>';
+
+  document.getElementById('m4-svg').innerHTML = s;
+}
+
+function cmpM4(){
+  const P = st.m4.P, r = st.m4.r / 100, n = st.m4.n, c = st.m4.c;
+  const k = n * 2 / 3;
+  const A = fv(P, r, k, c) - P;
+  const B = fv(P, r, n, c) - fv(P, r, k, c);
+  const maxG = Math.max(A, B, 1);
+
+  document.getElementById('m4-cmp').innerHTML =
+    '<div class="cmp-row">' +
+      '<span class="cmp-name">前 ' + Math.round(k) + ' 年</span>' +
+      '<div class="cmp-track"><div class="cmp-fill" style="width:' + Math.max(0, A / maxG * 100).toFixed(1) + '%;background:var(--gain);opacity:.45"></div></div>' +
+      '<span class="cmp-num">' + fmtMoney(A) + '</span>' +
+    '</div>' +
+    '<div class="cmp-row">' +
+      '<span class="cmp-name">后 ' + Math.round(n - k) + ' 年</span>' +
+      '<div class="cmp-track"><div class="cmp-fill" style="width:' + Math.max(0, B / maxG * 100).toFixed(1) + '%;background:var(--gain)"></div></div>' +
+      '<span class="cmp-num">' + fmtMoney(B) + '</span>' +
+    '</div>';
+}
+
+function textM4(){
+  const P = st.m4.P, r = st.m4.r / 100, n = st.m4.n, c = st.m4.c;
+  const total = fv(P, r, n, c);
+  const invested = P + c * n;
+  const gain = total - invested;
+  const k = n * 2 / 3;
+  const A = fv(P, r, k, c) - P;
+  const B = total - fv(P, r, k, c);
+  const ratio = (A > 1e-6 && isFinite(B / A)) ? (B / A) : null;
+
+  let html =
+    '<p>最终 <b>' + fmtMoney(total) + '</b>，你一共投了 <b style="color:var(--contrib)">' + fmtMoney(invested) + '</b>，其中 <b style="color:var(--gain)">' + fmtMoney(gain) + '</b> 是钱自己生的（占 <b>' + (total > 0 ? (gain / total * 100).toFixed(0) : 0) + '%</b>）。</p>';
+
+  if (ratio !== null){
+    html += '<p>前 ' + Math.round(k) + ' 年只涨了 <b>' + fmtMoney(A) + '</b>，最后 ' + Math.round(n - k) + ' 年却涨了 <b>' + fmtMoney(B) + '</b> —— 后者是前者的 <b>' + ratio.toFixed(2) + ' 倍</b>。</p>';
+  } else {
+    html += '<p>前 ' + Math.round(k) + ' 年涨了 <b>' + fmtMoney(A) + '</b>，最后 ' + Math.round(n - k) + ' 年涨了 <b>' + fmtMoney(B) + '</b>。</p>';
+  }
+
+  if (st.m4.late && n > 10){
+    const lateTotal = fv(P, r, n - 10, c);
+    html += '<p class="danger-text">晚开始 10 年，你只剩 <b>' + fmtMoney(lateTotal) + '</b>，少赚 <b>' + fmtMoney(total - lateTotal) + '</b>。</p>';
+  }
+
+  document.getElementById('m4-out').innerHTML = html;
+}
+
+function renderM4(){ drawM4(); cmpM4(); textM4(); }
+
+/* ============================================================
+   9. 动画辅助
+   ============================================================ */
+function animateSlider(el, from, to, dur, onUpdate){
+  const t0 = performance.now();
+  function step(t){
+    const p = Math.min(1, (t - t0) / dur);
+    const e = 1 - Math.pow(1 - p, 3);
+    const v = from + (to - from) * e;
+    el.value = v;
+    onUpdate(v);
+    if (p < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+/* ============================================================
+   10. 绑定
+   ============================================================ */
+function bindAll(){
+
+  /* ---- m1 ---- */
+  const m1n = document.getElementById('m1-n');
+  m1n.addEventListener('input', () => {
+    st.m1.n = +m1n.value;
+    document.getElementById('m1-nv').textContent = st.m1.n + ' 年';
+    schedule(renderM1);
+  });
+
+  /* ---- m2 ---- */
+  const m2r = document.getElementById('m2-r');
+  m2r.addEventListener('input', () => {
+    st.m2.r = +m2r.value;
+    document.getElementById('m2-rv').textContent = fmtPct(st.m2.r);
+    schedule(renderM2);
+  });
+
+  document.querySelectorAll('#m2-guess .guess-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (st.m2.answered) return;
+      st.m2.answered = true;
+      const picked = +btn.dataset.ans;
+      const correct = 3;
+      document.querySelectorAll('#m2-guess .guess-btn').forEach(b => {
+        const v = +b.dataset.ans;
+        if (v === correct) b.classList.add('correct');
+        else if (b === btn) b.classList.add('wrong');
+      });
+      const target = 8;
+      const startVal = st.m2.r;
+      animateSlider(m2r, startVal, target, 900, v => {
+        st.m2.r = v;
+        document.getElementById('m2-rv').textContent = fmtPct(v);
+        schedule(renderM2);
+      });
+    });
+  });
+
+  /* ---- m3 ---- */
+  const m3c = document.getElementById('m3-c');
+  const m3n = document.getElementById('m3-n');
+  m3c.addEventListener('input', () => {
+    st.m3.c = +m3c.value;
+    document.getElementById('m3-cv').textContent = fmtMoney(st.m3.c);
+    schedule(renderM3);
+  });
+  m3n.addEventListener('input', () => {
+    st.m3.n = +m3n.value;
+    document.getElementById('m3-nv').textContent = st.m3.n + ' 年';
+    schedule(renderM3);
+  });
+
+  document.querySelectorAll('#m3-guess .guess-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (st.m3.answered) return;
+      st.m3.answered = true;
+      const picked = +btn.dataset.ans;
+      const correct = 120;
+      document.querySelectorAll('#m3-guess .guess-btn').forEach(b => {
+        const v = +b.dataset.ans;
+        if (v === correct) b.classList.add('correct');
+        else if (b === btn) b.classList.add('wrong');
+      });
+    });
+  });
+
+  /* ---- m4 ---- */
+  const m4p = document.getElementById('m4-p');
+  const m4r = document.getElementById('m4-r');
+  const m4n = document.getElementById('m4-n');
+  const m4c = document.getElementById('m4-c');
+  const m4late = document.getElementById('m4-late');
+
+  function syncM4Labels(){
+    document.getElementById('m4-pv').textContent = fmtMoney(st.m4.P);
+    document.getElementById('m4-rv').textContent = fmtPct(st.m4.r);
+    document.getElementById('m4-nv').textContent = st.m4.n + ' 年';
+    document.getElementById('m4-cv').textContent = fmtMoney(st.m4.c);
+    document.querySelectorAll('#m4-presets .preset').forEach(b => {
+      b.classList.toggle('on', +b.dataset.r === Math.round(st.m4.r));
+    });
+  }
+
+  m4p.addEventListener('input', () => { st.m4.P = +m4p.value; syncM4Labels(); schedule(renderM4); });
+  m4r.addEventListener('input', () => { st.m4.r = +m4r.value; syncM4Labels(); schedule(renderM4); });
+  m4n.addEventListener('input', () => { st.m4.n = +m4n.value; syncM4Labels(); schedule(renderM4); });
+  m4c.addEventListener('input', () => { st.m4.c = +m4c.value; syncM4Labels(); schedule(renderM4); });
+  m4late.addEventListener('change', () => { st.m4.late = m4late.checked; schedule(renderM4); });
+
+  document.querySelectorAll('#m4-presets .preset').forEach(btn => {
+    btn.addEventListener('click', () => {
+      st.m4.r = +btn.dataset.r;
+      m4r.value = st.m4.r;
+      syncM4Labels();
+      schedule(renderM4);
+    });
+  });
+
+  /* ---- 重置 ---- */
+  document.querySelectorAll('[data-reset]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const m = btn.dataset.reset;
+      Object.assign(st[m], JSON.parse(JSON.stringify(DEF[m])));
+      syncUI(m);
+      if (m === 'm1') schedule(renderM1);
+      if (m === 'm2') schedule(renderM2);
+      if (m === 'm3') schedule(renderM3);
+      if (m === 'm4') schedule(renderM4);
+    });
+  });
+}
+
+function syncUI(m){
+  if (m === 'm1'){
+    document.getElementById('m1-n').value = st.m1.n;
+    document.getElementById('m1-nv').textContent = st.m1.n + ' 年';
+  }
+  if (m === 'm2'){
+    document.getElementById('m2-r').value = st.m2.r;
+    document.getElementById('m2-rv').textContent = fmtPct(st.m2.r);
+    document.querySelectorAll('#m2-guess .guess-btn').forEach(b => {
+      b.classList.remove('correct', 'wrong');
+    });
+  }
+  if (m === 'm3'){
+    document.getElementById('m3-c').value = st.m3.c;
+    document.getElementById('m3-n').value = st.m3.n;
+    document.getElementById('m3-cv').textContent = fmtMoney(st.m3.c);
+    document.getElementById('m3-nv').textContent = st.m3.n + ' 年';
+    document.querySelectorAll('#m3-guess .guess-btn').forEach(b => {
+      b.classList.remove('correct', 'wrong');
+    });
+  }
+  if (m === 'm4'){
+    const p = document.getElementById('m4-p'), r = document.getElementById('m4-r');
+    const n = document.getElementById('m4-n'), c = document.getElementById('m4-c');
+    const late = document.getElementById('m4-late');
+    p.value = st.m4.P; r.value = st.m4.r; n.value = st.m4.n; c.value = st.m4.c;
+    late.checked = st.m4.late;
+    document.getElementById('m4-pv').textContent = fmtMoney(st.m4.P);
+    document.getElementById('m4-rv').textContent = fmtPct(st.m4.r);
+    document.getElementById('m4-nv').textContent = st.m4.n + ' 年';
+    document.getElementById('m4-cv').textContent = fmtMoney(st.m4.c);
+    document.querySelectorAll('#m4-presets .preset').forEach(b => {
+      b.classList.toggle('on', +b.dataset.r === Math.round(st.m4.r));
+    });
+  }
+}
+
+/* ============================================================
+   11. 尺寸 / 启动
+   ============================================================ */
+function applyViewBoxes(){
+  document.getElementById('m1-svg').setAttribute('viewBox', '0 0 ' + CW + ' ' + CH);
+  document.getElementById('m2-svg').setAttribute('viewBox', '0 0 ' + CW + ' ' + CH);
+  document.getElementById('m3-svg').setAttribute('viewBox', '0 0 ' + CW + ' ' + CH);
+  document.getElementById('m4-svg').setAttribute('viewBox', '0 0 ' + CW + ' ' + CH);
+  document.getElementById('m1-bars').setAttribute('viewBox', '0 0 ' + CW + ' ' + BCH);
+}
+
+function renderAll(){
+  renderM1(); renderM2(); renderM3(); renderM4();
+}
+
+let resizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    updateDims();
+    applyViewBoxes();
+    renderAll();
+  }, 140);
+});
+
+(function init(){
+  updateDims();
+  applyViewBoxes();
+  syncUI('m1'); syncUI('m2'); syncUI('m3'); syncUI('m4');
+  bindAll();
+  renderAll();
+})();
+</script>
+</body>
+</html>

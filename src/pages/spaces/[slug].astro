@@ -1,0 +1,10 @@
+---
+import SpacePage from '../../components/SpacePage.astro';
+import { spaces } from '../../data/spaces';
+
+export function getStaticPaths() {
+  return spaces.map(space => ({ params: { slug: space.slug }, props: { space } }));
+}
+const { space } = Astro.props;
+---
+<SpacePage space={space} />

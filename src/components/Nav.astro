@@ -2,7 +2,7 @@
 import { withBase } from '../lib/paths.mjs';
 const base = import.meta.env.BASE_URL;
 const current = Astro.url.pathname.replace(base.replace(/\/$/, ''), '') || '/';
-const links = [{ href: '/', label: '首页' }, { href: '/works/', label: '作品' }, { href: '/about/', label: '关于我' }];
+const links = [{ href: '/', label: '首页' }, { href: '/#spaces', label: '六个空间' }, { href: '/works/', label: '作品' }];
 ---
 <header class="site-header">
   <a class="wordmark" href={withBase('/', base)} aria-label="段骁，返回首页">
@@ -10,7 +10,7 @@ const links = [{ href: '/', label: '首页' }, { href: '/works/', label: '作品
     <span>段骁<span class="wordmark-en">DUAN XIAO</span></span>
   </a>
   <nav aria-label="主导航">
-    {links.map(link => <a href={withBase(link.href, base)} aria-current={(link.href === '/' ? current === '/' : current.startsWith(link.href)) ? 'page' : undefined}>{link.label}</a>)}
+    {links.map(link => <a href={withBase(link.href, base)} aria-current={(link.href === '/' ? current === '/' : link.href === '/#spaces' ? current.startsWith('/spaces/') : current.startsWith(link.href)) ? 'page' : undefined}>{link.label}</a>)}
   </nav>
   <div class="header-actions">
     <button class="theme-toggle" type="button" aria-label="切换到浅色主题" title="切换明暗主题" data-theme-toggle hidden>

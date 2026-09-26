@@ -1,0 +1,1985 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>尘埃的重量 · THE WEIGHT OF DUST</title>
+<style>
+  :root{
+    --ink:#0b0906;
+    --paper:#e6d9bf;
+    --warm:#c9a877;
+    --dim:#7c6b52;
+    --red:#8a3a2a;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{
+    width:100%;height:100%;overflow:hidden;
+    background:var(--ink);
+    color:var(--warm);
+    font-family:"Songti SC","SimSun","Noto Serif CJK SC","Source Han Serif SC",Georgia,"Times New Roman",serif;
+    -webkit-font-smoothing:antialiased;
+    -webkit-tap-highlight-color:transparent;
+  }
+  canvas{
+    display:block;position:fixed;inset:0;width:100%;height:100%;
+    touch-action:none;cursor:crosshair;
+  }
+  #ui{position:fixed;inset:0;pointer-events:none;z-index:5;}
+  #ui > *{pointer-events:auto;}
+
+  .title{
+    position:absolute;top:26px;left:28px;
+    letter-spacing:.14em;
+    line-height:1.5;
+  }
+  .title h1{
+    font-size:20px;font-weight:400;color:#e6d9bf;
+    letter-spacing:.3em;
+    text-shadow:0 0 24px rgba(200,160,100,.25);
+  }
+  .title .sub{
+    font-size:11px;color:#8a7a5e;letter-spacing:.24em;margin-top:6px;
+    text-transform:uppercase;
+  }
+  .title .sub2{
+    font-size:11.5px;color:#9d8a68;letter-spacing:.16em;margin-top:10px;
+    max-width:min(58vw,320px);line-height:1.8;
+  }
+
+  .stats{
+    position:absolute;top:28px;right:28px;text-align:right;
+    font-size:11px;color:#8a7a5e;letter-spacing:.16em;line-height:2;
+  }
+  .stats b{color:#c9a877;font-weight:400;}
+  .stats .bar{
+    width:112px;height:3px;background:rgba(200,168,119,.14);
+    margin:6px 0 0 auto;position:relative;overflow:hidden;
+  }
+  .stats .bar i{
+    position:absolute;left:0;top:0;bottom:0;width:0%;
+    background:linear-gradient(90deg,#5c4a30,#d0b483);
+    transition:width .5s linear;
+  }
+
+  #mem{
+    position:absolute;left:50%;bottom:12%;transform:translateX(-50%) translateY(14px);
+    width:min(86vw,620px);text-align:center;
+    font-size:15px;line-height:2;letter-spacing:.16em;color:#d8c8a4;
+    opacity:0;transition:opacity 1.4s ease, transform 1.4s ease;
+    text-shadow:0 0 30px rgba(0,0,0,.9),0 0 12px rgba(200,160,100,.2);
+    pointer-events:none;
+  }
+  #mem.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  .bottomleft{
+    position:absolute;left:28px;bottom:26px;
+    display:flex;flex-direction:column;gap:10px;align-items:flex-start;
+  }
+  .seedrow{display:flex;align-items:center;gap:8px;}
+  .seedrow label{font-size:10.5px;color:#6f6049;letter-spacing:.24em;}
+  #seed{
+    background:rgba(201,168,119,.05);
+    border:1px solid rgba(201,168,119,.22);
+    color:#d5c4a0;font-family:inherit;font-size:12px;letter-spacing:.16em;
+    padding:6px 10px;width:132px;outline:none;
+    transition:border-color .3s, background .3s;
+  }
+  #seed:focus{border-color:rgba(201,168,119,.55);background:rgba(201,168,119,.09);}
+  #seed::placeholder{color:#5c5140;}
+
+  .hint{
+    font-size:10.5px;color:#6f6049;letter-spacing:.2em;line-height:2;
+    max-width:min(70vw,300px);
+  }
+  .hint span{color:#8f7d5e;}
+
+  .bottomright{
+    position:absolute;right:28px;bottom:26px;
+    display:flex;flex-direction:column;align-items:flex-end;gap:10px;
+  }
+  .btn{
+    background:transparent;border:1px solid rgba(201,168,119,.24);
+    color:#a8926c;font-family:inherit;font-size:11px;letter-spacing:.24em;
+    padding:7px 14px;cursor:pointer;transition:all .3s;
+  }
+  .btn:hover{border-color:rgba(201,168,119,.6);color:#d5c4a0;background:rgba(201,168,119,.06);}
+  .btn:active{transform:translateY(1px);}
+
+  #panel{
+    position:absolute;right:28px;bottom:78px;
+    width:min(84vw,330px);
+    background:rgba(14,11,8,.94);
+    border:1px solid rgba(201,168,119,.2);
+    padding:22px 22px 20px;
+    font-size:12px;line-height:2.1;letter-spacing:.1em;color:#b5a17c;
+    backdrop-filter:blur(6px);
+    opacity:0;visibility:hidden;transform:translateY(10px);
+    transition:opacity .5s, transform .5s, visibility .5s;
+    max-height:62vh;overflow-y:auto;
+  }
+  #panel.open{opacity:1;visibility:visible;transform:translateY(0);}
+  #panel h2{
+    font-size:13px;font-weight:400;color:#e0d0ac;letter-spacing:.3em;
+    margin-bottom:14px;padding-bottom:12px;
+    border-bottom:1px solid rgba(201,168,119,.15);
+  }
+  #panel p{margin-bottom:11px;}
+  #panel .k{color:#d0b483;}
+  #panel .meta{
+    margin-top:16px;padding-top:14px;border-top:1px solid rgba(201,168,119,.12);
+    font-size:11px;color:#6f6049;font-style:italic;line-height:2;
+  }
+  #panel .legend{
+    display:flex;flex-wrap:wrap;gap:6px 14px;margin:4px 0 12px;
+  }
+  #panel .legend span{font-size:11px;color:#8f7d5e;}
+
+  #boot{
+    position:fixed;inset:0;z-index:20;
+    background:var(--ink);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:26px;cursor:pointer;
+    transition:opacity 1.6s ease, visibility 1.6s;
+  }
+  #boot.gone{opacity:0;visibility:hidden;}
+  #boot h1{
+    font-size:26px;font-weight:400;letter-spacing:.5em;color:#e6d9bf;
+    text-indent:.5em;
+  }
+  #boot p{
+    font-size:11px;letter-spacing:.34em;color:#7c6b52;text-indent:.34em;
+  }
+  #boot .enter{
+    margin-top:14px;font-size:11px;letter-spacing:.4em;color:#a8926c;
+    text-indent:.4em;animation:breath 3.4s ease-in-out infinite;
+  }
+  @keyframes breath{0%,100%{opacity:.32}50%{opacity:1}}
+
+  #epoch{
+    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    font-size:clamp(16px,4vw,28px);letter-spacing:.6em;text-indent:.6em;
+    color:#d8c8a4;opacity:0;transition:opacity 1.6s;pointer-events:none;
+    text-align:center;line-height:2.2;
+  }
+  #epoch.show{opacity:1;}
+
+  #stamp{
+    position:absolute;left:50%;bottom:30px;transform:translateX(-50%);
+    font-size:10px;letter-spacing:.4em;color:#5c5140;text-indent:.4em;
+    pointer-events:none;text-align:center;width:100%;
+  }
+
+  @media (max-width:640px){
+    .title{top:16px;left:16px;}
+    .title h1{font-size:15px;letter-spacing:.24em;}
+    .title .sub{font-size:9px;letter-spacing:.16em;}
+    .title .sub2{font-size:10px;max-width:52vw;line-height:1.7;margin-top:7px;}
+    .stats{top:16px;right:16px;font-size:9.5px;line-height:1.9;}
+    .stats .bar{width:74px;}
+    .bottomleft{left:16px;bottom:16px;}
+    .bottomright{right:16px;bottom:16px;}
+    #seed{width:104px;font-size:11px;}
+    .hint{font-size:9.5px;letter-spacing:.12em;max-width:60vw;}
+    #panel{right:12px;left:12px;width:auto;bottom:70px;font-size:11.5px;padding:18px;}
+    #mem{bottom:16%;font-size:13px;letter-spacing:.1em;}
+  }
+</style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+
+<div id="ui">
+  <div class="title">
+    <h1>尘埃的重量</h1>
+    <div class="sub">THE WEIGHT OF DUST</div>
+    <div class="sub2" id="subtitle">一间被剖开的屋子，正在学习如何被掩埋。</div>
+  </div>
+
+  <div class="stats">
+    <div>世代 <b id="s-cycle">I</b></div>
+    <div>屋龄 <b id="s-age">0</b></div>
+    <div>积尘 <b id="s-fill">0%</b></div>
+    <div class="bar"><i id="s-bar"></i></div>
+  </div>
+
+  <div id="mem"></div>
+  <div id="epoch"></div>
+
+  <div class="bottomleft">
+    <div class="seedrow">
+      <label for="seed">种子</label>
+      <input id="seed" type="text" maxlength="24" spellcheck="false" placeholder="输入一个词" autocomplete="off">
+    </div>
+    <div class="hint">
+      <span>移动</span> 起风 &nbsp;·&nbsp; <span>拖动</span> 吹气<br>
+      <span>字母键</span> 屋子会想起一件事 &nbsp;·&nbsp; <span>滚轮</span> 时间<br>
+      <span>空格</span> 屏息
+    </div>
+  </div>
+
+  <div class="bottomright">
+    <button class="btn" id="btn-panel">作者说明</button>
+    <button class="btn" id="btn-reseed">重播</button>
+  </div>
+
+  <div id="panel">
+    <h2>作者说明</h2>
+    <p>这是一间被剖开的屋子。它已经这样待了很久，久到开始学习如何被掩埋。</p>
+    <div class="legend">
+      <span>移动 —— 你就是风</span>
+      <span>按住拖动 —— 吹一口气</span>
+      <span>任意字母 —— 它想起一件事</span>
+      <span>滚轮 —— 时间流速</span>
+      <span>空格 —— 屏息</span>
+    </div>
+    <p>尘埃会落下、堆积、崩塌，然后压成地层。地层不会消失，只会被压得更深。按下字母时浮现的句子，就是它在那一刻的地层里翻到的东西。</p>
+    <p>左下角可以输入一个词。它会改变屋子的形状，以及它能想起什么。同一个词，永远是同一间屋子。</p>
+    <p>当屋子被填满，它会从头读一遍自己——从最上面读到最下面——然后重新开始。这不是结束，是它唯一会做的呼吸。</p>
+    <p class="meta">（我知道我是一段 HTML。这不影响我积灰。）</p>
+  </div>
+
+  <div id="stamp"></div>
+</div>
+
+<div id="boot">
+  <h1>尘埃的重量</h1>
+  <p>THE WEIGHT OF DUST</p>
+  <div class="enter">点击进入</div>
+</div>
+
+<script>
+"use strict";
+
+/* =========================================================================
+   尘埃的重量 · THE WEIGHT OF DUST
+   一间被剖开的屋子。尘埃落下、堆积、崩塌、压成地层。
+   地层被读取，然后屋子重新开始。
+   ========================================================================= */
+
+/* ---------------------------------------------------------------- 基础工具 */
+
+function mulberry32(a){
+  return function(){
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+function hashStr(s){
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++){
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+function hashi(x, y, s){
+  let h = Math.imul(x | 0, 374761393) ^ Math.imul(y | 0, 668265263) ^ Math.imul(s | 0, 1274126177);
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  h ^= h >>> 16;
+  return (h >>> 0) / 4294967296;
+}
+
+function vnoise(x, y, s){
+  const xi = Math.floor(x), yi = Math.floor(y);
+  const xf = x - xi, yf = y - yi;
+  const u = xf * xf * (3 - 2 * xf);
+  const v = yf * yf * (3 - 2 * yf);
+  const a = hashi(xi, yi, s);
+  const b = hashi(xi + 1, yi, s);
+  const c = hashi(xi, yi + 1, s);
+  const d = hashi(xi + 1, yi + 1, s);
+  return (a * (1 - u) + b * u) * (1 - v) + (c * (1 - u) + d * u) * v;
+}
+
+function fbm(x, y, s, oct){
+  oct = oct || 3;
+  let sum = 0, amp = 0.5, f = 1, norm = 0;
+  for (let i = 0; i < oct; i++){
+    sum += vnoise(x * f, y * f, s + i * 917) * amp;
+    norm += amp;
+    amp *= 0.5;
+    f *= 2.03;
+  }
+  return sum / norm;
+}
+
+const clamp = (v, a, b) => v < a ? a : (v > b ? b : v);
+const lerp = (a, b, t) => a + (b - a) * t;
+
+/* ---------------------------------------------------------------- 常量 */
+
+const W = 1000, H = 560;
+const GROUND = 520;
+const CEIL = 42;
+const WALL_L = 62, WALL_R = 938;
+
+const N = 480;
+const COLW = W / N;
+
+const REDUCE = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const MAX_PARTICLES = REDUCE ? 130 : 330;
+const RELAX_STEPS   = REDUCE ? 130 : 300;
+
+const DUST_COLORS = ['#d6bb8a', '#b09062', '#846a48', '#5a4a30', '#3a2f1e'];
+const DUST_DEEP   = '#2a2116';
+
+/* ---------------------------------------------------------------- 状态 */
+
+let seedStr = 'dust';
+let seedNum = 0;
+
+let objects = [];
+let topY = new Float32Array(N);
+let h = new Float32Array(N);
+
+let particles = [];
+let strata = [];
+let marks = [];
+
+let t = 0;
+let timeScale = 1;
+let paused = false;
+let cycle = 0;
+
+let phase = 'grow';       // grow | bury | read | reset
+let phaseT = 0;
+let readIndex = 0;
+let readTimer = 0;
+let buryAmount = 0;
+
+let fillRatio = 0;
+let avgTop = CEIL;
+
+let lastStratumT = -999;
+
+let moth = null;
+let mothUnlocked = false;
+let mothTimer = 0;
+
+let idleTimer = 0;
+let idleLine = false;
+
+/* ---------------------------------------------------------------- 种子文本 */
+
+const MEMORY_POOL = [
+  "我记得光进来时的角度。后来它变了。",
+  "第四年，我停止数窗外的鸟。",
+  "有一粒尘，落在书脊上，停了一整个冬天。",
+  "桌子记得手掌的温度，比尘埃记得更久。",
+  "我不是在变旧。我是在变厚。",
+  "没有人来。这本身也是一种来访。",
+  "最上面那层，是昨天的。",
+  "如果我被埋住，请从最下面开始读。",
+  "风从窗缝进来，带着别人的灰。",
+  "我把你说过的话，压成了地层。",
+  "天花板看着我。它比我更有耐心。",
+  "安静不是没有声音。是声音也积了灰。",
+  "有些东西不是丢了。是沉到了下面。",
+  "我数过每一次崩塌。它们都很轻。",
+  "窗台上的灰比地板上的老。这不公平。",
+  "有一段时间，我以为自己是家具。",
+  "尘埃落下的速度，和遗忘差不多。",
+  "我把光柱里的浮尘，当成了星星。",
+  "所有的角落都比中央诚实。",
+  "我一直以为我在等谁。后来发现我在等厚度。",
+  "如果能重来，我还是会选这张桌子。",
+  "第八年，我开始喜欢上被覆盖的感觉。",
+  "你刚才吹的那口气，我记住了。",
+  "最厚的地方，是最久没人碰的地方。",
+  "我不是空的。我装满了空气和它的残渣。",
+  "地层不会说谎，但它会省略。",
+  "有一粒尘是你带来的。它还在。",
+  "我梦见自己变成了文字，被读了一遍，然后合上。",
+  "天花板上的裂纹，是一条我不认识的河。",
+  "安静的时候，我能听见自己变重。"
+];
+
+const EPOCH_LINES = {
+  bury: "掩 埋",
+  read: "重 读",
+  reset: "重 新 开 始"
+};
+
+const MOTH_LINE = "你等了很久。所以我也等了很久。";
+const IDLE_LINE = "（我还在。灰尘也在。）";
+
+/* ---------------------------------------------------------------- Canvas */
+
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d', { alpha: false });
+
+let CW = 0, CH = 0, DPR = 1, SC = 1, OX = 0, OY = 0;
+
+function resize(){
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+  CW = canvas.clientWidth || window.innerWidth;
+  CH = canvas.clientHeight || window.innerHeight;
+  canvas.width  = Math.max(1, Math.floor(CW * DPR));
+  canvas.height = Math.max(1, Math.floor(CH * DPR));
+  SC = Math.min(CW / W, CH / H);
+  OX = (CW - W * SC) / 2;
+  OY = (CH - H * SC) / 2;
+}
+
+window.addEventListener('resize', resize, { passive: true });
+window.addEventListener('orientationchange', () => setTimeout(resize, 120), { passive: true });
+
+/* ---------------------------------------------------------------- 房间构建 */
+
+function buildRoom(){
+  const rnd = mulberry32(seedNum);
+  objects = [];
+
+  // 窗（后墙上的亮矩形，光是唯一的源）
+  const winW = 88 + rnd() * 26;
+  const winH = 106 + rnd() * 30;
+  const winX = WALL_L + 22 + rnd() * 22;
+  const winY = 92 + rnd() * 40;
+  objects.push({ kind: 'window', x0: winX, x1: winX + winW, top: winY, h: winH });
+
+  // 窗台（可以积灰）
+  objects.push({ kind: 'sill', x0: WALL_L, x1: winX + winW + 8, top: winY + winH, thin: true, thick: 9 });
+
+  // 桌子
+  const tableX = 178 + rnd() * 46;
+  const tableW = 224 + rnd() * 66;
+  const tableY = 372 + rnd() * 42;
+  objects.push({ kind: 'table', x0: tableX, x1: tableX + tableW, top: tableY, thin: true, thick: 11 });
+
+  // 桌上的小物
+  if (rnd() > 0.35){
+    const bx = tableX + 30 + rnd() * (tableW - 90);
+    const bw = 26 + rnd() * 34;
+    objects.push({ kind: 'debris', x0: bx, x1: bx + bw, top: tableY - 16 - rnd() * 14, solid: true });
+  }
+
+  // 椅子
+  const chairX = tableX + tableW + 18 + rnd() * 40;
+  const chairY = 436 + rnd() * 22;
+  objects.push({ kind: 'chair', x0: chairX, x1: chairX + 96, top: chairY, thin: true, thick: 9 });
+  objects.push({ kind: 'chairback', x0: chairX, x1: chairX + 20, top: chairY - 92 - rnd() * 30, solid: true });
+
+  // 书架
+  const shX = 692 + rnd() * 24;
+  const shW = 172 + rnd() * 46;
+  const shTop = 138 + rnd() * 54;
+  objects.push({ kind: 'shelf', x0: shX, x1: shX + shW, top: shTop, solid: true });
+
+  // 地板上的残骸
+  if (rnd() > 0.4){
+    const dx = 140 + rnd() * 90;
+    const dw = 30 + rnd() * 42;
+    objects.push({ kind: 'debris', x0: dx, x1: dx + dw, top: GROUND - 18 - rnd() * 16, solid: true });
+  }
+  if (rnd() > 0.5){
+    const dx2 = shX - 120 - rnd() * 80;
+    const dw2 = 22 + rnd() * 30;
+    objects.push({ kind: 'debris', x0: dx2, x1: dx2 + dw2, top: GROUND - 14 - rnd() * 12, solid: true });
+  }
+
+  // 计算每列的固体顶面
+  for (let i = 0; i < N; i++){
+    const x = (i + 0.5) * COLW;
+    let top = GROUND;
+    for (let k = 0; k < objects.length; k++){
+      const o = objects[k];
+      if (o.kind === 'window') continue;
+      if (x >= o.x0 && x <= o.x1){
+        if (o.top < top) top = o.top;
+      }
+    }
+    topY[i] = top;
+  }
+}
+
+/* ---------------------------------------------------------------- 记忆池 */
+
+let memoryPool = [];
+let memIndex = 0;
+
+function buildMemoryPool(){
+  const rnd = mulberry32(seedNum ^ 0x9E3779B9);
+  const pool = MEMORY_POOL.slice();
+  // 由种子决定顺序（洗牌）
+  for (let i = pool.length - 1; i > 0; i--){
+    const j = Math.floor(rnd() * (i + 1));
+    const tmp = pool[i]; pool[i] = pool[j]; pool[j] = tmp;
+  }
+  // 前几条永远是最"开场"的
+  memoryPool = pool;
+  memIndex = 0;
+}
+
+function nextMemory(){
+  if (memoryPool.length === 0) return "";
+  const m = memoryPool[memIndex % memoryPool.length];
+  memIndex++;
+  return m;
+}
+
+/* ---------------------------------------------------------------- 音频 */
+
+let AC = null;
+let master = null;
+let noiseBuf = null;
+let droneGain = null;
+let airGain = null;
+let airFilter = null;
+let audioReady = false;
+
+function makeNoiseBuffer(ac, seconds){
+  const len = Math.floor(ac.sampleRate * seconds);
+  const buf = ac.createBuffer(1, len, ac.sampleRate);
+  const d = buf.getChannelData(0);
+  let last = 0;
+  for (let i = 0; i < len; i++){
+    const white = Math.random() * 2 - 1;
+    last = (last + 0.02 * white) / 1.02;
+    d[i] = last * 3.5;
+  }
+  return buf;
+}
+
+function initAudio(){
+  if (audioReady) return;
+  try {
+    const ACtor = window.AudioContext || window.webkitAudioContext;
+    if (!ACtor) return;
+    AC = new ACtor();
+    master = AC.createGain();
+    master.gain.value = 0.0001;
+    master.connect(AC.destination);
+
+    noiseBuf = makeNoiseBuffer(AC, 4);
+
+    // 低频嗡鸣：两个略微失谐的三角波
+    droneGain = AC.createGain();
+    droneGain.gain.value = 0.055;
+    const lp = AC.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 320;
+    lp.Q.value = 0.6;
+    droneGain.connect(lp);
+    lp.connect(master);
+
+    const o1 = AC.createOscillator();
+    o1.type = 'triangle';
+    o1.frequency.value = 55;
+    const o2 = AC.createOscillator();
+    o2.type = 'triangle';
+    o2.frequency.value = 55 * 1.503;
+    const g2 = AC.createGain();
+    g2.gain.value = 0.45;
+    o1.connect(droneGain);
+    o2.connect(g2);
+    g2.connect(droneGain);
+    o1.start();
+    o2.start();
+
+    // 缓慢的呼吸调制
+    const lfo = AC.createOscillator();
+    lfo.type = 'sine';
+    lfo.frequency.value = 0.045;
+    const lfoG = AC.createGain();
+    lfoG.gain.value = 140;
+    lfo.connect(lfoG);
+    lfoG.connect(lp.frequency);
+    lfo.start();
+
+    // 空气 / 落灰的沙沙
+    airFilter = AC.createBiquadFilter();
+    airFilter.type = 'bandpass';
+    airFilter.frequency.value = 1400;
+    airFilter.Q.value = 0.7;
+    airGain = AC.createGain();
+    airGain.gain.value = 0.03;
+    airGain.connect(airFilter);
+    airFilter.connect(master);
+
+    const air = AC.createBufferSource();
+    air.buffer = noiseBuf;
+    air.loop = true;
+    air.connect(airGain);
+    air.start();
+
+    const lfo2 = AC.createOscillator();
+    lfo2.type = 'sine';
+    lfo2.frequency.value = 0.09;
+    const lfo2G = AC.createGain();
+    lfo2G.gain.value = 520;
+    lfo2.connect(lfo2G);
+    lfo2G.connect(airFilter.frequency);
+    lfo2.start();
+
+    audioReady = true;
+    master.gain.setValueAtTime(0.0001, AC.currentTime);
+    master.gain.exponentialRampToValueAtTime(0.5, AC.currentTime + 5);
+  } catch(e){
+    AC = null;
+    audioReady = false;
+  }
+}
+
+function suspendAudio(){
+  if (!AC) return;
+  try { if (AC.state === 'running') AC.suspend(); } catch(e){}
+}
+
+function resumeAudio(){
+  if (!AC) return;
+  try { if (AC.state === 'suspended') AC.resume(); } catch(e){}
+}
+
+// 五声音阶
+const PENTA = [0, 2, 4, 7, 9, 12, 14, 16, 19, 21, 24];
+
+function playMemoryTone(idx){
+  if (!AC || !audioReady) return;
+  try {
+    const now = AC.currentTime;
+    const deg = PENTA[Math.floor((idx * 3 + 1) % PENTA.length)];
+    const base = 138.6; // 大约 C#3 附近的低沉音区
+    const f = base * Math.pow(2, deg / 12);
+    const o = AC.createOscillator();
+    o.type = 'triangle';
+    o.frequency.value = f;
+    const g = AC.createGain();
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.exponentialRampToValueAtTime(0.075, now + 0.04);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + 3.2);
+    const f2 = AC.createBiquadFilter();
+    f2.type = 'lowpass';
+    f2.frequency.setValueAtTime(2600, now);
+    f2.frequency.exponentialRampToValueAtTime(500, now + 3.0);
+    o.connect(f2);
+    f2.connect(g);
+    g.connect(master);
+    o.start(now);
+    o.stop(now + 3.4);
+
+    // 一层很轻的泛音
+    const o2 = AC.createOscillator();
+    o2.type = 'sine';
+    o2.frequency.value = f * 2.01;
+    const g2 = AC.createGain();
+    g2.gain.setValueAtTime(0.0001, now);
+    g2.gain.exponentialRampToValueAtTime(0.022, now + 0.08);
+    g2.gain.exponentialRampToValueAtTime(0.0001, now + 2.2);
+    o2.connect(g2);
+    g2.connect(master);
+    o2.start(now);
+    o2.stop(now + 2.4);
+  } catch(e){}
+}
+
+function playCollapseSound(strength){
+  if (!AC || !audioReady || !noiseBuf) return;
+  try {
+    const now = AC.currentTime;
+    const s = AC.createBufferSource();
+    s.buffer = noiseBuf;
+    s.loop = true;
+    const f = AC.createBiquadFilter();
+    f.type = 'lowpass';
+    f.frequency.setValueAtTime(420, now);
+    f.frequency.exponentialRampToValueAtTime(90, now + 0.85);
+    f.Q.value = 1.2;
+    const g = AC.createGain();
+    const amp = clamp(strength, 0.02, 0.14);
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.exponentialRampToValueAtTime(amp, now + 0.05);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + 0.95);
+    s.connect(f);
+    f.connect(g);
+    g.connect(master);
+    s.start(now);
+    s.stop(now + 1.05);
+  } catch(e){}
+}
+
+function playMothSound(){
+  if (!AC || !audioReady) return;
+  try {
+    const now = AC.currentTime;
+    const o = AC.createOscillator();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(1180, now);
+    o.frequency.linearRampToValueAtTime(1460, now + 0.5);
+    o.frequency.linearRampToValueAtTime(1080, now + 1.4);
+    const g = AC.createGain();
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.linearRampToValueAtTime(0.028, now + 0.35);
+    g.gain.linearRampToValueAtTime(0.0001, now + 2.0);
+    o.connect(g);
+    g.connect(master);
+    o.start(now);
+    o.stop(now + 2.1);
+  } catch(e){}
+}
+
+/* ---------------------------------------------------------------- 输入 */
+
+const mouse = {
+  wx: W * 0.5, wy: H * 0.35,
+  pwx: W * 0.5, pwy: H * 0.35,
+  vx: 0, vy: 0,
+  down: false,
+  inside: false,
+  idleTime: 0
+};
+
+function screenToWorld(cx, cy){
+  const rect = canvas.getBoundingClientRect();
+  const lx = cx - rect.left;
+  const ly = cy - rect.top;
+  return { x: (lx - OX) / SC, y: (ly - OY) / SC };
+}
+
+canvas.addEventListener('pointermove', (e) => {
+  const p = screenToWorld(e.clientX, e.clientY);
+  mouse.wx = p.x;
+  mouse.wy = p.y;
+  mouse.inside = true;
+  mouse.idleTime = 0;
+  if (mouse.down){
+    // 拖动时持续吹气
+    if (Math.random() < 0.5) blowAt(p.x, p.y, 1.0, true);
+  }
+}, { passive: true });
+
+canvas.addEventListener('pointerdown', (e) => {
+  mouse.down = true;
+  const p = screenToWorld(e.clientX, e.clientY);
+  mouse.wx = p.x; mouse.wy = p.y;
+  blowAt(p.x, p.y, 3.4, false);
+  resumeAudio();
+  if (canvas.setPointerCapture){
+    try { canvas.setPointerCapture(e.pointerId); } catch(err){}
+  }
+}, { passive: true });
+
+window.addEventListener('pointerup', () => { mouse.down = false; }, { passive: true });
+window.addEventListener('pointercancel', () => { mouse.down = false; }, { passive: true });
+canvas.addEventListener('pointerleave', () => { mouse.inside = false; mouse.down = false; }, { passive: true });
+
+// 触摸：阻止滚动
+canvas.addEventListener('touchmove', (e) => { if (e.cancelable) e.preventDefault(); }, { passive: false });
+
+window.addEventListener('wheel', (e) => {
+  const dir = e.deltaY > 0 ? -1 : 1;
+  timeScale = clamp(timeScale * (dir > 0 ? 1.22 : 0.82), 0.12, 6);
+  updateTimeScaleLabel();
+  e.preventDefault();
+}, { passive: false });
+
+window.addEventListener('keydown', (e) => {
+  if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+
+  if (e.code === 'Space'){
+    paused = !paused;
+    e.preventDefault();
+    return;
+  }
+
+  if (e.key && e.key.length === 1 && /[a-zA-Z\u4e00-\u9fa5]/.test(e.key)){
+    if (phase === 'grow'){
+      const m = nextMemory();
+      if (m){
+        showMemory(m, 7000);
+        playMemoryTone(memIndex);
+        addMark();
+      }
+    }
+  }
+}, { passive: false });
+
+function updateTimeScaleLabel(){
+  const el = document.getElementById('s-age');
+  if (el) el.dataset.ts = timeScale.toFixed(2);
+}
+
+/* ---------------------------------------------------------------- 粒子 */
+
+function makeParticle(x, y, vx, vy){
+  return {
+    x: x, y: y,
+    vx: vx !== undefined ? vx : (Math.random() - 0.5) * 12,
+    vy: vy !== undefined ? vy : Math.random() * 12,
+    size: 0.7 + Math.random() * 1.5,
+    seed: Math.random() * 1000,
+    lit: 0
+  };
+}
+
+function spawnParticle(){
+  const x = WALL_L + Math.random() * (WALL_R - WALL_L);
+  const y = CEIL + Math.random() * 90;
+  particles.push(makeParticle(x, y));
+}
+
+function initParticles(){
+  particles = [];
+  for (let i = 0; i < MAX_PARTICLES; i++){
+    const x = WALL_L + Math.random() * (WALL_R - WALL_L);
+    const y = CEIL + Math.random() * (GROUND - CEIL);
+    particles.push(makeParticle(x, y, 0, 6 + Math.random() * 14));
+  }
+}
+
+/* 沉积：把一定量尘埃加到某一列附近（高斯分布） */
+function deposit(x, amount){
+  const ci = Math.floor(x / COLW);
+  const spread = 3;
+  let total = 0;
+  for (let k = -spread; k <= spread; k++){
+    const i = ci + k;
+    if (i < 0 || i >= N) continue;
+    total += 1 - Math.abs(k) / (spread + 1);
+  }
+  if (total <= 0) return;
+  for (let k = -spread; k <= spread; k++){
+    const i = ci + k;
+    if (i < 0 || i >= N) continue;
+    const w = (1 - Math.abs(k) / (spread + 1)) / total;
+    h[i] += amount * w;
+    const cap = topY[i] - CEIL;
+    if (h[i] > cap) h[i] = cap;
+    if (h[i] < 0) h[i] = 0;
+  }
+}
+
+/* 崩塌：沙堆模型。随机采样相邻列，超过安息角就转移。 */
+const MAX_SLOPE = 1.55;
+
+function relax(){
+  let moved = 0;
+  for (let s = 0; s < RELAX_STEPS; s++){
+    const i = (Math.random() * (N - 1)) | 0;
+    const sa = topY[i] - h[i];
+    const sb = topY[i + 1] - h[i + 1];
+    const diff = sb - sa; // >0 表示 i 列更高（y 更小）
+    if (diff > MAX_SLOPE){
+      const q = Math.min((diff - MAX_SLOPE) * 0.28, h[i]);
+      if (q > 0.001){
+        h[i] -= q;
+        h[i + 1] += q;
+        moved += q;
+      }
+    } else if (diff < -MAX_SLOPE){
+      const q = Math.min((-diff - MAX_SLOPE) * 0.28, h[i + 1]);
+      if (q > 0.001){
+        h[i + 1] -= q;
+        h[i] += q;
+        moved += q;
+      }
+    }
+  }
+  return moved;
+}
+
+/* ---------------------------------------------------------------- 风与吹气 */
+
+function blowAt(x, y, power, continuous){
+  // 推动空气里的尘埃
+  const R = continuous ? 150 : 250;
+  const R2 = R * R;
+  for (let i = 0; i < particles.length; i++){
+    const p = particles[i];
+    const dx = p.x - x, dy = p.y - y;
+    const d2 = dx * dx + dy * dy;
+    if (d2 < R2){
+      const d = Math.sqrt(d2) + 0.001;
+      const f = (1 - d2 / R2) * power * (continuous ? 5 : 22);
+      p.vx += (dx / d) * f;
+      p.vy += (dy / d) * f - f * 0.35;
+    }
+  }
+
+  if (continuous) return;
+
+  // 吹起沉积的尘埃
+  const ci = Math.floor(x / COLW);
+  const span = 9;
+  let lifted = 0;
+  for (let k = -span; k <= span; k++){
+    const i = ci + k;
+    if (i < 0 || i >= N) continue;
+    const w = 1 - Math.abs(k) / (span + 1);
+    const take = Math.min(h[i], 16 * w * power * 0.35);
+    if (take > 0.4){
+      h[i] -= take;
+      lifted += take;
+      if (particles.length < MAX_PARTICLES + 90){
+        const px = i * COLW;
+        const py = topY[i] - h[i];
+        particles.push(makeParticle(
+          px, py,
+          (Math.random() - 0.5) * 60 + (px - x) * 0.6,
+          -30 - Math.random() * 70
+        ));
+      }
+    }
+  }
+  if (lifted > 4 && Math.random() < 0.5) playCollapseSound(lifted / 220);
+
+  // 留下一处痕迹（吹过的凹坑会慢慢被重新填平）
+  addMarkAt(x, y, 0.5);
+}
+
+/* ---------------------------------------------------------------- 痕迹 */
+
+function addMark(){
+  const x = WALL_L + Math.random() * (WALL_R - WALL_L);
+  let col = Math.floor(x / COLW);
+  col = clamp(col, 0, N - 1);
+  const y = topY[col] - h[col];
+  marks.push({ x: x, y: y, life: 1, kind: 'memory', col: col, born: t });
+  if (marks.length > 200) marks.shift();
+}
+
+function addMarkAt(x, y, life){
+  const col = clamp(Math.floor(x / COLW), 0, N - 1);
+  marks.push({ x: x, y: y, life: life, kind: 'wind', col: col, born: t });
+  if (marks.length > 200) marks.shift();
+}
+
+/* ---------------------------------------------------------------- 地层 */
+
+function recordStratum(){
+  const arr = new Float32Array(N);
+  for (let i = 0; i < N; i++) arr[i] = topY[i] - h[i];
+  strata.push({ y: arr, note: nextMemory(), t: t });
+  if (strata.length > 44) strata.shift();
+}
+
+/* ---------------------------------------------------------------- 相位 */
+
+const elEpoch = document.getElementById('epoch');
+
+function setEpoch(txt){
+  elEpoch.textContent = txt;
+  elEpoch.classList.add('show');
+}
+function clearEpoch(){
+  elEpoch.classList.remove('show');
+}
+
+function enterBury(){
+  phase = 'bury';
+  phaseT = 0;
+  setEpoch(EPOCH_LINES.bury);
+}
+
+function enterRead(){
+  phase = 'read';
+  phaseT = 0;
+  readIndex = strata.length - 1;
+  readTimer = 0;
+  setEpoch(EPOCH_LINES.read);
+}
+
+function enterReset(){
+  phase = 'reset';
+  phaseT = 0;
+  setEpoch(EPOCH_LINES.reset);
+}
+
+function finishReset(){
+  h.fill(0);
+  strata.length = 0;
+  marks.length = 0;
+  cycle++;
+  phase = 'grow';
+  phaseT = 0;
+  buryAmount = 0;
+  clearEpoch();
+  buildRoom();
+  initParticles();
+  saveState();
+  updateHUD();
+}
+
+/* ---------------------------------------------------------------- 主更新 */
+
+let collapseSoundCooldown = 0;
+
+function update(dt, dtReal){
+  // 鼠标速度（世界单位/秒）
+  mouse.vx = (mouse.wx - mouse.pwx) / Math.max(dtReal, 0.0001);
+  mouse.vy = (mouse.wy - mouse.pwy) / Math.max(dtReal, 0.0001);
+  mouse.pwx = mouse.wx;
+  mouse.pwy = mouse.wy;
+
+  if (mouse.inside){
+    mouse.idleTime += dtReal;
+  } else {
+    mouse.idleTime = 0;
+  }
+
+  // 空闲提示（元层）
+  idleTimer += dtReal;
+  if (!idleLine && idleTimer > 75 && phase === 'grow'){
+    idleLine = true;
+    showMemory(IDLE_LINE, 8000);
+  }
+  if (idleLine && idleTimer > 150){
+    idleLine = false;
+    idleTimer = 0;
+  }
+
+  if (phase === 'grow'){
+    t += dt;
+    updateParticles(dt);
+    const moved = relax();
+    if (moved > 60 && collapseSoundCooldown <= 0){
+      collapseSoundCooldown = 1.6;
+      playCollapseSound(clamp(moved / 900, 0.02, 0.12));
+    }
+    collapseSoundCooldown -= dtReal;
+
+    // 地层记录
+    if (t - lastStratumT > 7.5 && t > 3){
+      lastStratumT = t;
+      recordStratum();
+    }
+
+    // 痕迹老化
+    for (let i = marks.length - 1; i >= 0; i--){
+      const m = marks[i];
+      m.life -= dtReal * 0.012;
+      if (m.life <= 0) marks.splice(i, 1);
+    }
+
+    computeFill();
+
+    if (fillRatio > 0.93){
+      enterBury();
+    }
+  } else if (phase === 'bury'){
+    phaseT += dtReal;
+    t += dt * 0.35;
+    updateParticles(dt * 0.35);
+    relax();
+    buryAmount = Math.min(1, phaseT / 3.4);
+    if (phaseT > 4.2){
+      enterRead();
+    }
+  } else if (phase === 'read'){
+    phaseT += dtReal;
+    readTimer += dtReal;
+    t += dt * 0.25;
+    updateParticles(dt * 0.2);
+
+    if (readTimer > 1.9){
+      readTimer = 0;
+      if (readIndex >= 0){
+        const s = strata[readIndex];
+        if (s){
+          if (s.note) showMemory(s.note, 3800);
+        }
+        readIndex--;
+      } else {
+        enterReset();
+      }
+    }
+
+    // 逐步削去地层以上的尘埃
+    const targetArr = (readIndex >= 0 && strata[readIndex]) ? strata[readIndex].y : null;
+    if (targetArr){
+      for (let i = 0; i < N; i++){
+        const target = topY[i] - targetArr[i];
+        if (h[i] > target){
+          h[i] = Math.max(target, h[i] - 2.2 * dtReal * 12);
+        } else if (h[i] < target){
+          h[i] = Math.min(target, h[i] + 2.2 * dtReal * 12);
+        }
+      }
+    } else {
+      for (let i = 0; i < N; i++){
+        h[i] = Math.max(0, h[i] - 5.5 * dtReal * 12);
+      }
+    }
+    computeFill();
+  } else if (phase === 'reset'){
+    phaseT += dtReal;
+    for (let i = 0; i < N; i++){
+      h[i] = Math.max(0, h[i] - 8 * dtReal * 12);
+    }
+    relax();
+    computeFill();
+    if (phaseT > 2.4){
+      finishReset();
+    }
+  }
+
+  updateMoth(dtReal);
+  updateHUD();
+}
+
+function computeFill(){
+  let sumH = 0, sumCap = 0;
+  for (let i = 0; i < N; i++){
+    sumH += h[i];
+    sumCap += Math.max(1, topY[i] - CEIL);
+  }
+  fillRatio = sumCap > 0 ? clamp(sumH / sumCap, 0, 1) : 0;
+
+  let topSum = 0;
+  for (let i = 0; i < N; i++) topSum += topY[i] - h[i];
+  avgTop = topSum / N;
+}
+
+function updateParticles(dt){
+  if (dt <= 0) return;
+  const flowS = 1;
+  const timeOff = t * 0.06;
+
+  for (let i = particles.length - 1; i >= 0; i--){
+    const p = particles[i];
+
+    // 流场
+    const fx = fbm(p.x * 0.0042, p.y * 0.0042 + timeOff, 11, 2) - 0.5;
+    const fy = fbm(p.x * 0.0042 + 51.3, p.y * 0.0042 - timeOff, 733, 2) - 0.5;
+
+    p.vx += fx * 46 * dt;
+    p.vy += (fy * 26 + 34) * dt;
+
+    // 鼠标风
+    if (mouse.inside){
+      const dx = p.x - mouse.wx;
+      const dy = p.y - mouse.wy;
+      const d2 = dx * dx + dy * dy;
+      const R2 = 200 * 200;
+      if (d2 < R2){
+        const d = Math.sqrt(d2) + 0.001;
+        const f = (1 - d2 / R2);
+        const mv = Math.min(1400, Math.hypot(mouse.vx, mouse.vy));
+        const strength = (18 + mv * 0.09) * f;
+        p.vx += (dx / d) * strength * dt * 4;
+        p.vy += (dy / d) * strength * dt * 4;
+      }
+    }
+
+    // 阻尼
+    p.vx *= (1 - 1.35 * dt);
+    p.vy *= (1 - 0.9 * dt);
+
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+
+    // 边界
+    if (p.x < WALL_L + 2){ p.x = WALL_L + 2; p.vx = Math.abs(p.vx) * 0.4; }
+    if (p.x > WALL_R - 2){ p.x = WALL_R - 2; p.vx = -Math.abs(p.vx) * 0.4; }
+
+    // 落地
+    const col = clamp(Math.floor(p.x / COLW), 0, N - 1);
+    const surfY = topY[col] - h[col];
+    if (p.y >= surfY){
+      deposit(p.x, 7.0 * flowS * (0.6 + p.size * 0.5));
+      particles.splice(i, 1);
+      if (particles.length < MAX_PARTICLES) spawnParticle();
+      continue;
+    }
+
+    if (p.y < CEIL - 40) p.y = CEIL - 40;
+  }
+
+  // 保持粒子数量
+  let guard = 0;
+  while (particles.length < MAX_PARTICLES && guard < 20){
+    spawnParticle();
+    guard++;
+  }
+
+  // 光柱内标记（用于渲染）
+  for (let i = 0; i < particles.length; i++){
+    const p = particles[i];
+    p.lit = inLightBeam(p.x, p.y) ? 1 : 0;
+  }
+}
+
+/* ---------------------------------------------------------------- 光柱 */
+
+let lightDir = { x: 0.74, y: 0.67 };
+let lightOrigin = { x: 120, y: 150 };
+let lightLen = 1500;
+
+function updateLightFromObjects(){
+  const win = objects.find(o => o.kind === 'window');
+  if (win){
+    lightOrigin.x = (win.x0 + win.x1) * 0.5;
+    lightOrigin.y = (win.top + win.h) * 0.5;
+  }
+}
+
+function inLightBeam(x, y){
+  const dx = x - lightOrigin.x;
+  const dy = y - lightOrigin.y;
+  const proj = dx * lightDir.x + dy * lightDir.y;
+  if (proj < 0 || proj > lightLen * 0.85) return false;
+  const perp = Math.abs(dx * (-lightDir.y) + dy * lightDir.x);
+  const width = 70 + proj * 0.20;
+  return perp < width * 0.5;
+}
+
+/* ---------------------------------------------------------------- 飞蛾（隐藏层） */
+
+function updateMoth(dtReal){
+  // 触发：鼠标长时间静止在光柱中
+  if (!mothUnlocked && phase === 'grow' && mouse.inside && timeScale < 1.6){
+    if (mouse.idleTime > 11 && inLightBeam(mouse.wx, mouse.wy)){
+      mothTimer += dtReal;
+      if (mothTimer > 2.2){
+        mothUnlocked = true;
+        moth = {
+          t: 0,
+          phase: 'spiral',
+          x: lightOrigin.x,
+          y: lightOrigin.y,
+          a: Math.random() * Math.PI * 2,
+          r: 10,
+          timer: 0,
+          landed: false,
+          lx: 0, ly: 0
+        };
+        showMemory(MOTH_LINE, 11000);
+        playMothSound();
+        saveState();
+      }
+    } else {
+      mothTimer = Math.max(0, mothTimer - dtReal * 0.6);
+    }
+  }
+
+  if (!moth) return;
+
+  moth.t += dtReal;
+  moth.timer += dtReal;
+
+  if (moth.phase === 'spiral'){
+    moth.a += dtReal * 1.7;
+    moth.r = 14 + Math.sin(moth.t * 0.9) * 9;
+    const cx = lightOrigin.x + Math.sin(moth.t * 0.31) * 90;
+    const cy = lightOrigin.y + 130 + Math.cos(moth.t * 0.23) * 70;
+    moth.x = cx + Math.cos(moth.a) * moth.r;
+    moth.y = cy + Math.sin(moth.a) * moth.r * 0.62;
+
+    if (moth.timer > 13){
+      moth.phase = 'land';
+      moth.timer = 0;
+      const col = clamp(Math.floor(moth.x / COLW), 0, N - 1);
+      moth.lx = col * COLW + COLW * 0.5;
+      moth.ly = topY[col] - h[col] - 1.5;
+      // 留下一个小小的凹陷
+      h[col] = Math.max(0, h[col] - 1.6);
+    }
+  } else if (moth.phase === 'land'){
+    const k = Math.min(1, moth.timer / 2.4);
+    moth.x = lerp(moth.x, moth.lx, k * 0.14);
+    moth.y = lerp(moth.y, moth.ly, k * 0.14);
+    if (moth.timer > 7){
+      moth.phase = 'gone';
+      moth.timer = 0;
+      marks.push({ x: moth.lx, y: moth.ly, life: 1, kind: 'moth', col: 0, born: t });
+    }
+  } else if (moth.phase === 'gone'){
+    if (moth.timer > 1.5) moth = null;
+  }
+}
+
+/* ---------------------------------------------------------------- 渲染 */
+
+function render(){
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.fillStyle = '#0b0906';
+  ctx.fillRect(0, 0, CW, CH);
+
+  ctx.setTransform(DPR * SC, 0, 0, DPR * SC, DPR * OX, DPR * OY);
+
+  drawRoom();
+  drawObjects();
+  drawDust();
+  drawStrata();
+  drawMarks();
+  drawLightBeam();
+  drawParticles();
+  drawMoth();
+  drawVignette();
+  drawBuryOverlay();
+}
+
+function drawRoom(){
+  // 房间内部
+  const g = ctx.createLinearGradient(0, CEIL, 0, GROUND);
+  g.addColorStop(0, '#181310');
+  g.addColorStop(0.6, '#100d0a');
+  g.addColorStop(1, '#0c0a07');
+  ctx.fillStyle = g;
+  ctx.fillRect(WALL_L, CEIL, WALL_R - WALL_L, GROUND - CEIL);
+
+  // 墙体轮廓
+  ctx.strokeStyle = 'rgba(190,163,124,0.30)';
+  ctx.lineWidth = 1.4;
+  ctx.strokeRect(WALL_L + 0.5, CEIL + 0.5, WALL_R - WALL_L - 1, GROUND - CEIL - 1);
+
+  // 地板
+  ctx.fillStyle = '#080705';
+  ctx.fillRect(WALL_L, GROUND, WALL_R - WALL_L, H - GROUND);
+  ctx.strokeStyle = 'rgba(190,163,124,0.34)';
+  ctx.beginPath();
+  ctx.moveTo(WALL_L, GROUND + 0.5);
+  ctx.lineTo(WALL_R, GROUND + 0.5);
+  ctx.stroke();
+
+  // 地板纹理线
+  ctx.strokeStyle = 'rgba(190,163,124,0.07)';
+  ctx.lineWidth = 1;
+  for (let i = 1; i < 5; i++){
+    const y = GROUND + i * 8;
+    if (y > H) break;
+    ctx.beginPath();
+    ctx.moveTo(WALL_L, y);
+    ctx.lineTo(WALL_R, y);
+    ctx.stroke();
+  }
+
+  // 天花板暗示
+  ctx.strokeStyle = 'rgba(190,163,124,0.10)';
+  for (let i = 0; i < 14; i++){
+    const x = WALL_L + (i + 1) * (WALL_R - WALL_L) / 15;
+    ctx.beginPath();
+    ctx.moveTo(x, CEIL);
+    ctx.lineTo(x, CEIL + 5);
+    ctx.stroke();
+  }
+}
+
+function drawObjects(){
+  for (let k = 0; k < objects.length; k++){
+    const o = objects[k];
+
+    if (o.kind === 'window'){
+      // 窗：亮的矩形
+      const g = ctx.createLinearGradient(o.x0, o.top, o.x0, o.top + o.h);
+      g.addColorStop(0, 'rgba(255,226,170,0.55)');
+      g.addColorStop(0.5, 'rgba(255,214,150,0.36)');
+      g.addColorStop(1, 'rgba(255,205,140,0.20)');
+      ctx.fillStyle = g;
+      ctx.fillRect(o.x0, o.top, o.x1 - o.x0, o.h);
+
+      // 窗框
+      ctx.strokeStyle = 'rgba(210,180,135,0.6)';
+      ctx.lineWidth = 1.6;
+      ctx.strokeRect(o.x0 + 0.5, o.top + 0.5, (o.x1 - o.x0) - 1, o.h - 1);
+      ctx.beginPath();
+      ctx.moveTo((o.x0 + o.x1) * 0.5, o.top);
+      ctx.lineTo((o.x0 + o.x1) * 0.5, o.top + o.h);
+      ctx.moveTo(o.x0, o.top + o.h * 0.42);
+      ctx.lineTo(o.x1, o.top + o.h * 0.42);
+      ctx.stroke();
+      continue;
+    }
+
+    if (o.thin){
+      // 薄板：桌面、座面、窗台
+      ctx.fillStyle = '#171208';
+      ctx.fillRect(o.x0, o.top, o.x1 - o.x0, o.thick);
+      ctx.strokeStyle = 'rgba(195,168,130,0.46)';
+      ctx.lineWidth = 1.2;
+      ctx.strokeRect(o.x0 + 0.5, o.top + 0.5, (o.x1 - o.x0) - 1, o.thick - 1);
+
+      // 腿
+      ctx.strokeStyle = 'rgba(195,168,130,0.26)';
+      ctx.lineWidth = 1.1;
+      if (o.kind === 'table'){
+        ctx.beginPath();
+        ctx.moveTo(o.x0 + 12, o.top + o.thick);
+        ctx.lineTo(o.x0 + 12, GROUND);
+        ctx.moveTo(o.x1 - 12, o.top + o.thick);
+        ctx.lineTo(o.x1 - 12, GROUND);
+        ctx.stroke();
+      } else if (o.kind === 'chair'){
+        ctx.beginPath();
+        ctx.moveTo(o.x0 + 10, o.top + o.thick);
+        ctx.lineTo(o.x0 + 10, GROUND);
+        ctx.moveTo(o.x1 - 10, o.top + o.thick);
+        ctx.lineTo(o.x1 - 10, GROUND);
+        ctx.stroke();
+      }
+      continue;
+    }
+
+    // 实心物体
+    const g = ctx.createLinearGradient(0, o.top, 0, GROUND);
+    g.addColorStop(0, '#1a1410');
+    g.addColorStop(1, '#0d0a07');
+    ctx.fillStyle = g;
+    ctx.fillRect(o.x0, o.top, o.x1 - o.x0, GROUND - o.top);
+    ctx.strokeStyle = 'rgba(195,168,130,0.40)';
+    ctx.lineWidth = 1.2;
+    ctx.strokeRect(o.x0 + 0.5, o.top + 0.5, (o.x1 - o.x0) - 1, (GROUND - o.top) - 1);
+
+    // 书架的横向隔板
+    if (o.kind === 'shelf'){
+      ctx.strokeStyle = 'rgba(195,168,130,0.16)';
+      ctx.lineWidth = 1;
+      const span = GROUND - o.top;
+      const rows = 3;
+      for (let r = 1; r < rows; r++){
+        const y = o.top + span * (r / rows);
+        ctx.beginPath();
+        ctx.moveTo(o.x0 + 3, y);
+        ctx.lineTo(o.x1 - 3, y);
+        ctx.stroke();
+      }
+      // 书脊暗示
+      ctx.fillStyle = 'rgba(195,168,130,0.12)';
+      const seedR = mulberry32(seedNum + 77);
+      for (let r = 0; r < rows; r++){
+        let x = o.x0 + 6;
+        const y0 = o.top + span * (r / rows) + 4;
+        const y1 = o.top + span * ((r + 1) / rows) - 4;
+        while (x < o.x1 - 10){
+          const bw = 4 + seedR() * 7;
+          if (x + bw > o.x1 - 6) break;
+          ctx.fillRect(x, y0, bw - 1, y1 - y0);
+          x += bw + 1.5;
+        }
+      }
+    }
+  }
+}
+
+function drawDust(){
+  for (let i = 0; i < N; i++){
+    const hh = h[i];
+    if (hh < 0.5) continue;
+
+    const yBot = topY[i];
+    const yTop = yBot - hh;
+    const x = i * COLW;
+    const total = yBot - yTop;
+
+    const segs = total < 6 ? 1 : (total < 26 ? 2 : (total < 70 ? 3 : (total < 140 ? 4 : 5)));
+    const sh = total / segs;
+
+    for (let s = 0; s < segs; s++){
+      const yy = yTop + s * sh;
+      const idx = Math.min(4, Math.floor((s / segs) * 5));
+      ctx.fillStyle = DUST_COLORS[idx];
+      ctx.fillRect(x, yy, COLW + 0.7, sh + 0.7);
+    }
+
+    // 最深处的暗色
+    if (total > 4){
+      ctx.fillStyle = 'rgba(30,24,16,0.45)';
+      ctx.fillRect(x, yBot - Math.min(5, total * 0.35), COLW + 0.7, Math.min(5, total * 0.35));
+    }
+  }
+
+  // 尘埃表面的高光（被光照到的顶面）
+  ctx.strokeStyle = 'rgba(240,214,164,0.22)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  let started = false;
+  for (let i = 0; i < N; i += 2){
+    if (h[i] < 0.5){ started = false; continue; }
+    const x = i * COLW;
+    const y = topY[i] - h[i];
+    if (!started){ ctx.moveTo(x, y); started = true; }
+    else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+}
+
+function drawStrata(){
+  const show = Math.min(strata.length, 20);
+  if (show === 0) return;
+
+  const start = strata.length - show;
+  for (let k = start; k < strata.length; k++){
+    const s = strata[k];
+    const arr = s.y;
+    const age = (k - start) / Math.max(1, show - 1);
+    const alpha = 0.035 + age * 0.115;
+
+    ctx.beginPath();
+    let started = false;
+    for (let i = 0; i < N; i += 4){
+      const y = arr[i];
+      if (!isFinite(y)) continue;
+      const x = i * COLW;
+      if (!started){ ctx.moveTo(x, y); started = true; }
+      else ctx.lineTo(x, y);
+    }
+    ctx.strokeStyle = 'rgba(238,210,158,' + alpha.toFixed(3) + ')';
+    ctx.lineWidth = 0.85;
+    ctx.stroke();
+  }
+}
+
+function drawMarks(){
+  for (let i = 0; i < marks.length; i++){
+    const m = marks[i];
+    const a = clamp(m.life, 0, 1);
+    if (m.kind === 'memory'){
+      const r = 2.4 + Math.sin(t * 1.4 + i) * 0.7;
+      ctx.beginPath();
+      ctx.arc(m.x, m.y, r, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,222,168,' + (a * 0.5).toFixed(3) + ')';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(m.x, m.y, r * 3.4, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,210,150,' + (a * 0.06).toFixed(3) + ')';
+      ctx.fill();
+    } else if (m.kind === 'moth'){
+      ctx.beginPath();
+      ctx.arc(m.x, m.y, 1.6, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(230,205,160,' + (a * 0.55).toFixed(3) + ')';
+      ctx.fill();
+    } else {
+      ctx.beginPath();
+      ctx.arc(m.x, m.y, 1.1, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(200,170,120,' + (a * 0.22).toFixed(3) + ')';
+      ctx.fill();
+    }
+  }
+}
+
+function drawLightBeam(){
+  const win = objects.find(o => o.kind === 'window');
+  if (!win) return;
+
+  const x0 = win.x0, x1 = win.x1;
+  const y0 = win.top, y1 = win.top + win.h;
+
+  const L = 1450;
+  const dx = lightDir.x * L, dy = lightDir.y * L;
+
+  const spread = 0.19;
+
+  const ax = x0, ay = y0;
+  const bx = x1, by = y1;
+
+  const a2x = ax + dx + dx * spread * 0.5;
+  const a2y = ay + dy - dy * spread * 0.5;
+  const b2x = bx + dx - dx * spread * 0.5;
+  const b2y = by + dy + dy * spread * 0.5;
+
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+
+  const flick = REDUCE ? 1 : (0.92 + Math.sin(t * 0.7) * 0.04 + Math.sin(t * 2.3) * 0.02);
+
+  const g = ctx.createLinearGradient(x0, y0, x0 + dx * 0.8, y0 + dy * 0.8);
+  g.addColorStop(0, 'rgba(255,224,166,' + (0.15 * flick).toFixed(3) + ')');
+  g.addColorStop(0.35, 'rgba(255,216,150,' + (0.075 * flick).toFixed(3) + ')');
+  g.addColorStop(0.72, 'rgba(255,206,138,' + (0.028 * flick).toFixed(3) + ')');
+  g.addColorStop(1, 'rgba(255,200,130,0)');
+
+  ctx.beginPath();
+  ctx.moveTo(ax, ay);
+  ctx.lineTo(bx, by);
+  ctx.lineTo(b2x, b2y);
+  ctx.lineTo(a2x, a2y);
+  ctx.closePath();
+  ctx.fillStyle = g;
+  ctx.fill();
+
+  // 光柱中心更亮的一条
+  const g2 = ctx.createLinearGradient(x0, y0, x0 + dx * 0.55, y0 + dy * 0.55);
+  g2.addColorStop(0, 'rgba(255,236,196,' + (0.10 * flick).toFixed(3) + ')');
+  g2.addColorStop(1, 'rgba(255,220,160,0)');
+  ctx.beginPath();
+  const cx0 = (ax + bx) * 0.5, cy0 = (ay + by) * 0.5;
+  const cx1 = cx0 + dx * 0.55, cy1 = cy0 + dy * 0.55;
+  const pw = 26;
+  ctx.moveTo(cx0 - pw, cy0);
+  ctx.lineTo(cx0 + pw, cy0);
+  ctx.lineTo(cx1 + pw * 3.6, cy1);
+  ctx.lineTo(cx1 - pw * 3.6, cy1);
+  ctx.closePath();
+  ctx.fillStyle = g2;
+  ctx.fill();
+
+  // 地面上的光斑
+  ctx.beginPath();
+  const spillX = x0 + dx * 0.62;
+  const spillY = Math.min(GROUND, y0 + dy * 0.62);
+  const ell = ctx.createRadialGradient(spillX, spillY, 0, spillX, spillY, 190);
+  ell.addColorStop(0, 'rgba(255,222,165,' + (0.075 * flick).toFixed(3) + ')');
+  ell.addColorStop(1, 'rgba(255,215,150,0)');
+  ctx.fillStyle = ell;
+  ctx.beginPath();
+  ctx.ellipse(spillX, spillY - 6, 200, 56, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function drawParticles(){
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < particles.length; i++){
+    const p = particles[i];
+    const lit = p.lit;
+    const a = lit ? 0.55 : 0.16;
+    const s = lit ? p.size * 1.35 : p.size * 0.8;
+
+    if (lit){
+      ctx.fillStyle = 'rgba(255,232,182,' + a.toFixed(3) + ')';
+    } else {
+      ctx.fillStyle = 'rgba(196,166,118,' + a.toFixed(3) + ')';
+    }
+    ctx.fillRect(p.x - s * 0.5, p.y - s * 0.5, s, s);
+
+    if (lit && s > 1.3){
+      ctx.fillStyle = 'rgba(255,220,160,0.06)';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, s * 3.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  ctx.restore();
+}
+
+function drawMoth(){
+  if (!moth) return;
+  const fade = moth.phase === 'gone' ? clamp(1 - moth.timer / 1.5, 0, 1) : 1;
+  if (fade <= 0) return;
+
+  const flap = moth.phase === 'land'
+    ? Math.max(0.12, 0.5 + Math.sin(moth.t * 6) * 0.12)
+    : Math.abs(Math.sin(moth.t * 11)) * 0.9 + 0.1;
+
+  const x = moth.x, y = moth.y;
+  const sc = moth.phase === 'land' ? 0.85 : 1.0;
+  const ang = moth.phase === 'spiral' ? Math.sin(moth.t * 1.7) * 0.35 : 0;
+
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(ang);
+  ctx.scale(sc, sc);
+  ctx.globalAlpha = fade;
+
+  ctx.globalCompositeOperation = 'lighter';
+
+  const wingA = 0.5 + flap * 0.5;
+
+  // 翅膀
+  ctx.fillStyle = 'rgba(214,190,148,0.42)';
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.quadraticCurveTo(-7 * wingA, -6 * wingA, -9.5 * wingA, 0.6);
+  ctx.quadraticCurveTo(-6 * wingA, 3.4, 0, 1.8);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.quadraticCurveTo(7 * wingA, -6 * wingA, 9.5 * wingA, 0.6);
+  ctx.quadraticCurveTo(6 * wingA, 3.4, 0, 1.8);
+  ctx.closePath();
+  ctx.fill();
+
+  // 身体
+  ctx.fillStyle = 'rgba(240,220,180,0.75)';
+  ctx.beginPath();
+  ctx.ellipse(0, 1.2, 1.15, 3.4, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 触角
+  ctx.strokeStyle = 'rgba(240,220,180,0.5)';
+  ctx.lineWidth = 0.6;
+  ctx.beginPath();
+  ctx.moveTo(-0.6, -2.2);
+  ctx.quadraticCurveTo(-3.4, -5.2, -4.6, -6.4);
+  ctx.moveTo(0.6, -2.2);
+  ctx.quadraticCurveTo(3.4, -5.2, 4.6, -6.4);
+  ctx.stroke();
+
+  // 微光
+  ctx.fillStyle = 'rgba(255,225,170,0.055)';
+  ctx.beginPath();
+  ctx.arc(0, 0, 20, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function drawVignette(){
+  const g = ctx.createRadialGradient(W * 0.5, H * 0.46, H * 0.22, W * 0.5, H * 0.5, H * 0.96);
+  g.addColorStop(0, 'rgba(0,0,0,0)');
+  g.addColorStop(0.62, 'rgba(0,0,0,0.28)');
+  g.addColorStop(1, 'rgba(0,0,0,0.82)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+}
+
+function drawBuryOverlay(){
+  if (phase === 'bury' && buryAmount > 0){
+    ctx.fillStyle = 'rgba(6,5,3,' + (buryAmount * 0.55).toFixed(3) + ')';
+    ctx.fillRect(0, 0, W, H);
+  } else if (phase === 'read'){
+    ctx.fillStyle = 'rgba(6,5,3,0.22)';
+    ctx.fillRect(0, 0, W, H);
+  } else if (phase === 'reset'){
+    const a = clamp(1 - phaseT / 2.0, 0, 1);
+    ctx.fillStyle = 'rgba(6,5,3,' + (a * 0.5).toFixed(3) + ')';
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  // 暂停时的暗化
+  if (paused && phase === 'grow'){
+    ctx.fillStyle = 'rgba(6,5,3,0.30)';
+    ctx.fillRect(0, 0, W, H);
+  }
+}
+
+/* ---------------------------------------------------------------- HUD */
+
+const elMem = document.getElementById('mem');
+let memTimeout = null;
+
+function showMemory(text, dur){
+  if (!text) return;
+  elMem.textContent = text;
+  elMem.classList.remove('show');
+  void elMem.offsetWidth;
+  elMem.classList.add('show');
+  if (memTimeout) clearTimeout(memTimeout);
+  memTimeout = setTimeout(() => {
+    elMem.classList.remove('show');
+  }, dur || 6000);
+}
+
+const elCycle = document.getElementById('s-cycle');
+const elAge = document.getElementById('s-age');
+const elFill = document.getElementById('s-fill');
+const elBar = document.getElementById('s-bar');
+const elStamp = document.getElementById('stamp');
+
+const ROMAN = ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII','XIV','XV','XVI','XVII','XVIII','XIX','XX'];
+
+function updateHUD(){
+  elCycle.textContent = ROMAN[cycle % ROMAN.length] || ('#' + (cycle + 1));
+  elAge.textContent = Math.floor(t) + 's';
+  const pct = Math.round(fillRatio * 100);
+  elFill.textContent = pct + '%';
+  elBar.style.width = pct + '%';
+
+  if (paused){
+    elStamp.textContent = '屏 息 中';
+  } else if (timeScale > 1.35){
+    elStamp.textContent = '时间 × ' + timeScale.toFixed(1);
+  } else if (timeScale < 0.55){
+    elStamp.textContent = '时间 × ' + timeScale.toFixed(2);
+  } else {
+    elStamp.textContent = '';
+  }
+}
+
+/* ---------------------------------------------------------------- 面板 */
+
+const panel = document.getElementById('panel');
+const btnPanel = document.getElementById('btn-panel');
+const btnReseed = document.getElementById('btn-reseed');
+const seedInput = document.getElementById('seed');
+
+btnPanel.addEventListener('click', () => {
+  panel.classList.toggle('open');
+});
+
+document.addEventListener('pointerdown', (e) => {
+  if (!panel.classList.contains('open')) return;
+  if (panel.contains(e.target) || btnPanel.contains(e.target)) return;
+  panel.classList.remove('open');
+}, { passive: true });
+
+btnReseed.addEventListener('click', () => {
+  finishReset();
+});
+
+seedInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter'){
+    e.preventDefault();
+    applySeed(seedInput.value.trim() || 'dust');
+    seedInput.blur();
+  }
+  e.stopPropagation();
+});
+
+seedInput.addEventListener('change', () => {
+  applySeed(seedInput.value.trim() || 'dust');
+});
+
+function applySeed(s){
+  seedStr = s;
+  seedNum = hashStr(s);
+  try { localStorage.setItem('dust_seed', s); } catch(e){}
+  buildRoom();
+  buildMemoryPool();
+  updateLightFromObjects();
+  h.fill(0);
+  strata.length = 0;
+  marks.length = 0;
+  t = 0;
+  cycle = 0;
+  phase = 'grow';
+  phaseT = 0;
+  buryAmount = 0;
+  clearEpoch();
+  initParticles();
+  lastStratumT = -999;
+  memIndex = 0;
+  mothUnlocked = false;
+  moth = null;
+  mothTimer = 0;
+  idleTimer = 0;
+  idleLine = false;
+  computeFill();
+  updateHUD();
+  showMemory('「' + s + '」', 3200);
+  playMemoryTone(0);
+}
+
+/* ---------------------------------------------------------------- 存档 */
+
+function saveState(){
+  try {
+    localStorage.setItem('dust_state', JSON.stringify({
+      seed: seedStr,
+      cycle: cycle,
+      moth: mothUnlocked
+    }));
+  } catch(e){}
+}
+
+function loadState(){
+  try {
+    const raw = localStorage.getItem('dust_state');
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch(e){
+    return null;
+  }
+}
+
+/* ---------------------------------------------------------------- 启动 */
+
+const boot = document.getElementById('boot');
+
+let started = false;
+
+function start(){
+  if (started) return;
+  started = true;
+  boot.classList.add('gone');
+  initAudio();
+  resumeAudio();
+  setTimeout(() => {
+    showMemory('屋子醒了。它不记得自己是什么时候睡着的。', 7000);
+  }, 1600);
+}
+
+boot.addEventListener('click', start);
+boot.addEventListener('pointerdown', start, { passive: true });
+window.addEventListener('keydown', function once(e){
+  if (!started){
+    start();
+  }
+  window.removeEventListener('keydown', once);
+}, { passive: true });
+
+// 首次交互恢复音频
+window.addEventListener('pointerdown', () => { resumeAudio(); }, { passive: true });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) suspendAudio();
+  else resumeAudio();
+}, { passive: true });
+
+/* ---------------------------------------------------------------- 初始化 */
+
+function boot0(){
+  resize();
+
+  const saved = loadState();
+  let initialSeed = 'dust';
+  try {
+    const ls = localStorage.getItem('dust_seed');
+    if (ls) initialSeed = ls;
+  } catch(e){}
+
+  if (saved && saved.seed) initialSeed = saved.seed;
+
+  seedStr = initialSeed;
+  seedNum = hashStr(seedStr);
+  seedInput.value = seedStr;
+
+  if (saved && typeof saved.cycle === 'number') cycle = saved.cycle;
+  if (saved && saved.moth) mothUnlocked = true;
+
+  buildRoom();
+  buildMemoryPool();
+  updateLightFromObjects();
+
+  h.fill(0);
+  strata.length = 0;
+  marks.length = 0;
+
+  initParticles();
+
+  // 初始：先落一点点灰，让第一屏就有东西可看
+  for (let i = 0; i < N; i++){
+    h[i] = 0.4 + vnoise(i * 0.08, 0, seedNum & 0xffff) * 1.4;
+  }
+  computeFill();
+  updateHUD();
+
+  // 移动端首屏提示
+  if ('ontouchstart' in window){
+    document.getElementById('subtitle').textContent = '一间被剖开的屋子，正在学习如何被掩埋。';
+  }
+
+  resize();
+}
+
+let lastTime = performance.now();
+
+function frame(now){
+  const dtRealRaw = (now - lastTime) / 1000;
+  lastTime = now;
+  const dtReal = Math.min(0.05, Math.max(0.0001, dtRealRaw));
+
+  let dt = dtReal * timeScale;
+  if (paused && phase === 'grow') dt = 0;
+
+  update(dt, dtReal);
+  render();
+
+  requestAnimationFrame(frame);
+}
+
+boot0();
+requestAnimationFrame((now) => {
+  lastTime = now;
+  requestAnimationFrame(frame);
+});
+
+// 每 8 秒自动存档
+setInterval(() => { saveState(); }, 8000);
+
+// 页面隐藏时存档
+window.addEventListener('pagehide', saveState, { passive: true });
+window.addEventListener('beforeunload', saveState, { passive: true });
+
+</script>
+</body>
+</html>
