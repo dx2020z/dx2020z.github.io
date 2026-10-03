@@ -1,0 +1,58 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { poems } from '../../data/poems';
+import { withBase } from '../../lib/paths.mjs';
+export function getStaticPaths() {
+  return Object.entries(poems).map(([slug, poem]) => ({ params: { slug }, props: { poem } }));
+}
+const { poem } = Astro.props;
+const path = (href: string) => withBase(href, import.meta.env.BASE_URL);
+---
+<Layout title={`${poem.title} · 段骁的诗`} description={`段骁的诗《${poem.title}》，${poem.date}。`} immersive>
+  <article class="poem-film" data-poem-film aria-label={`《${poem.title}》影像`}>
+    <a class="poem-back" href={path('/spaces/life/')} aria-label="回到生活里的我">← 回到生活</a>
+    {poem.video ? <>
+      <video class="poem-film-video" data-poem-video data-src={path(poem.video)} poster={poem.poster ? path(poem.poster) : undefined} muted playsinline loop controls preload="none" aria-label={`播放《${poem.title}》原视频`}></video>
+      {poem.poster && <img class="poem-film-poster" src={path(poem.poster)} alt={`《${poem.title}》视频封面`} width="960" height="540" />}
+      <button class="poem-sound" type="button" data-poem-sound aria-pressed="false" aria-label="开启视频声音">开启声音</button>
+      <span class="poem-ai-credit">影像由 AI 生成</span>
+      <noscript><p class="poem-no-script"><a href={path(poem.video)}>打开原视频 →</a></p></noscript>
+    </> : <div class="poem-film-missing"><span class="eyebrow">POEM / {poem.date}</span><h1>{poem.title}</h1><p>视频待提供</p></div>}
+  </article>
+</Layout>
+<script>
+  const viewer = document.querySelector<HTMLElement>('[data-poem-film]');
+  const video = viewer?.querySelector<HTMLVideoElement>('[data-poem-video]');
+  const sound = viewer?.querySelector<HTMLButtonElement>('[data-poem-sound]');
+  const back = viewer?.querySelector<HTMLAnchorElement>('.poem-back');
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const syncSound = () => {
+    if (!sound || !video) return;
+    const audible = !video.muted && video.volume > 0;
+    sound.setAttribute('aria-pressed', String(audible));
+    sound.setAttribute('aria-label', audible ? '关闭视频声音' : '开启视频声音');
+    sound.textContent = audible ? '关闭声音' : '开启声音';
+  };
+  const updatePlayback = () => {
+    if (!video) return;
+    if (reducedMotion.matches) {
+      video.pause();
+    } else {
+      if (!video.getAttribute('src') && video.dataset.src) video.src = video.dataset.src;
+      video.play().catch(() => { /* 原生播放控件可手动开始。 */ });
+    }
+  };
+  updatePlayback();
+  reducedMotion.addEventListener('change', updatePlayback);
+  video?.addEventListener('volumechange', syncSound);
+  sound?.addEventListener('click', () => {
+    if (!video || reducedMotion.matches) return;
+    video.muted = !video.muted;
+    if (!video.muted && video.volume === 0) video.volume = 1;
+    syncSound();
+    if (video.paused) video.play().catch(() => {});
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && back) location.href = back.href;
+  });
+</script>

@@ -7,11 +7,12 @@ status: "完成"
 desc: "六张由代码生长的图版。山、星、纹理与枝条，在蓝色的纸面上留下轨迹。"
 tags: ["生成艺术","视觉","图谱"]
 year: 2026
-featured: 1
 credit: "AI 辅助创作"
 availability: "待核验"
 preview: true
 cover: "/covers/cyanotype.webp"
+featured: false
+order: 131
 ---
 
 ## 从规则里，长出画面

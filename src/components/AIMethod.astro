@@ -1,0 +1,23 @@
+---
+import RoleLegend from './RoleLegend.astro';
+import RoleTag from './RoleTag.astro';
+import { withBase } from '../lib/paths.mjs';
+const path = (href: string) => withBase(href, import.meta.env.BASE_URL);
+const principles = [
+  { kind: 'both' as const, title: 'AI 先交收件箱，由规则和我决定什么进入正式记录。', text: '事实库把采集与校验分开；项目档案让 AI 写事实，把我的备注和讲述留给我。', links: [{ title: '事实库 · 决策 1', href: '/cases/project-01/#decision-1' }, { title: '项目档案 · 决策 1', href: '/cases/project-02/#decision-1' }] },
+  { kind: 'me' as const, title: '三道质检：另一个 AI 当质检员、机器核验、我随机抽检。', text: '这是我的质检方法。AI 的自评不能代替核验，也不意味着某个系统已经实现了全部三道质检。', links: [{ title: '事实库 · 我学到的', href: '/cases/project-01/#learning' }] },
+  { kind: 'me' as const, title: '先轻后重：先让系统持续产生价值，再追求精度。', text: '存疑数据带标记入库，“现状”字段可以不填，内容工厂先服务个人使用。先让流程用起来，再根据需要增加约束。', links: [{ title: '事实库 · 决策 4', href: '/cases/project-01/#decision-4' }, { title: '项目档案 · 决策 2', href: '/cases/project-02/#decision-2' }, { title: '内容工厂 · 决策 1', href: '/cases/project-03/#decision-1' }] },
+  { kind: 'both' as const, title: '用真实运行找问题，而不是事先想象。', text: '事实库首跑核验率从 33% 修正到 85%，问题在脚本误伤短新闻；项目档案第一次真实投递，让我看见“少写最安全”的副作用。', links: [{ title: '事实库 · 真实运行', href: '/cases/project-01/#iterations' }, { title: '项目档案 · 第一次投递', href: '/cases/project-02/#decision-4' }] },
+  { kind: 'me' as const, title: '敢于否决 AI 的方案。', text: '不要月报，让判断留在自己手里；不绕开原有技能，因为新会话仍然需要它来理解任务。', links: [{ title: '事实库 · 决策 2', href: '/cases/project-01/#decision-2' }, { title: '事实库 · 决策 3', href: '/cases/project-01/#decision-3' }] },
+];
+---
+<section class="ai-method-layout" aria-labelledby="space-title">
+  <RoleLegend prefix="ai-method-legend" />
+  <header class="space-heading"><span class="eyebrow">L4 / HUMAN × AI</span><h1 id="space-title">我和 AI<span>。</span></h1><p>五条原则，来自三个真实系统的取舍与运行。</p></header>
+  <ol class="ai-principles">{principles.map((principle, index) => <li><span class="principle-number">0{index + 1}</span><article><RoleTag kind={principle.kind} id={'ai-principle-' + (index + 1) + '-role'} /><h2>{principle.title}</h2><p>{principle.text}</p><div class="principle-evidence"><span>你看</span>{principle.links.map(link => <a href={path(link.href)}>{link.title} <span aria-hidden="true">↗</span></a>)}</div></article></li>)}</ol>
+  <p class="ai-method-closing">AI 帮我找灵感、做执行；判断和写作，留给我自己。</p>
+</section>
+<style>
+  .ai-principles{list-style:none;margin:0;padding:0}.ai-principles>li{display:grid;grid-template-columns:75px minmax(0,1fr);gap:24px;padding:38px 0;border-top:1px solid var(--line)}.principle-number{font:14px var(--display);color:var(--accent);padding-top:7px}.ai-principles h2{font:500 clamp(21px,2.5vw,30px)/1.65 var(--serif);max-width:760px;margin:16px 0 12px}.ai-principles p{color:var(--muted);max-width:740px;font-size:15px;line-height:1.95}.principle-evidence{display:flex;flex-wrap:wrap;align-items:center;gap:6px 20px;margin-top:17px;font-size:12px}.principle-evidence>span{color:var(--muted)}.principle-evidence a{color:var(--accent);min-height:44px;display:inline-flex;align-items:center;gap:8px;text-decoration:underline;text-underline-offset:5px}.ai-method-closing{font:clamp(22px,3vw,32px)/1.8 var(--serif);padding:35px 0;border-top:1px solid var(--line);max-width:800px}
+  @media(max-width:640px){.ai-principles>li{grid-template-columns:30px minmax(0,1fr);gap:14px;padding:27px 0}.ai-principles p{font-size:14px}.principle-evidence{gap:4px 12px}}
+</style>

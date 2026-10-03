@@ -1,0 +1,23 @@
+---
+interface Props { kind: 'me' | 'ai' | 'both'; id: string }
+const { kind, id } = Astro.props;
+const roles = {
+  me: { label: '我提出', explanation: '需求、方向、取舍或否决由我提出' },
+  ai: { label: 'AI 实现', explanation: '由 AI 编写或执行' },
+  both: { label: '共同', explanation: '讨论后形成' },
+};
+const role = roles[kind];
+---
+<span class:list={['role-tag', 'role-tag-' + kind]} tabindex="0" aria-describedby={id}>
+  {role.label}<span class="role-tooltip" id={id} role="tooltip">{role.explanation}</span>
+</span>
+<style>
+  .role-tag{position:relative;display:inline-flex;align-items:center;min-height:30px;padding:4px 10px;border:1px solid var(--accent);border-radius:4px;font:600 12px/1.5 var(--body);white-space:nowrap;cursor:help}
+  .role-tag-me{background:var(--accent);color:#0b0d10}.role-tag-ai{color:var(--accent);background:transparent}.role-tag-both{border-style:dashed;color:var(--accent);background:rgba(50,187,230,.1)}
+  .role-tag:focus-visible{outline:2px solid var(--text);outline-offset:4px}
+  :global([data-theme=light]) .role-tag-me,:global([data-theme=resume]) .role-tag-me{color:white}
+  .role-tooltip{position:absolute;z-index:20;top:calc(100% + 8px);left:0;width:210px;padding:10px 12px;border:1px solid #53697b;border-radius:4px;background:#16324f;color:#eef7fc;white-space:normal;font:400 12px/1.7 var(--body);box-shadow:0 8px 24px #0005;visibility:hidden;opacity:0;pointer-events:none}
+  .role-tag:hover .role-tooltip,.role-tag:focus .role-tooltip{visibility:visible;opacity:1}
+  @media(max-width:480px){.role-tooltip{width:170px}}
+  @media print{.role-tooltip{display:none}}
+</style>

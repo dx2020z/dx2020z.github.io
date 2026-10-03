@@ -7,10 +7,11 @@ status: "完成"
 desc: "用舞台化的交互，把智能体辩论、提示词进化与模型文明的想象串在一起。"
 tags: ["AI","辩论","演示"]
 year: 2026
-featured: 0
 credit: "AI 辅助创作"
 availability: "待核验"
 preview: true
+featured: false
+order: 117
 ---
 
 ## 把模型的想象搬上舞台

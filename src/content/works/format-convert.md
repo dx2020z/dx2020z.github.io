@@ -10,6 +10,8 @@ year: 2026
 url: "https://t24bxo6mw5gxm.ok.kimi.link/about.html"
 credit: "Kimi 辅助生成"
 availability: "待核验"
+featured: false
+order: 110
 ---
 
 ## 这件作品

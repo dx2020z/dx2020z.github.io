@@ -2,9 +2,11 @@
 import { getCollection } from 'astro:content';
 import Layout from '../../layouts/Layout.astro';
 import WorkGrid from '../../components/WorkGrid.astro';
-const works = (await getCollection('works')).sort((a,b) => (a.data.featured || 99) - (b.data.featured || 99) || a.data.slug.localeCompare(b.data.slug));
+const allWorks = await getCollection('works');
+const orderedWorks = allWorks.sort((a,b) => a.data.order - b.data.order || a.data.title.localeCompare(b.data.title, 'zh-CN'));
+const featuredCount = orderedWorks.filter(work => work.data.featured).length;
 ---
-<Layout title="作品 · 段骁" description="段骁的工具、视觉、交互实验与文字创作。浏览完整作品，打开你感兴趣的一个。">
-  <header class="page-intro"><span class="eyebrow">THE WORK INDEX / 持续更新</span><h1>想过，也做过。</h1><p>一些把问题变成工具的尝试，一些把好奇心变成画面的实验。<br/>完成的和还在探索的，都如实留在这里。</p></header>
-  <WorkGrid works={works} />
+<Layout title="作品 · 段骁" description="段骁的 HTML 作品、工具、视觉、交互实验与文字创作。">
+  <header class="page-intro"><span class="eyebrow">THE WORK INDEX / {allWorks.length} ITEMS</span><h1>想过，也做过。</h1><p>先看精选作品；展开后可以浏览全部 {allWorks.length} 件，并按类型筛选。</p></header>
+  <section class="works-tier" aria-labelledby="complete-title"><header><span class="eyebrow">01 / SELECTED WORKS</span><h2 id="complete-title">精选作品 <small>{featuredCount}</small></h2><p>每件作品都保留完成状态与打开方式。</p></header><WorkGrid works={orderedWorks} /></section>
 </Layout>

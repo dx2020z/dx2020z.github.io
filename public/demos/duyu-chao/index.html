@@ -1,0 +1,1311 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>蠹鱼抄</title>
+<style>
+:root{
+  --paper:#e9dcbf;
+  --paper2:#d9c9a6;
+  --ink:#2b2118;
+  --zhu:#a3311d;
+  --desk:#17110c;
+  --mold:#6f7b52;
+  --dim:#a8977a;
+  --serif:"Songti SC","STSong","Noto Serif CJK SC","Source Han Serif SC","SimSun","Songti TC",serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--desk);overflow:hidden;color:var(--paper);font-family:var(--serif);-webkit-tap-highlight-color:transparent}
+canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:crosshair}
+header#top{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-end;gap:10px 16px;flex-wrap:wrap;padding:calc(env(safe-area-inset-top,0px) + 12px) max(4vw,14px) 6px;pointer-events:none;z-index:3}
+header#top>*{pointer-events:auto}
+#titleBox{min-width:0}
+h1{margin:0;font-size:clamp(24px,4vw,42px);letter-spacing:.32em;font-weight:700;color:var(--paper);line-height:1.05;display:flex;align-items:center;gap:.25em}
+h1 .seal{display:inline-flex;align-items:center;justify-content:center;font-size:.34em;letter-spacing:0;line-height:1;writing-mode:vertical-rl;background:var(--zhu);color:#f1e2c4;padding:.35em .22em;border-radius:2px;font-weight:600;box-shadow:inset 0 0 0 2px rgba(241,226,196,.25)}
+h1.found::after{content:"羽";font-size:.3em;letter-spacing:0;border:1px solid var(--zhu);color:var(--zhu);padding:.2em .3em;border-radius:50%;margin-left:.2em}
+.sub{margin:4px 0 0;font-size:clamp(12px,1.35vw,15px);color:var(--dim);letter-spacing:.22em}
+#ctrl{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+#ctrl label{font-size:13px;color:var(--dim);letter-spacing:.1em}
+#seed{background:transparent;border:0;border-bottom:1px solid #6b5a44;color:var(--paper);font:inherit;font-size:14px;width:9.5em;padding:5px 2px;border-radius:0}
+#seed:focus{outline:none;border-bottom-color:var(--zhu)}
+button{background:transparent;color:var(--paper);border:1px solid #5a4a36;font:inherit;font-size:14px;padding:5px 10px;cursor:pointer;letter-spacing:.14em;border-radius:1px;transition:border-color .2s,color .2s,background .2s}
+button:hover,button:focus-visible{border-color:var(--zhu);color:#f6ead0;outline:none;background:rgba(163,49,29,.12)}
+button.on{border-color:var(--zhu);color:#f6ead0}
+#help.pulse{animation:pulse 2.4s ease-in-out 3}
+@keyframes pulse{50%{border-color:var(--zhu);background:rgba(163,49,29,.2)}}
+#foot{position:fixed;left:0;right:0;bottom:0;height:calc(54px + env(safe-area-inset-bottom,0px));padding:0 max(4vw,14px) env(safe-area-inset-bottom,0px);display:flex;align-items:center;justify-content:space-between;gap:14px;z-index:3;pointer-events:none}
+#gut{display:flex;align-items:center;gap:8px;min-width:0;flex:1}
+#gut .lbl{color:var(--zhu);font-weight:700;border:1px solid var(--zhu);padding:1px 5px;font-size:13px;flex:none}
+#gutText{display:flex;justify-content:flex-end;overflow:hidden;white-space:nowrap;min-width:0;flex:1;font-size:16px;letter-spacing:.08em;color:var(--paper)}
+#gutText.empty{justify-content:flex-start;color:var(--dim);font-size:13px}
+#gutText span{flex:none}
+#gutText .m{color:#9aa877}
+#gutText .r{color:#e0785c}
+#gutText .br{color:#6b5a44;margin:0 .3em}
+#stat{font-size:12px;color:var(--dim);text-align:right;white-space:nowrap;letter-spacing:.06em;flex:none}
+#stat b{color:var(--paper);font-weight:400}
+#stat i{font-style:normal;color:#6f604b;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px}
+#whisper{position:fixed;left:50%;bottom:calc(64px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);max-width:min(92vw,720px);text-align:center;color:#e6d6b3;font-size:14px;line-height:1.6;background:rgba(23,17,12,.78);padding:6px 16px;opacity:0;transition:opacity .6s;pointer-events:none;z-index:4;letter-spacing:.06em;border-left:2px solid var(--zhu)}
+#whisper.on{opacity:1}
+#panel{position:fixed;top:0;right:0;bottom:0;width:min(440px,94vw);background:var(--paper);color:var(--ink);padding:calc(env(safe-area-inset-top,0px) + 22px) 26px 30px;overflow-y:auto;transform:translateX(105%);transition:transform .5s cubic-bezier(.2,.7,.2,1);z-index:6;box-shadow:-10px 0 40px rgba(0,0,0,.5);line-height:1.8;font-size:15px}
+#panel.open{transform:none}
+#panel h2{margin:0 0 6px;font-size:28px;letter-spacing:.4em;color:var(--zhu)}
+#panel h3{margin:18px 0 4px;font-size:15px;letter-spacing:.3em;color:var(--zhu);border-bottom:1px solid rgba(163,49,29,.35);padding-bottom:2px}
+#panel p{margin:6px 0}
+#panel kbd{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;border:1px solid #8b7a5f;padding:0 4px;border-radius:2px;background:rgba(255,255,255,.3)}
+#panel .riddle{margin-top:14px;color:#6b5a44;font-style:italic;text-align:center}
+#panel ol{padding-left:1.4em;margin:6px 0;font-size:13px}
+#panel ol li{margin:4px 0}
+#panel ol li small{display:block;color:#6b5a44}
+#panel button{color:var(--ink);border-color:#8b7a5f}
+#panel button:hover,#panel button:focus-visible{color:var(--zhu);background:rgba(163,49,29,.08)}
+#panel .meta{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;color:#7a6a52;margin-top:16px;word-break:break-all}
+#closePanel{position:absolute;top:calc(env(safe-area-inset-top,0px) + 18px);right:18px}
+#letter{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:8;background:rgba(10,7,4,.55);padding:16px}
+#letter.show{display:flex}
+#letter .sheet{background:var(--paper);color:var(--ink);max-width:600px;width:100%;max-height:86vh;overflow-y:auto;padding:28px 30px 22px;box-shadow:0 20px 60px rgba(0,0,0,.6);border-top:4px double var(--zhu);border-bottom:4px double var(--zhu)}
+#letterText{white-space:pre-wrap;font-family:var(--serif);font-size:15px;line-height:1.95;margin:0}
+#letter button{margin-top:14px;color:var(--ink);border-color:var(--zhu)}
+#fallback{position:fixed;inset:0;display:none;align-items:center;justify-content:center;text-align:center;padding:30px;color:var(--paper);font-size:16px;line-height:2}
+@media (max-width:640px){
+  header#top{flex-direction:column;align-items:stretch;gap:6px;padding-top:calc(env(safe-area-inset-top,0px) + 8px)}
+  .sub{letter-spacing:.12em}
+  #ctrl{gap:5px}
+  #seed{width:7.5em;flex:1}
+  button{padding:4px 8px;font-size:13px}
+  #foot{flex-direction:column;justify-content:center;align-items:stretch;gap:2px;height:calc(58px + env(safe-area-inset-bottom,0px))}
+  #stat{text-align:left;font-size:11px;overflow:hidden;text-overflow:ellipsis}
+  #gutText{font-size:15px}
+  #whisper{font-size:13px;bottom:calc(66px + env(safe-area-inset-bottom,0px))}
+}
+@media (prefers-reduced-motion:reduce){
+  #panel{transition:none}
+  #whisper{transition:none}
+  #help.pulse{animation:none}
+}
+</style>
+</head>
+<body>
+<canvas id="c" aria-label="一页被蠹鱼啃食的书" role="img"></canvas>
+
+<header id="top">
+  <div id="titleBox">
+    <h1 id="h1">蠹鱼抄<span class="seal">衣魚</span></h1>
+    <p class="sub">吃掉的字，才是读过的字。</p>
+  </div>
+  <div id="ctrl">
+    <label for="seed">种</label>
+    <input id="seed" type="text" maxlength="24" autocomplete="off" spellcheck="false" placeholder="写一粒种…" aria-label="种子文字">
+    <button id="go" type="button" title="以此为种，重长一本书">启</button>
+    <button id="snd" type="button" title="声音（M）">声·寂</button>
+    <button id="help" type="button" class="pulse" title="作者说明（H）">跋</button>
+    <button id="turn" type="button" title="翻页（N）">翻</button>
+  </div>
+</header>
+
+<div id="foot">
+  <div id="gut"><span class="lbl">腹</span><div id="gutText" class="empty">（空腹。它还没读过一个字。）</div></div>
+  <div id="stat"></div>
+</div>
+
+<div id="whisper" aria-live="polite"></div>
+
+<aside id="panel" aria-hidden="true">
+  <button id="closePanel" type="button">阖</button>
+  <h2>跋</h2>
+  <p>这是一页不会写完的书。每回翻开，字都由同一粒“种”长出来——你在上方写下什么，书就长成什么；同一粒种，永远长出同一页。你写下的字，也会被朱砂圈着，混进书里。</p>
+  <p>你是住在书里的一尾蠹鱼，又名衣鱼。你不读字，你吃字。被吃掉的字落进腹中，排成一行只属于你的诗，就在纸的下沿。每个字嚼碎时都有一个音，那是它笔画之外的另一种读法。</p>
+  <h3>怎样活</h3>
+  <p>移动鼠标、或拖动手指，引它前行；<kbd>方向键</kbd> / <kbd>WASD</kbd> 亦可。你不管它，它也会自己慢慢啃。</p>
+  <p>轻点纸面，撒一撮樟脑，霉斑便退。樟脑有数，每吃二十字攒下一撮；<kbd>C</kbd> 撒在它身边。</p>
+  <p><kbd>空格</kbd> 或长按，让它蜷起来：少饿一些，但霉会趁它睡着蔓延。</p>
+  <p><kbd>N</kbd> 翻页（它会跟着爬过去），<kbd>M</kbd> 出声，<kbd>H</kbd> 开合此跋，<kbd>/</kbd> 写种。</p>
+  <h3>怎样死</h3>
+  <p>纸会慢慢变黄，陈纸不养人。潮气来时，霉便沿着字与字的缝隙生长——一台小小的细胞自动机，在你看不见的地方计算。吃了霉的字，腹中会发苦。饿死，或被霉毒死，它就压扁在这一页上；书翻过去，下一代从下一页醒来。</p>
+  <h3>怎样被记住</h3>
+  <p>你吃出的孔会留在这本书里。下一次用同一粒种翻开同一页，前世的孔还在那里，淡一些，灰一些。历代蠹鱼的名字，抄在下面。</p>
+  <h3>蠹语小辞</h3>
+  <p>嗞（zī）：饱。簌（sù）：饿。咀：吃，也作“读”。silva：书页之林。僵：一尾蠹鱼的最后一个字。</p>
+  <p class="riddle">有些字宁可被围困，也不愿被咀嚼。<br>也有些话，只说给安静的人听。</p>
+  <h3>历代蠹鱼</h3>
+  <ol id="arch"></ol>
+  <button id="forget" type="button">焚档 · 让这本书忘掉你</button>
+  <p class="meta" id="metaInfo"></p>
+</aside>
+
+<div id="letter" role="dialog" aria-modal="true" aria-label="扉页之背">
+  <div class="sheet">
+    <pre id="letterText"></pre>
+    <button id="letterClose" type="button">阖信 · 翻页</button>
+  </div>
+</div>
+
+<div id="fallback">这本书需要一张 &lt;canvas&gt; 才能被写出来。<br>你的浏览器没有递给我纸。</div>
+<noscript><p style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;color:#e9dcbf">此书以 JavaScript 为墨。墨已干涸。</p></noscript>
+
+<script>
+(() => {
+'use strict';
+
+/* ================= 基础工具 ================= */
+const $ = id => document.getElementById(id);
+const TAU = Math.PI * 2;
+const cv = $('c');
+const ctx = cv.getContext ? cv.getContext('2d') : null;
+if (!ctx) { $('fallback').style.display = 'flex'; return; }
+
+const SERIF = '"Songti SC","STSong","Noto Serif CJK SC","Source Han Serif SC","SimSun","Songti TC",serif';
+const MONO = 'ui-monospace,"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace';
+
+const RMQ = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+let RM = !!(RMQ && RMQ.matches);
+if (RMQ) {
+  const f = e => { RM = e.matches; };
+  if (RMQ.addEventListener) RMQ.addEventListener('change', f);
+  else if (RMQ.addListener) RMQ.addListener(f);
+}
+const COARSE = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+
+/* localStorage 全部包在 try/catch 里 */
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } },
+  del(k) { try { localStorage.removeItem(k); } catch (e) { /* 静默 */ } },
+  wipe(prefix) {
+    try {
+      const ks = [];
+      for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.indexOf(prefix) === 0) ks.push(k); }
+      ks.forEach(k => localStorage.removeItem(k));
+    } catch (e) { /* 静默 */ }
+  }
+};
+
+/* 可复现的种子：xmur3 哈希 + mulberry32 伪随机 */
+function xmur3(str) {
+  let h = 1779033703 ^ str.length;
+  for (let i = 0; i < str.length; i++) { h = Math.imul(h ^ str.charCodeAt(i), 3432918353); h = h << 13 | h >>> 19; }
+  return function () { h = Math.imul(h ^ (h >>> 16), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909); return (h ^= h >>> 16) >>> 0; };
+}
+function mulberry32(a) {
+  return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+}
+const hashStr = s => xmur3(String(s))();
+const rngFrom = s => mulberry32(hashStr(s));
+/* 整数哈希 -> [0,1)，用于让每个孔的锯齿形状稳定 */
+function ih(i, k) {
+  let h = Math.imul((i | 0) ^ 0x9e3779b9, 0x85ebca6b) ^ Math.imul((k | 0) + 1, 0xc2b2ae35);
+  h ^= h >>> 15; h = Math.imul(h, 0x2c1b3c6d); h ^= h >>> 12; h = Math.imul(h, 0x297a2d39); h ^= h >>> 15;
+  return (h >>> 0) / 4294967296;
+}
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const ease = t => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+
+/* 值噪声 + 分形布朗运动：纸纹、墨色浓淡、木纹、潮气 */
+function makeNoise(seed) {
+  const r = mulberry32(seed >>> 0);
+  const perm = []; for (let i = 0; i < 256; i++) perm.push(i);
+  for (let i = 255; i > 0; i--) { const j = Math.floor(r() * (i + 1)); const t = perm[i]; perm[i] = perm[j]; perm[j] = t; }
+  const p = new Uint8Array(512); for (let i = 0; i < 512; i++) p[i] = perm[i & 255];
+  const val = new Float32Array(256); for (let i = 0; i < 256; i++) val[i] = r();
+  const fade = t => t * t * (3 - 2 * t);
+  function n2(x, y) {
+    const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi, X = xi & 255, Y = yi & 255;
+    const a = val[p[p[X] + Y]], b = val[p[p[X + 1] + Y]], c = val[p[p[X] + Y + 1]], d = val[p[p[X + 1] + Y + 1]];
+    const u = fade(xf), v = fade(yf);
+    return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+  }
+  function fbm(x, y, o) { o = o || 4; let s = 0, a = 0.5, f = 1, n = 0; for (let i = 0; i < o; i++) { s += a * n2(x * f, y * f); n += a; a *= 0.5; f *= 2; } return s / n; }
+  return { n2, fbm };
+}
+
+/* ================= 文法生成：一页伪古文 ================= */
+const PUNCT = new Set(Array.from('，。；：「」、？！　'));
+const POOL = {
+  S: Array.from('山水月风灯舟客僧雁竹雪镜钟城灰墨梦石鱼书蝉鹤云烟纸火'),
+  V: Array.from('照渡听落藏忘归醒读烧埋写等问化食守拾啮'),
+  O: ['空阶', '旧纸', '长夜', '寒江', '残灯', '远山', '春草', '孤城', '白骨', '青苔', '流萤', '断桥', '无字碑', '半卷经', '故人', '空山', '秋水', '纸上', '掌中', '镜底', '井底', '灯下', '雪中', '眉间', '锈钟', '荒径', '旧梦', '夹缝'],
+  M: Array.from('不已犹自皆欲未常独空'),
+  A: ['寂寂', '悠悠', '茫茫', '历历', '迟迟', '纷纷', '冥冥', '漫漫', '簌簌', '沉沉'],
+  DU: ['嗞嗞，簌簌', '咀纸三日，不见一字', '字在腹中，腹在纸中', '簌，簌，簌', '嗞：吾饱矣', '吾非读者，吾乃空者', '一页一林，是谓silva']
+};
+function cnNum(n) {
+  const d = Array.from('〇一二三四五六七八九');
+  if (n < 10) return d[n];
+  if (n < 20) return '十' + (n % 10 ? d[n % 10] : '');
+  if (n < 100) return d[Math.floor(n / 10)] + '十' + (n % 10 ? d[n % 10] : '');
+  return String(n);
+}
+function genText(seedText, page, n) {
+  const r = rngFrom(seedText + '|page|' + page);
+  const pk = a => a[Math.floor(r() * a.length)];
+  const { S, V, O, M, A, DU } = POOL;
+  const T = [
+    () => `${pk(S)}${pk(M)}${pk(V)}${pk(O)}，${pk(S)}${pk(V)}${pk(O)}。`,
+    () => `${pk(O)}之上，有${pk(S)}${pk(V)}${pk(O)}。`,
+    () => `昔有${pk(S)}，${pk(M)}${pk(V)}${pk(O)}；今${pk(S)}${pk(V)}${pk(O)}，${pk(A)}${pk(M)}${pk(V)}。`,
+    () => `问${pk(S)}何${pk(V)}，曰：「${pk(O)}${pk(M)}${pk(V)}。」`,
+    () => `${pk(A)}${pk(O)}，${pk(A)}${pk(O)}。`,
+    () => `凡${pk(S)}${pk(V)}者，${pk(M)}${pk(V)}${pk(O)}；${pk(S)}${pk(V)}者，${pk(M)}${pk(V)}其${pk(S)}。`,
+    () => `${pk(S)}不${pk(V)}${pk(S)}，${pk(S)}自${pk(V)}耳。`,
+    () => `${pk(O)}${pk(M)}${pk(V)}，${pk(O)}${pk(M)}${pk(V)}，${pk(S)}在${pk(O)}。`,
+    () => `蠹曰：「${pk(DU)}。」`
+  ];
+  const seedChars = Array.from(seedText).filter(ch => ch.trim() && !PUNCT.has(ch));
+  const redPool = seedChars.length ? seedChars : ['蠹'];
+  const chars = [], kinds = [];
+  let since = 0, si = 0, gap = 90 + r() * 80;
+  const put = (ch, k) => { chars.push(ch); kinds.push(k); };
+  Array.from(`卷${cnNum(page)}。`).forEach(ch => put(ch, PUNCT.has(ch) ? 1 : 0));
+  while (chars.length < n) {
+    let idx = Math.floor(r() * T.length);
+    if (idx === T.length - 1 && r() > 0.3) idx = Math.floor(r() * (T.length - 1));
+    for (const ch of Array.from(T[idx]())) {
+      put(ch, PUNCT.has(ch) ? 1 : (ch === '蠹' ? 2 : 0));
+      since++;
+      if (since > gap) { put(redPool[si++ % redPool.length], 2); since = 0; gap = 90 + r() * 80; }
+    }
+  }
+  chars.length = n; kinds.length = n;
+  return { chars, kinds };
+}
+
+/* ================= 全局状态 ================= */
+const TEXTLEN = 3200;
+const eaten = new Uint8Array(TEXTLEN);   // 0 完整；1 此生所啮；2 前世之孔；3 化蛾而去
+const mold = new Float32Array(TEXTLEN);  // 霉的浓度 0..1
+const camph = new Float32Array(TEXTLEN); // 樟脑残留秒数
+let TXT = { chars: [], kinds: [] };
+let noise = makeNoise(1);
+const deskNoise = makeNoise(777);
+let W = 1, H = 1, dpr = 1, T = 0;
+const L = { P: { x: 0, y: 0, w: 100, h: 100 }, s: 24, pad: 16, cols: 3, rows: 3, N: 9, gx0: 0, gx1: 0, gy0: 0, gw: 0, gh: 0, edge: null };
+const S = {
+  seedText: '', page: 1, gen: 1, pageAge: 0, idle: 0, hum: 0.5, humPh: 0, camphor: 3,
+  moths: 0, mothChars: '', turn: null, reveal: null, pendReveal: 0, letterOpen: false,
+  ghost: null, ghostShown: false, ancestral: 0, holesDirty: false,
+  saveT: 0, uiT: 0, titleT: 0, moldT: 0, hintT: 14, found: false,
+  msgHole: false, msgRed: false, msgSelf: false, msgMold: false, visits: 0, started: false
+};
+let worm = null;
+let gutDirty = true;
+const moths = [], crumbs = [], camFx = [];
+let SRC = '', SRC_LINES = [''];
+
+const deskC = document.createElement('canvas'), deskG = deskC.getContext('2d');
+const paperC = document.createElement('canvas'), paperG = paperC.getContext('2d');
+const backC = document.createElement('canvas'), backG = backC.getContext('2d');
+let moldSp = [];
+
+/* ================= 网格坐标（竖排，右起左行） ================= */
+function cellXY(i) { const c = Math.floor(i / L.rows), r = i - c * L.rows; return [L.gx1 - (c + 0.5) * L.s, L.gy0 + (r + 0.5) * L.s]; }
+function cellAt(x, y) {
+  const c = Math.floor((L.gx1 - x) / L.s), r = Math.floor((y - L.gy0) / L.s);
+  if (c < 0 || c >= L.cols || r < 0 || r >= L.rows) return -1;
+  return c * L.rows + r;
+}
+function insidePaper(x, y) { const P = L.P; return x >= P.x && x <= P.x + P.w && y >= P.y && y <= P.y + P.h; }
+
+/* ================= 版面 ================= */
+function computeLayout() {
+  W = Math.max(1, window.innerWidth); H = Math.max(1, window.innerHeight);
+  dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+  const top = $('top').getBoundingClientRect().bottom;
+  const footTop = $('foot').getBoundingClientRect().top;
+  const narrow = W < 640;
+  const m = narrow ? 8 : clamp(W * 0.04, 18, 60);
+  const y0 = top + (narrow ? 4 : 8);
+  const y1 = Math.max(y0 + 140, footTop - (narrow ? 4 : 8));
+  const P = { x: m, y: y0, w: Math.max(120, W - 2 * m), h: y1 - y0 };
+  let s = clamp(Math.sqrt(P.w * P.h / 820), 19, 46), cols = 3, rows = 3, pad = 10;
+  for (let k = 0; k < 80; k++) {
+    pad = Math.max(10, s * 0.72);
+    cols = Math.max(3, Math.floor((P.w - 2 * pad) / s));
+    rows = Math.max(3, Math.floor((P.h - 2 * pad) / s));
+    if (cols * rows <= TEXTLEN) break;
+    s *= 1.05;
+  }
+  L.P = P; L.s = s; L.pad = pad; L.cols = cols; L.rows = rows; L.N = cols * rows;
+  L.gw = cols * s; L.gh = rows * s;
+  L.gx1 = P.x + (P.w + L.gw) / 2; L.gx0 = L.gx1 - L.gw; L.gy0 = P.y + (P.h - L.gh) / 2;
+  L.edge = buildEdge(P);
+}
+/* 纸边：微微参差的毛边 */
+function buildEdge(P) {
+  const r = rngFrom('edge' + Math.round(P.w) + 'x' + Math.round(P.h));
+  const j = () => Math.abs((r() - 0.5) * 2.4);
+  const pts = [], step = 14;
+  for (let x = P.x; x < P.x + P.w; x += step) pts.push([x, P.y + j()]);
+  for (let y = P.y; y < P.y + P.h; y += step) pts.push([P.x + P.w - j(), y]);
+  for (let x = P.x + P.w; x > P.x; x -= step) pts.push([x, P.y + P.h - j()]);
+  for (let y = P.y + P.h; y > P.y; y -= step) pts.push([P.x + j(), y]);
+  const p = new Path2D();
+  pts.forEach((q, i) => i ? p.lineTo(q[0], q[1]) : p.moveTo(q[0], q[1]));
+  p.closePath();
+  return p;
+}
+
+/* 书桌：低分辨率木纹 + 纸的投影 + 灯晕 */
+function renderDesk() {
+  deskC.width = Math.round(W * dpr); deskC.height = Math.round(H * dpr);
+  const g = deskG; g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const tw = Math.max(2, Math.ceil(W / 4)), th = Math.max(2, Math.ceil(H / 4));
+  const tc = document.createElement('canvas'); tc.width = tw; tc.height = th;
+  const tg = tc.getContext('2d'); const id = tg.createImageData(tw, th); const d = id.data;
+  for (let y = 0; y < th; y++) for (let x = 0; x < tw; x++) {
+    const n = deskNoise.fbm(x * 0.012, y * 0.05, 3);
+    const grain = Math.sin((y * 0.9 + n * 22) * 0.55) * 0.5 + 0.5;
+    const k = (y * tw + x) * 4;
+    d[k] = 24 + grain * 13 + n * 12; d[k + 1] = 17 + grain * 8 + n * 7; d[k + 2] = 12 + grain * 5 + n * 4; d[k + 3] = 255;
+  }
+  tg.putImageData(id, 0, 0);
+  g.imageSmoothingEnabled = true; g.drawImage(tc, 0, 0, W, H);
+  const lamp = g.createRadialGradient(W * 0.2, -H * 0.1, 10, W * 0.2, -H * 0.1, Math.max(W, H) * 1.1);
+  lamp.addColorStop(0, 'rgba(255,196,120,0.13)'); lamp.addColorStop(1, 'rgba(255,196,120,0)');
+  g.fillStyle = lamp; g.fillRect(0, 0, W, H);
+  const vig = g.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.75);
+  vig.addColorStop(0, 'rgba(0,0,0,0)'); vig.addColorStop(1, 'rgba(0,0,0,0.55)');
+  g.fillStyle = vig; g.fillRect(0, 0, W, H);
+  g.save(); g.shadowColor = 'rgba(0,0,0,0.65)'; g.shadowBlur = 28; g.shadowOffsetY = 9; g.fillStyle = '#20180f'; g.fill(L.edge); g.restore();
+}
+
+/* 纸：纹理、霉黄斑、朱丝栏、字、然后按记忆把孔重新凿出来 */
+function renderPaper() {
+  const P = L.P, s = L.s, N = L.N;
+  paperC.width = Math.max(1, Math.ceil(P.w * dpr)); paperC.height = Math.max(1, Math.ceil(P.h * dpr));
+  const g = paperG;
+  g.setTransform(dpr, 0, 0, dpr, -P.x * dpr, -P.y * dpr);
+  g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1;
+  const tw = Math.max(2, Math.ceil(P.w / 3)), th = Math.max(2, Math.ceil(P.h / 3));
+  const tc = document.createElement('canvas'); tc.width = tw; tc.height = th;
+  const tg = tc.getContext('2d'); const id = tg.createImageData(tw, th); const d = id.data;
+  const mn = Math.min(tw, th);
+  for (let y = 0; y < th; y++) for (let x = 0; x < tw; x++) {
+    const v = noise.fbm(x * 0.022, y * 0.022, 4) * 0.72 + noise.n2(x * 0.19 + 50, y * 0.19) * 0.28;
+    const e = Math.min(x, tw - 1 - x, y, th - 1 - y) / mn;
+    const edge = Math.max(0, 1 - e * 10);
+    const k = (y * tw + x) * 4;
+    d[k] = 236 - 24 * v - 34 * edge; d[k + 1] = 223 - 28 * v - 44 * edge; d[k + 2] = 192 - 36 * v - 58 * edge; d[k + 3] = 255;
+  }
+  tg.putImageData(id, 0, 0);
+  g.imageSmoothingEnabled = true; g.drawImage(tc, P.x, P.y, P.w, P.h);
+  const r = rngFrom(S.seedText + 'fox' + S.page);
+  const fox = 8 + Math.floor(r() * 14);
+  for (let k = 0; k < fox; k++) {
+    const x = P.x + r() * P.w, y = P.y + r() * P.h, rad = s * (0.3 + r() * 1.9);
+    const gr = g.createRadialGradient(x, y, 0, x, y, rad);
+    gr.addColorStop(0, `rgba(150,95,40,${0.1 + r() * 0.12})`); gr.addColorStop(0.7, 'rgba(160,110,50,0.05)'); gr.addColorStop(1, 'rgba(160,110,50,0)');
+    g.fillStyle = gr; g.beginPath(); g.arc(x, y, rad, 0, TAU); g.fill();
+  }
+  g.lineWidth = 0.6;
+  for (let k = 0; k < 70; k++) {
+    const x = P.x + r() * P.w, y = P.y + r() * P.h, a = r() * TAU, l = 6 + r() * 22;
+    g.strokeStyle = `rgba(${r() < 0.5 ? '255,250,235' : '120,90,50'},${0.06 + r() * 0.08})`;
+    g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + Math.cos(a + 0.6) * l * 0.5, y + Math.sin(a + 0.6) * l * 0.5, x + Math.cos(a) * l, y + Math.sin(a) * l); g.stroke();
+  }
+  /* 版框：四周双边 + 朱丝栏 */
+  const fx0 = L.gx0 - s * 0.2, fy0 = L.gy0 - s * 0.2, fw = L.gw + s * 0.4, fh = L.gh + s * 0.4;
+  g.strokeStyle = 'rgba(150,45,25,0.55)'; g.lineWidth = Math.max(1.4, s * 0.07); g.strokeRect(fx0, fy0, fw, fh);
+  g.lineWidth = 0.8; g.strokeStyle = 'rgba(150,45,25,0.42)'; g.strokeRect(L.gx0 - s * 0.07, L.gy0 - s * 0.07, L.gw + s * 0.14, L.gh + s * 0.14);
+  g.strokeStyle = 'rgba(160,55,30,0.26)'; g.lineWidth = 0.6;
+  for (let c = 1; c < L.cols; c++) { const x = L.gx1 - c * s; g.beginPath(); g.moveTo(x, L.gy0); g.lineTo(x, L.gy0 + L.gh); g.stroke(); }
+  /* 字 */
+  const fs = s * 0.7;
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  for (let i = 0; i < N; i++) {
+    const ch = TXT.chars[i], k = TXT.kinds[i]; if (ch == null) continue;
+    const xy = cellXY(i), x = xy[0], y = xy[1];
+    if (k === 1) {
+      g.font = `${fs * 0.8}px ${SERIF}`; g.fillStyle = 'rgba(40,30,22,0.7)';
+      const vc = ch === '「' ? '﹁' : ch === '」' ? '﹂' : ch;
+      if ('，。、'.indexOf(ch) >= 0) g.fillText(vc, x + s * 0.26, y - s * 0.24); else g.fillText(vc, x, y);
+    } else if (k === 2) {
+      g.font = `600 ${fs}px ${SERIF}`; g.fillStyle = 'rgba(163,45,26,0.92)'; g.fillText(ch, x, y);
+      g.strokeStyle = 'rgba(163,45,26,0.42)'; g.lineWidth = 1; g.strokeRect(x - s * 0.42, y - s * 0.42, s * 0.84, s * 0.84);
+    } else {
+      const a = 0.58 + 0.38 * noise.n2(x * 0.03, y * 0.03);
+      g.font = `500 ${fs}px ${SERIF}`; g.fillStyle = `rgba(36,26,18,${a.toFixed(3)})`; g.fillText(ch, x, y);
+    }
+  }
+  /* 书口小字：它知道自己是什么 */
+  g.font = `${Math.max(9, Math.min(12, s * 0.34))}px ${SERIF}`; g.fillStyle = 'rgba(120,70,40,0.55)'; g.textAlign = 'left';
+  g.fillText(`卷${cnNum(S.page)} · index.html`, L.gx0, Math.min(P.y + P.h - 6, L.gy0 + L.gh + L.pad * 0.55));
+  g.textAlign = 'right';
+  g.fillText(`种：${S.seedText}`, L.gx1, Math.min(P.y + P.h - 6, L.gy0 + L.gh + L.pad * 0.55));
+  g.globalCompositeOperation = 'destination-in'; g.fillStyle = '#000'; g.fill(L.edge);
+  g.globalCompositeOperation = 'source-over';
+  for (let i = 0; i < N; i++) if (eaten[i]) cutHole(i, eaten[i]);
+}
+
+/* 纸的背面：本页自己的源代码 —— 元层 */
+function renderBack() {
+  const P = L.P;
+  backC.width = Math.max(1, Math.ceil(P.w * dpr)); backC.height = Math.max(1, Math.ceil(P.h * dpr));
+  const g = backG; g.setTransform(dpr, 0, 0, dpr, -P.x * dpr, -P.y * dpr);
+  g.globalCompositeOperation = 'source-over';
+  g.fillStyle = '#1d1610'; g.fillRect(P.x, P.y, P.w, P.h);
+  const fs = clamp(L.s * 0.34, 8, 13), lh = fs * 1.32;
+  g.font = `${fs}px ${MONO}`; g.textBaseline = 'top'; g.textAlign = 'left';
+  const cw = g.measureText('M').width || fs * 0.6;
+  const per = Math.max(10, Math.floor((P.w - 12) / cw));
+  let li = hashStr(S.seedText + 'src' + S.page) % SRC_LINES.length, buf = '', y = P.y + 4, guard = 0;
+  while (y < P.y + P.h && guard++ < 5000) {
+    if (!buf) { buf = SRC_LINES[li % SRC_LINES.length]; li++; if (!buf.trim()) { buf = ''; y += lh * 0.5; continue; } }
+    const chunk = buf.slice(0, per); buf = buf.slice(per);
+    const t = chunk.trim();
+    g.fillStyle = t.charAt(0) === '<' ? 'rgba(200,96,64,0.82)' : (t.indexOf('/*') === 0 || t.indexOf('//') === 0) ? 'rgba(150,135,110,0.5)' : 'rgba(222,200,160,0.7)';
+    g.fillText(chunk, P.x + 6, y); y += lh;
+  }
+  const vg = g.createRadialGradient(P.x + P.w / 2, P.y + P.h / 2, 10, P.x + P.w / 2, P.y + P.h / 2, Math.max(P.w, P.h) * 0.7);
+  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.45)');
+  g.fillStyle = vg; g.fillRect(P.x, P.y, P.w, P.h);
+  g.globalCompositeOperation = 'destination-in'; g.fillStyle = '#000'; g.fill(L.edge);
+  g.globalCompositeOperation = 'source-over';
+}
+
+/* 霉的贴图（三种形态） */
+function makeMoldSprites() {
+  moldSp = [];
+  const s = L.s, size = Math.max(2, Math.ceil(s * dpr));
+  for (let v = 0; v < 3; v++) {
+    const c = document.createElement('canvas'); c.width = c.height = size;
+    const g = c.getContext('2d'); g.scale(size / s, size / s);
+    const r = rngFrom('mold' + v);
+    for (let k = 0; k < 9; k++) {
+      const x = s * (0.18 + 0.64 * r()), y = s * (0.18 + 0.64 * r()), rad = s * (0.08 + 0.18 * r());
+      const gr = g.createRadialGradient(x, y, 0, x, y, rad);
+      gr.addColorStop(0, 'rgba(84,100,58,0.78)'); gr.addColorStop(0.6, 'rgba(110,122,78,0.35)'); gr.addColorStop(1, 'rgba(120,126,90,0)');
+      g.fillStyle = gr; g.beginPath(); g.arc(x, y, rad, 0, TAU); g.fill();
+    }
+    g.fillStyle = 'rgba(238,238,218,0.65)';
+    for (let k = 0; k < 12; k++) { g.beginPath(); g.arc(s * (0.1 + 0.8 * r()), s * (0.1 + 0.8 * r()), s * 0.02 + 0.3, 0, TAU); g.fill(); }
+    moldSp.push(c);
+  }
+}
+
+/* ================= 孔 ================= */
+function holePath(i, x, y, scale, type) {
+  const s = L.s, n = 10, base = type === 3 ? 0.53 : 0.47, p = new Path2D();
+  for (let j = 0; j < n; j++) {
+    const a = j / n * TAU + ih(i, j) * 0.45;
+    const rr = s * base * (0.8 + 0.38 * ih(i, j + 31)) * scale;
+    const px = x + Math.cos(a) * rr, py = y + Math.sin(a) * rr;
+    if (j) p.lineTo(px, py); else p.moveTo(px, py);
+  }
+  p.closePath(); return p;
+}
+function cutHole(i, type) {
+  const xy = cellXY(i), g = paperG;
+  g.save();
+  g.globalCompositeOperation = 'source-atop';
+  g.fillStyle = type === 2 ? 'rgba(96,82,62,0.3)' : type === 3 ? 'rgba(120,90,50,0.16)' : 'rgba(118,72,32,0.34)';
+  g.fill(holePath(i, xy[0], xy[1], 1.25, type));
+  g.globalCompositeOperation = 'destination-out';
+  g.fillStyle = '#000';
+  g.fill(holePath(i, xy[0], xy[1], 1, type));
+  g.restore();
+}
+
+/* 记忆：孔以区间串存进 localStorage */
+function holeKey() { return 'duyu.h.' + hashStr(S.seedText + '|' + S.page).toString(36); }
+function saveHoles() {
+  S.holesDirty = false;
+  const out = []; let i = 0;
+  while (i < TEXTLEN) {
+    if (eaten[i]) { let j = i; while (j + 1 < TEXTLEN && eaten[j + 1]) j++; out.push(i === j ? String(i) : i + '-' + j); i = j + 1; }
+    else i++;
+  }
+  if (!out.length) return;
+  const key = holeKey();
+  store.set(key, out.join(','));
+  let ks = store.get('duyu.hk', []); if (!Array.isArray(ks)) ks = [];
+  const ix = ks.indexOf(key); if (ix >= 0) ks.splice(ix, 1);
+  ks.push(key);
+  while (ks.length > 40) store.del(ks.shift());
+  store.set('duyu.hk', ks);
+}
+function loadHoles() {
+  const v = store.get(holeKey(), null);
+  if (typeof v !== 'string') return 0;
+  let cnt = 0;
+  v.split(',').forEach(part => {
+    const ab = part.split('-').map(Number), a = ab[0], b = ab.length > 1 ? ab[1] : a;
+    if (!Number.isFinite(a) || !Number.isFinite(b)) return;
+    for (let i = Math.max(0, a); i <= Math.min(TEXTLEN - 1, b); i++) if (!eaten[i]) { eaten[i] = 2; cnt++; }
+  });
+  return cnt;
+}
+
+/* ================= 图论：被围住的字（泛洪） ================= */
+function checkIslands(silent) {
+  const cols = L.cols, rows = L.rows, N = L.N;
+  const seen = new Uint8Array(N), q = new Int32Array(N);
+  let qh = 0, qt = 0;
+  const push = i => { if (!seen[i] && eaten[i] === 0) { seen[i] = 1; q[qt++] = i; } };
+  for (let c = 0; c < cols; c++) { push(c * rows); push(c * rows + rows - 1); }
+  for (let r = 0; r < rows; r++) { push(r); push((cols - 1) * rows + r); }
+  while (qh < qt) {
+    const i = q[qh++], c = Math.floor(i / rows), r = i - c * rows;
+    if (c > 0) push(i - rows); if (c < cols - 1) push(i + rows); if (r > 0) push(i - 1); if (r < rows - 1) push(i + 1);
+  }
+  for (let i = 0; i < N; i++) {
+    if (eaten[i] !== 0 || seen[i]) continue;
+    const comp = []; qh = 0; qt = 0; seen[i] = 1; q[qt++] = i;
+    while (qh < qt) {
+      const j = q[qh++]; comp.push(j);
+      const c = Math.floor(j / rows), r = j - c * rows;
+      const nb = [];
+      if (c > 0) nb.push(j - rows); if (c < cols - 1) nb.push(j + rows); if (r > 0) nb.push(j - 1); if (r < rows - 1) nb.push(j + 1);
+      for (const k of nb) if (!seen[k] && eaten[k] === 0) { seen[k] = 1; q[qt++] = k; }
+    }
+    if (silent) { comp.forEach(j => { eaten[j] = 2; mold[j] = 0; cutHole(j, 2); }); }
+    else releaseIsland(comp);
+  }
+}
+function releaseIsland(comp) {
+  let sx = 0, sy = 0; const chars = [];
+  comp.forEach(j => {
+    eaten[j] = 3; mold[j] = 0; cutHole(j, 3);
+    const xy = cellXY(j); sx += xy[0]; sy += xy[1];
+    const ch = TXT.chars[j]; if (ch && !PUNCT.has(ch)) chars.push(ch);
+  });
+  const cs = chars.length ? chars : ['·'];
+  spawnMoth(sx / comp.length, sy / comp.length, cs, L.s * (0.9 + Math.min(1.2, comp.length * 0.06)), false);
+  S.moths++; S.mothChars += chars.join(''); S.holesDirty = true;
+  Snd.moth(cs);
+  whisper(S.moths === 1 ? `被围住的字——「${cs.join('')}」——长出了翅膀。` : `又一只：「${cs.join('')}」。`, 4200);
+  if (worm) worm.sat = Math.min(1, worm.sat + 0.08);
+  if (S.moths >= 3 && !S.reveal && S.pendReveal <= 0) S.pendReveal = 1.6;
+}
+
+/* ================= 蠹鱼 ================= */
+function newWorm() {
+  const P = L.P, s = L.s;
+  const x = P.x + P.w * (0.4 + Math.random() * 0.2), y = P.y + P.h * (0.4 + Math.random() * 0.2), ang = Math.random() * TAU;
+  const segs = [];
+  for (let i = 0; i < 9; i++) segs.push({ x: x - Math.cos(ang) * i * s * 0.26, y: y - Math.sin(ang) * i * s * 0.26 });
+  worm = { x, y, ang, speed: 0, segs, sat: 0.78, poison: 0, alive: true, curl: false, eaten: 0, gut: [], age: 0, deadT: 0, anim: 0, wt: 0, wa: ang, gone: false, cause: '' };
+  S.moths = 0; S.mothChars = ''; S.camphor = Math.max(S.camphor, 3); gutDirty = true;
+}
+function nutrition() { return Math.max(0.3, 1 - S.pageAge / 500); }
+function eat(i) {
+  const w = worm, ch = TXT.chars[i], k = TXT.kinds[i], moldy = mold[i] > 0.35;
+  eaten[i] = 1; mold[i] = 0;
+  cutHole(i, 1);
+  const xy = cellXY(i);
+  for (let n = 0; n < 5; n++) crumbs.push({ x: xy[0], y: xy[1], vx: (Math.random() - 0.5) * L.s * 3, vy: (Math.random() - 0.5) * L.s * 3, t: 0, life: 0.45 + Math.random() * 0.4, r: L.s * (0.03 + Math.random() * 0.04) });
+  let food = (k === 1 ? 0.012 : k === 2 ? 0.22 : 0.055) * nutrition();
+  if (moldy) { w.poison += 0.22; food *= 0.2; }
+  w.sat = Math.min(1, w.sat + food);
+  w.eaten++;
+  w.gut.push({ ch: ch === '「' ? '﹁' : ch === '」' ? '﹂' : ch, m: moldy, red: k === 2 });
+  if (w.gut.length > 240) w.gut.shift();
+  if (w.eaten % 20 === 0 && S.camphor < 5) { S.camphor++; whisper('腹中攒下一撮樟脑。', 1800); }
+  Snd.note(ch, k, moldy);
+  gutDirty = true; S.holesDirty = true;
+  if (!S.msgHole && w.eaten === 3) { S.msgHole = true; whisper('纸的背面不是另一页。是写成这张纸的字——我的源代码。', 5200); }
+  if (ch === '蠹' && !S.msgSelf) { S.msgSelf = true; whisper('它吃掉了自己的名字。', 3200); }
+  else if (k === 2 && ch !== '蠹' && !S.msgRed) { S.msgRed = true; whisper(`「${ch}」——这是你带进书里的字。朱砂的字，最养人。`, 4200); }
+  if (moldy && !S.msgMold) { S.msgMold = true; whisper('苦。那个字已经发霉了。', 2600); }
+  checkIslands(false);
+}
+function die(cause) {
+  const w = worm; w.alive = false; w.cause = cause; w.deadT = 0; w.curl = false;
+  pushArchive(cause);
+  Snd.death(); saveHoles();
+  whisper(`第${S.gen}代蠹鱼${cause === '饥' ? '饿僵' : '被霉毒僵'}在卷${cnNum(S.page)}。它咀过 ${w.eaten} 个字。`, 4500);
+}
+function followSegs(dt) {
+  const w = worm, sg = w.segs, sp = L.s * 0.26;
+  sg[0].x = w.x; sg[0].y = w.y;
+  if (w.curl && w.alive) {
+    const k = Math.min(1, dt * 3);
+    for (let i = 1; i < sg.length; i++) {
+      const a = w.ang + Math.PI + i * 0.62, r = L.s * 0.12 + i * L.s * 0.034;
+      sg[i].x += (w.x + Math.cos(a) * r - sg[i].x) * k; sg[i].y += (w.y + Math.sin(a) * r - sg[i].y) * k;
+    }
+    return;
+  }
+  for (let i = 1; i < sg.length; i++) {
+    const a = sg[i - 1], b = sg[i], dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 1e-4;
+    if (d > sp) { b.x = a.x + dx / d * sp; b.y = a.y + dy / d * sp; }
+  }
+}
+function updateWorm(dt) {
+  const w = worm, s = L.s, P = L.P;
+  w.anim += dt;
+  if (w.gone) return;
+  if (!w.alive) { w.deadT += dt; if (w.deadT > 3.6 && !S.turn) startTurn('death'); followSegs(dt); return; }
+  if (S.turn || S.reveal) return;
+  w.age += dt;
+  const maxSp = s * 5.2;
+  let want = 0, tx = w.x, ty = w.y, has = false, kx = 0, ky = 0;
+  if (keys.has('arrowleft') || keys.has('a')) kx -= 1;
+  if (keys.has('arrowright') || keys.has('d')) kx += 1;
+  if (keys.has('arrowup') || keys.has('w')) ky -= 1;
+  if (keys.has('arrowdown') || keys.has('s')) ky += 1;
+  if (kx || ky) { tx = w.x + kx * 100; ty = w.y + ky * 100; want = 1; has = true; }
+  else if (ptr.down && ptr.drag) {
+    const d = Math.hypot(ptr.x - w.x, ptr.y - w.y); tx = ptr.x; ty = ptr.y; want = d < s * 0.35 ? 0 : Math.min(1.25, d / (s * 2.5)); has = true;
+  } else if (ptr.type === 'mouse' && performance.now() - ptr.lastMove < 4000 && insidePaper(ptr.x, ptr.y)) {
+    const d = Math.hypot(ptr.x - w.x, ptr.y - w.y); tx = ptr.x; ty = ptr.y; want = d < s * 0.5 ? 0 : Math.min(0.85, d / (s * 4)); has = true;
+  }
+  if (has && want > 0 && w.curl) w.curl = false;
+  if (!has) {
+    w.wt -= dt;
+    if (w.wt <= 0) { w.wt = 1 + Math.random() * 2.5; w.wa = w.ang + (Math.random() - 0.5) * 2.2; }
+    tx = w.x + Math.cos(w.wa) * 100; ty = w.y + Math.sin(w.wa) * 100; want = 0.28;
+  }
+  if (w.curl) want = 0;
+  let diff = Math.atan2(ty - w.y, tx - w.x) - w.ang; diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+  const tr = 6 * dt; w.ang += clamp(diff, -tr, tr);
+  w.speed += (want * maxSp - w.speed) * Math.min(1, dt * 5);
+  const wig = (RM ? 0.04 : 0.22) * (w.speed / maxSp);
+  const a = w.ang + Math.sin(w.anim * 14) * wig;
+  w.x += Math.cos(a) * w.speed * dt; w.y += Math.sin(a) * w.speed * dt;
+  const m = s * 0.35;
+  if (w.x < P.x + m) { w.x = P.x + m; w.wa = 0; }
+  if (w.x > P.x + P.w - m) { w.x = P.x + P.w - m; w.wa = Math.PI; }
+  if (w.y < P.y + m) { w.y = P.y + m; w.wa = Math.PI / 2; }
+  if (w.y > P.y + P.h - m) { w.y = P.y + P.h - m; w.wa = -Math.PI / 2; }
+  followSegs(dt);
+  if (!w.curl) {
+    const i = cellAt(w.x + Math.cos(w.ang) * s * 0.2, w.y + Math.sin(w.ang) * s * 0.2);
+    if (i >= 0 && i < L.N && eaten[i] === 0) eat(i);
+  }
+  const n = w.segs.length;
+  const burn = (0.011 + n * 0.00035 + (w.speed / maxSp) * 0.007) * (w.curl ? 0.35 : 1);
+  w.sat -= burn * dt; w.poison = Math.max(0, w.poison - 0.004 * dt);
+  const target = 9 + Math.min(30, Math.floor(w.eaten / 5));
+  if (n < target) { const t = w.segs[n - 1]; w.segs.push({ x: t.x, y: t.y }); }
+  if (w.sat <= 0) { w.sat = 0; die('饥'); } else if (w.poison >= 1) die('霉');
+}
+function toggleCurl() {
+  if (!worm || !worm.alive || S.reveal || S.turn) return;
+  worm.curl = !worm.curl;
+  whisper(worm.curl ? '它蜷起来了。慢些饿，霉却趁机长。' : '它舒展开，继续咀。', 1800);
+  Snd.tone(worm.curl ? 146.8 : 220, 0, 0.6, 0.05, 'sine', 1200);
+}
+
+/* ================= 细胞自动机：霉 ================= */
+function moldTick() {
+  const N = L.N, rows = L.rows, cols = L.cols, hum = S.hum, agef = 1 + S.pageAge / 240, sleepy = worm && worm.curl ? 1.8 : 1;
+  for (let i = 0; i < N; i++) {
+    if (camph[i] > 0) { camph[i] -= 0.35; if (mold[i] > 0) mold[i] = Math.max(0, mold[i] - 0.2); continue; }
+    const m = mold[i];
+    if (m <= 0 || eaten[i]) continue;
+    mold[i] = Math.min(1, m + 0.018 * hum * agef * sleepy);
+    if (m > 0.4 && Math.random() < 0.07 * hum * agef * sleepy) {
+      const c = Math.floor(i / rows), r = i - c * rows, d = Math.floor(Math.random() * 4);
+      let j = -1;
+      if (d === 0 && c > 0) j = i - rows; else if (d === 1 && c < cols - 1) j = i + rows; else if (d === 2 && r > 0) j = i - 1; else if (d === 3 && r < rows - 1) j = i + 1;
+      if (j >= 0 && !eaten[j] && mold[j] === 0 && camph[j] <= 0) mold[j] = 0.06;
+    }
+  }
+  if (Math.random() < 0.02 * hum * agef) { const i = Math.floor(Math.random() * N); if (!eaten[i] && camph[i] <= 0) mold[i] = Math.max(mold[i], 0.08); }
+}
+function camphorAt(x, y) {
+  if (S.turn || S.reveal || S.letterOpen || !insidePaper(x, y)) return;
+  if (S.camphor <= 0) { whisper('樟脑用尽了。多咀些字，会攒下新的。', 2600); Snd.dud(); return; }
+  S.camphor--;
+  const R = L.s * 2.3; let cleared = 0;
+  for (let i = 0; i < L.N; i++) {
+    const xy = cellXY(i);
+    if (Math.hypot(xy[0] - x, xy[1] - y) < R) { if (mold[i] > 0.02) cleared++; mold[i] = 0; camph[i] = 25; }
+  }
+  camFx.push({ x, y, t: 0, seed: (Math.random() * 100000) | 0 });
+  Snd.camphor();
+  whisper(cleared ? `樟脑落下，${cleared} 处霉斑退了。` : '樟脑落下。此处暂无霉，但它会记得这股气味。', 2000);
+}
+
+/* ================= 蛾 ================= */
+function spawnMoth(x, y, chars, sz, big) {
+  moths.push({ x, y, vx: 0, vy: 0, t: 0, ph: Math.random() * 6, chars, sz, big, dir: Math.random() < 0.5 ? -1 : 1 });
+}
+function startReveal() {
+  if (S.reveal || S.turn || !worm || !worm.alive) return;
+  S.reveal = { t: 0, shown: false };
+  pushArchive('羽化');
+  spawnMoth(worm.x, worm.y, Array.from(S.mothChars || '蠹'), L.s * 2.4, true);
+  worm.gone = true; worm.alive = false; worm.deadT = -1e9;
+  Snd.metamorph();
+  whisper('它不再咀了。它把自己也围了起来。', 6000);
+  S.found = true; store.set('duyu.found', true); markFound();
+  saveHoles();
+}
+function openLetter() {
+  const bytes = SRC.length;
+  const arch = store.get('duyu.archive', []);
+  const list = Array.isArray(arch) ? arch.slice(-8).reverse() : [];
+  const lines = [
+    '致　正在读我的人：', '',
+    '你没有把我读完。你把我吃穿了，又把几个字围成了岛，让它们长出翅膀飞走。',
+    `飞走的字是：「${S.mothChars || '（无字，只有空）'}」。`,
+    '这是一本书第一次被读懂的方式：不是记住它，而是在它身上留下空。', '',
+    `你现在看见了。纸的背面不是另一页，而是写成这张纸的 ${bytes} 个字节。我是一个 index.html。我的墨是 fillText，我的纸是一张 ${W}×${H} 的 <canvas>，我的霉是一台细胞自动机，我的记忆放在你浏览器里一个叫 localStorage 的抽屉。你关掉我，我就只剩下这些字节；你再打开，我又从同一粒种里长出来。`, '',
+    '历代蠹鱼：'
+  ];
+  if (list.length) list.forEach(e => lines.push(`　第${e.g}代 · 「${e.s}」卷${cnNum(e.p || 1)} · 咀${e.n}字 · ${CAUSE[e.c] || e.c}${e.poem ? ' ——「' + e.poem + '」' : ''}`));
+  else lines.push('　（空。你是第一个。）');
+  lines.push('', '阖上这封信，下一代会从下一页醒来。它不会记得你。但我会——只要你不焚档。', '', `　　　　　　　　　　——此页，书于 ${new Date().toLocaleString('zh-CN')}`);
+  $('letterText').textContent = lines.join('\n');
+  $('letter').classList.add('show'); S.letterOpen = true;
+  setTimeout(() => { try { $('letterClose').focus(); } catch (e) { /* 静默 */ } }, 50);
+}
+function closeLetter() {
+  if (!S.letterOpen) return;
+  $('letter').classList.remove('show'); S.letterOpen = false;
+  startTurn('reveal');
+}
+
+/* ================= 档案 / 前世 ================= */
+const CAUSE = { '饥': '饿僵', '霉': '霉毒', '羽化': '羽化', '易书': '离书' };
+function pushArchive(cause) {
+  if (!worm) return;
+  let list = store.get('duyu.archive', []); if (!Array.isArray(list)) list = [];
+  list.push({ s: S.seedText.slice(0, 24), p: S.page, g: S.gen, n: worm.eaten, poem: worm.gut.filter(o => !PUNCT.has(o.ch) && o.ch !== '﹁' && o.ch !== '﹂').slice(-21).map(o => o.ch).join(''), c: cause, t: Date.now() });
+  while (list.length > 30) list.shift();
+  store.set('duyu.archive', list);
+}
+function summonGhost() {
+  S.ghostShown = true;
+  const arch = store.get('duyu.archive', []); let poem = '';
+  if (Array.isArray(arch)) for (let k = arch.length - 1; k >= 0; k--) { const e = arch[k]; if (e && e.poem) { poem = String(e.poem); break; } }
+  if (!poem) poem = '我吃过的字都还在纸里只是换成了空';
+  S.ghost = { chars: Array.from(poem), t: 0 };
+  whisper(`你安静下来的时候，前世的它开口了：「${poem}」`, 9000);
+  Snd.ghost();
+}
+function renderArchive() {
+  const ol = $('arch'); while (ol.firstChild) ol.removeChild(ol.firstChild);
+  const arch = store.get('duyu.archive', []);
+  const list = Array.isArray(arch) ? arch.slice().reverse() : [];
+  if (!list.length) { const li = document.createElement('li'); li.textContent = '尚无。第一尾蠹鱼，正在你眼前咀字。'; ol.appendChild(li); }
+  list.forEach(e => {
+    const li = document.createElement('li');
+    li.textContent = `第${e.g}代 · 「${e.s}」卷${cnNum(e.p || 1)} · 咀${e.n}字 · ${CAUSE[e.c] || e.c}`;
+    if (e.poem) { const sm = document.createElement('small'); sm.textContent = '腹中：' + e.poem; li.appendChild(sm); }
+    ol.appendChild(li);
+  });
+  $('metaInfo').textContent = `此书为一个 index.html，约 ${SRC.length} 字节。纸：<canvas> ${W}×${H} @${dpr.toFixed(2)}x；版心 ${L.cols} 行 × ${L.rows} 字；此页余 ${countLeft()} 字。你第 ${S.visits} 次翻开它。`;
+}
+function countLeft() { let n = 0; for (let i = 0; i < L.N; i++) if (!eaten[i]) n++; return n; }
+
+/* ================= 页 ================= */
+function buildPage() {
+  TXT = genText(S.seedText, S.page, TEXTLEN);
+  eaten.fill(0); mold.fill(0); camph.fill(0);
+  noise = makeNoise(hashStr(S.seedText + '#' + S.page));
+  S.ancestral = loadHoles();
+  checkIslands(true);
+  const r = rngFrom(S.seedText + 'mold' + S.page);
+  const k = 2 + Math.floor(r() * 3) + Math.min(4, S.page - 1);
+  for (let j = 0; j < k; j++) { const i = Math.floor(r() * L.N); if (!eaten[i]) mold[i] = 0.25 + r() * 0.2; }
+  S.pageAge = 0; S.ghost = null; S.ghostShown = false; S.idle = 0; S.humPh = r() * TAU;
+  camFx.length = 0;
+  renderPaper(); renderBack();
+}
+function startTurn(cause) {
+  if (S.turn || S.letterOpen) return;
+  if (cause === 'manual' && S.reveal) return;
+  S.turn = { t: 0, dur: RM ? 0.6 : 1.3, cause, swapped: false };
+  Snd.swoosh();
+}
+function swapPage(cause) {
+  saveHoles();
+  S.page++;
+  buildPage();
+  S.reveal = null; S.pendReveal = 0;
+  if (cause === 'manual' && worm && worm.alive) {
+    const P = L.P; worm.x = clamp(worm.x, P.x + 10, P.x + P.w - 10); worm.y = clamp(worm.y, P.y + 10, P.y + P.h - 10);
+    worm.segs.forEach(g => { g.x = worm.x; g.y = worm.y; });
+  } else { S.gen++; newWorm(); }
+  whisper(`卷${cnNum(S.page)}。` + (S.ancestral ? `这页上已有 ${S.ancestral} 个前世的孔。` : '纸是新的。'), 3500);
+}
+function randomSeed() {
+  const O = POOL.O;
+  return O[Math.floor(Math.random() * O.length)] + O[Math.floor(Math.random() * O.length)];
+}
+function setHash() { try { history.replaceState(null, '', '#s=' + encodeURIComponent(S.seedText)); } catch (e) { /* 沙箱中静默 */ } }
+function readHash() { try { const m = /[#&]s=([^&]*)/.exec(location.hash || ''); return m ? decodeURIComponent(m[1]).slice(0, 24) : ''; } catch (e) { return ''; } }
+function applySeed(txt) {
+  txt = String(txt || '').trim().slice(0, 24);
+  if (!txt) txt = randomSeed();
+  if (S.turn || S.reveal || S.letterOpen) return;
+  if (worm && worm.alive && worm.eaten > 0) pushArchive('易书');
+  saveHoles();
+  S.seedText = txt; $('seed').value = txt; S.page = 1; S.gen = 1;
+  setHash();
+  buildPage(); newWorm(); S.camphor = 3;
+  whisper(`以「${txt}」为种，书重新长了出来。` + (S.ancestral ? `前人在这页留下了 ${S.ancestral} 个孔。` : ''), 4000);
+  Snd.swoosh();
+}
+
+/* ================= 声：Web Audio 合成（默认静音） ================= */
+const Snd = {
+  ac: null, on: false, master: null, bus: null, rusG: null, droneF: null, nbuf: null,
+  init() {
+    if (this.ac) return true;
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return false;
+      const ac = new AC(); this.ac = ac;
+      const m = ac.createGain(); m.gain.value = 0; m.connect(ac.destination); this.master = m;
+      const bus = ac.createGain(); bus.gain.value = 1; bus.connect(m); this.bus = bus;
+      const d = ac.createDelay(1.5); d.delayTime.value = 0.27;
+      const fb = ac.createGain(); fb.gain.value = 0.36;
+      const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1800;
+      bus.connect(d); d.connect(lp); lp.connect(fb); fb.connect(d);
+      const wet = ac.createGain(); wet.gain.value = 0.35; lp.connect(wet); wet.connect(m);
+      const len = Math.floor(ac.sampleRate * 3), buf = ac.createBuffer(1, len, ac.sampleRate), ch = buf.getChannelData(0);
+      let b = 0;
+      for (let i = 0; i < len; i++) { const w = Math.random() * 2 - 1; b = (b + 0.02 * w) / 1.02; ch[i] = w * 0.5 + b * 3; }
+      this.nbuf = buf;
+      const src = ac.createBufferSource(); src.buffer = buf; src.loop = true;
+      const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 2200; bp.Q.value = 0.7;
+      const g = ac.createGain(); g.gain.value = 0;
+      src.connect(bp); bp.connect(g); g.connect(m); src.start(); this.rusG = g;
+      const dg = ac.createGain(); dg.gain.value = 0.018;
+      const dl = ac.createBiquadFilter(); dl.type = 'lowpass'; dl.frequency.value = 400;
+      dg.connect(dl); dl.connect(m); this.droneF = dl;
+      [73.42, 110, 146.83 * 1.003].forEach(f => { const o = ac.createOscillator(); o.type = 'sine'; o.frequency.value = f; o.connect(dg); o.start(); });
+      return true;
+    } catch (e) { this.ac = null; return false; }
+  },
+  toggle() {
+    if (!this.init()) { whisper('这本书没有声带（此浏览器不支持 Web Audio）。', 3000); return false; }
+    this.on = !this.on;
+    try {
+      if (this.on && this.ac.state === 'suspended') this.ac.resume();
+      const t = this.ac.currentTime;
+      this.master.gain.cancelScheduledValues(t);
+      this.master.gain.setTargetAtTime(this.on ? 0.8 : 0, t, 0.08);
+    } catch (e) { /* 静默 */ }
+    return this.on;
+  },
+  ok() { return !!(this.on && this.ac); },
+  tone(f, when, dur, vel, type, cut) {
+    if (!this.ok()) return;
+    try {
+      const ac = this.ac, t = ac.currentTime + (when || 0);
+      const o = ac.createOscillator(), g = ac.createGain(), lp = ac.createBiquadFilter();
+      o.type = type || 'triangle'; o.frequency.setValueAtTime(f, t);
+      lp.type = 'lowpass'; lp.frequency.setValueAtTime(cut || 2600, t);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vel, t + 0.008); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(lp); lp.connect(g); g.connect(this.bus); o.start(t); o.stop(t + dur + 0.05);
+    } catch (e) { /* 静默 */ }
+  },
+  hiss(when, dur, vel, freq, ftype, freq2) {
+    if (!this.ok() || !this.nbuf) return;
+    try {
+      const ac = this.ac, t = ac.currentTime + (when || 0);
+      const src = ac.createBufferSource(); src.buffer = this.nbuf;
+      const f = ac.createBiquadFilter(); f.type = ftype || 'bandpass'; f.frequency.setValueAtTime(freq, t);
+      if (freq2) f.frequency.exponentialRampToValueAtTime(freq2, t + dur);
+      const g = ac.createGain(); g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vel, t + Math.min(0.02, dur * 0.3)); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      src.connect(f); f.connect(g); g.connect(this.bus); src.start(t, Math.random() * 1.5); src.stop(t + dur + 0.05);
+    } catch (e) { /* 静默 */ }
+  },
+  /* 字的第二种读法：码位映射到五声音阶 */
+  freqOf(ch) { const c = (ch && ch.codePointAt(0)) || 0, deg = c % 10, R = [1, 9 / 8, 5 / 4, 3 / 2, 5 / 3]; return 196 * Math.pow(2, Math.floor(deg / 5)) * R[deg % 5]; },
+  note(ch, kind, moldy) {
+    if (!this.ok()) return;
+    this.hiss(0, 0.05, 0.05, 3200, 'highpass');
+    if (kind === 1) { this.hiss(0, 0.03, 0.06, 5200, 'highpass'); return; }
+    const f = this.freqOf(ch);
+    if (moldy) { this.tone(f * 0.5 * 0.97, 0, 0.8, 0.09, 'sawtooth', 520); this.tone(f * 0.5 * 1.03, 0.02, 0.8, 0.05, 'sawtooth', 520); }
+    else if (kind === 2) { this.tone(f * 2, 0, 2.4, 0.1, 'sine', 7000); this.tone(f * 2 * 2.76, 0, 1.4, 0.025, 'sine', 9000); this.tone(f, 0, 1.6, 0.05, 'triangle', 2000); }
+    else { this.tone(f, 0, 1.2, 0.09, 'triangle', 2300); this.tone(f * 2.005, 0, 0.5, 0.022, 'sine', 5000); }
+  },
+  moth(chars) { chars.slice(0, 8).forEach((ch, k) => this.tone(this.freqOf(ch) * 2, k * 0.09, 1.4, 0.06, 'sine', 6000)); this.hiss(0, 0.6, 0.03, 900, 'bandpass', 3000); },
+  death() { const R = [1, 9 / 8, 5 / 4, 3 / 2, 5 / 3]; [4, 3, 2, 1, 0].forEach((d, k) => this.tone(98 * R[d], k * 0.38, 1.6, 0.08, 'triangle', 900)); },
+  camphor() { this.tone(1760, 0, 0.5, 0.04, 'sine', 9000); this.tone(2637, 0.06, 0.6, 0.03, 'sine', 9000); this.tone(3520, 0.13, 0.4, 0.015, 'sine', 9000); },
+  swoosh() { this.hiss(0, 0.7, 0.12, 600, 'bandpass', 2600); },
+  ghost() { const R = [1, 9 / 8, 5 / 4, 3 / 2, 5 / 3]; [0, 2, 4, 1].forEach((d, k) => this.tone(392 * R[d], k * 0.6, 3, 0.035, 'sine', 3000)); },
+  metamorph() { const R = [1, 9 / 8, 5 / 4, 3 / 2, 5 / 3]; for (let k = 0; k < 12; k++) this.tone(196 * Math.pow(2, Math.floor(k / 5)) * R[k % 5], k * 0.12, 2.5, 0.05, 'sine', 6000); },
+  dud() { this.tone(110, 0, 0.25, 0.06, 'square', 300); },
+  ambient(sp, hum) {
+    if (!this.ac) return;
+    try { const t = this.ac.currentTime; this.rusG.gain.setTargetAtTime(this.on ? (0.003 + sp * 0.05) : 0, t, 0.15); this.droneF.frequency.setTargetAtTime(220 + hum * 600, t, 0.8); } catch (e) { /* 静默 */ }
+  }
+};
+
+/* ================= 绘制 ================= */
+function drawMold(pa) {
+  if (!moldSp.length) return;
+  const s = L.s;
+  for (let i = 0; i < L.N; i++) {
+    const m = mold[i];
+    if (m <= 0.02 || eaten[i]) continue;
+    const xy = cellXY(i);
+    ctx.globalAlpha = Math.min(1, m * 1.1) * pa;
+    ctx.drawImage(moldSp[i % 3], xy[0] - s / 2, xy[1] - s / 2, s, s);
+  }
+  ctx.globalAlpha = 1;
+}
+function drawCamphor() {
+  const s = L.s;
+  camFx.forEach(fx => {
+    const a = fx.t < 0.4 ? fx.t / 0.4 : Math.max(0, 1 - (fx.t - 20) / 6);
+    if (fx.t < 0.8 && !RM) {
+      ctx.strokeStyle = `rgba(250,250,240,${0.5 * (1 - fx.t / 0.8)})`; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.arc(fx.x, fx.y, s * 2.3 * fx.t / 0.8, 0, TAU); ctx.stroke();
+    }
+    for (let k = 0; k < 16; k++) {
+      const ang = ih(fx.seed, k) * TAU, rr = ih(fx.seed, k + 50) * s * 2.1, sz = s * (0.05 + 0.07 * ih(fx.seed, k + 99));
+      const x = fx.x + Math.cos(ang) * rr, y = fx.y + Math.sin(ang) * rr;
+      ctx.beginPath();
+      for (let h = 0; h < 6; h++) { const aa = h / 6 * TAU + ang; const px = x + Math.cos(aa) * sz, py = y + Math.sin(aa) * sz; if (h) ctx.lineTo(px, py); else ctx.moveTo(px, py); }
+      ctx.closePath();
+      ctx.fillStyle = `rgba(250,252,246,${0.55 * a})`; ctx.fill();
+      ctx.strokeStyle = `rgba(170,182,182,${0.5 * a})`; ctx.lineWidth = 0.6; ctx.stroke();
+    }
+  });
+}
+function drawGhost() {
+  const g = S.ghost; if (!g) return;
+  const a = Math.min(1, g.t / 3) * clamp((22 - g.t) / 4, 0, 1); if (a <= 0) return;
+  const pulse = RM ? 1 : 0.75 + 0.25 * Math.sin(T * 2);
+  ctx.fillStyle = `rgba(222,104,70,${(0.85 * a * pulse).toFixed(3)})`;
+  ctx.font = `${L.s * 0.62}px ${SERIF}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  let k = 0;
+  for (let i = 0; i < L.N && k < g.chars.length; i++) if (eaten[i] === 1 || eaten[i] === 2) { const xy = cellXY(i); ctx.fillText(g.chars[k++], xy[0], xy[1]); }
+}
+function drawHint() {
+  if (S.hintT <= 0) return;
+  const a = Math.min(1, S.hintT / 2) * 0.72;
+  ctx.fillStyle = `rgba(70,58,44,${a})`;
+  ctx.font = `italic ${clamp(L.s * 0.4, 10, 14)}px ${SERIF}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const t = COARSE ? '拖指引之 · 轻点撒樟脑 · 长按蜷身 · 跋中有言' : '移鼠引之 · 点击撒樟脑 · 空格蜷身 · H 读跋';
+  ctx.fillText(t, L.P.x + L.P.w / 2, Math.max(L.P.y + 8, L.gy0 - L.pad * 0.55));
+}
+function drawCrumbs() {
+  crumbs.forEach(c => {
+    const a = 1 - c.t / c.life;
+    ctx.fillStyle = `rgba(226,210,176,${a})`;
+    ctx.fillRect(c.x - c.r, c.y - c.r, c.r * 2, c.r * 2);
+  });
+}
+function drawWorm() {
+  if (!worm || worm.gone) return;
+  const w = worm, s = L.s, sg = w.segs, n = sg.length, rb = s * 0.21, alive = w.alive;
+  const moving = alive ? clamp(w.speed / (s * 5.2), 0, 1) : 0;
+  const rad = i => { const t = i / (n - 1); const r = t < 0.12 ? 0.8 + t / 0.12 * 0.2 : 1 - Math.pow((t - 0.12) / 0.88, 1.4) * 0.78; return rb * r * (alive ? 1 : 1.08); };
+  ctx.fillStyle = 'rgba(30,18,8,0.22)';
+  for (let i = n - 1; i >= 0; i--) { ctx.beginPath(); ctx.arc(sg[i].x + s * 0.06, sg[i].y + s * 0.09, rad(i) * 1.05, 0, TAU); ctx.fill(); }
+  /* 尾须三根 */
+  const tl = sg[n - 1], tp = sg[n - 2] || sg[0];
+  const ta = Math.atan2(tl.y - tp.y, tl.x - tp.x);
+  ctx.strokeStyle = alive ? 'rgba(92,90,82,0.9)' : 'rgba(96,80,58,0.8)'; ctx.lineWidth = Math.max(0.6, s * 0.03); ctx.lineCap = 'round';
+  [-1, 0, 1].forEach(k => {
+    const a = ta + k * 0.38 + (alive && !RM ? Math.sin(T * 4 + k) * 0.06 : 0), len = s * (k === 0 ? 0.75 : 0.6);
+    ctx.beginPath(); ctx.moveTo(tl.x, tl.y); ctx.lineTo(tl.x + Math.cos(a) * len, tl.y + Math.sin(a) * len); ctx.stroke();
+  });
+  /* 身体：银鳞 */
+  for (let i = n - 1; i >= 0; i--) {
+    const p = sg[i], r = rad(i);
+    ctx.fillStyle = alive ? (i % 2 ? '#8f8e87' : '#aaa9a1') : (i % 2 ? '#7c6b55' : '#8b7a62');
+    ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, TAU); ctx.fill();
+    ctx.fillStyle = `rgba(255,255,250,${alive ? 0.3 : 0.1})`;
+    ctx.beginPath(); ctx.arc(p.x - r * 0.3, p.y - r * 0.35, r * 0.42, 0, TAU); ctx.fill();
+  }
+  const h = sg[0], hn = sg[1] || sg[0];
+  let ang = Math.atan2(h.y - hn.y, h.x - hn.x); if (!Number.isFinite(ang)) ang = w.ang;
+  const cx = Math.cos(ang), cy = Math.sin(ang), px = -cy, py = cx, hr = rad(0);
+  /* 足 */
+  ctx.strokeStyle = alive ? 'rgba(80,78,70,0.75)' : 'rgba(90,72,50,0.6)'; ctx.lineWidth = Math.max(0.5, s * 0.022);
+  for (let i = 1; i <= Math.min(3, n - 1); i++) {
+    const p = sg[i], r = rad(i);
+    [-1, 1].forEach(side => {
+      const fl = RM ? 0 : Math.sin(T * 20 + i * 1.7 + side) * 0.5 * moving;
+      const la = ang + side * (Math.PI / 2 + 0.3 + fl);
+      ctx.beginPath(); ctx.moveTo(p.x + px * side * r * 0.8, p.y + py * side * r * 0.8);
+      ctx.lineTo(p.x + Math.cos(la) * (r + s * 0.18), p.y + Math.sin(la) * (r + s * 0.18)); ctx.stroke();
+    });
+  }
+  /* 眼 */
+  ctx.fillStyle = '#221a12';
+  [-1, 1].forEach(side => { ctx.beginPath(); ctx.arc(h.x + cx * hr * 0.4 + px * side * hr * 0.5, h.y + cy * hr * 0.4 + py * side * hr * 0.5, Math.max(0.7, hr * 0.14), 0, TAU); ctx.fill(); });
+  /* 触角 */
+  ctx.strokeStyle = alive ? 'rgba(70,68,62,0.85)' : 'rgba(90,72,50,0.6)'; ctx.lineWidth = Math.max(0.5, s * 0.025);
+  [-1, 1].forEach(side => {
+    const sway = alive && !RM ? Math.sin(T * 3 + side * 1.3) * s * 0.12 : 0;
+    const droop = alive ? 1 : 0.55;
+    const sx = h.x + cx * hr * 0.7 + px * side * hr * 0.3, sy = h.y + cy * hr * 0.7 + py * side * hr * 0.3;
+    const qx = sx + cx * s * 0.5 * droop + px * side * s * 0.25 + px * sway, qy = sy + cy * s * 0.5 * droop + py * side * s * 0.25 + py * sway;
+    const ex = sx + cx * s * 1.0 * droop + px * side * s * 0.55 + px * sway * 1.6, ey = sy + cy * s * 1.0 * droop + py * side * s * 0.55 + py * sway * 1.6;
+    ctx.beginPath(); ctx.moveTo(sx, sy); ctx.quadraticCurveTo(qx, qy, ex, ey); ctx.stroke();
+  });
+  if (w.curl && alive) {
+    ctx.fillStyle = 'rgba(70,58,44,0.6)'; ctx.font = `italic ${s * 0.4}px ${SERIF}`; ctx.textAlign = 'center';
+    ctx.fillText('z', h.x + s * 0.5, h.y - s * 0.6 - (RM ? 0 : Math.sin(T * 2) * 3));
+  }
+}
+function drawMoths() {
+  moths.forEach(m => {
+    const a = Math.min(1, m.t / 0.4) * (m.big ? 1 : clamp((14 - m.t) / 2, 0, 1)), sz = m.sz;
+    const f = RM ? 0.75 : 0.35 + 0.65 * Math.abs(Math.sin(m.t * (m.big ? 7 : 13) + m.ph));
+    ctx.save(); ctx.translate(m.x, m.y); ctx.rotate(Math.atan2(m.vy, m.vx) + Math.PI / 2); ctx.globalAlpha = a;
+    [-1, 1].forEach(side => {
+      ctx.save(); ctx.scale(side * f, 1);
+      ctx.fillStyle = '#eadfc3'; ctx.strokeStyle = 'rgba(80,60,40,0.5)'; ctx.lineWidth = 0.8;
+      ctx.beginPath(); ctx.ellipse(sz * 0.55, -sz * 0.15, sz * 0.6, sz * 0.36, -0.35, 0, TAU); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#dccfae';
+      ctx.beginPath(); ctx.ellipse(sz * 0.42, sz * 0.3, sz * 0.4, sz * 0.27, 0.4, 0, TAU); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = 'rgba(120,80,45,0.35)';
+      ctx.beginPath(); ctx.arc(sz * 0.7, -sz * 0.2, sz * 0.08, 0, TAU); ctx.fill();
+      ctx.restore();
+    });
+    ctx.fillStyle = '#6d5c47'; ctx.beginPath(); ctx.ellipse(0, 0, sz * 0.12, sz * 0.45, 0, 0, TAU); ctx.fill();
+    ctx.strokeStyle = 'rgba(80,62,45,0.8)'; ctx.lineWidth = 0.8;
+    [-1, 1].forEach(side => { ctx.beginPath(); ctx.moveTo(0, -sz * 0.4); ctx.quadraticCurveTo(side * sz * 0.15, -sz * 0.75, side * sz * 0.32, -sz * 0.85); ctx.stroke(); });
+    ctx.fillStyle = 'rgba(40,30,22,0.85)'; ctx.font = `${sz * 0.36}px ${SERIF}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const cs = m.chars;
+    if (cs[0]) ctx.fillText(cs[0], sz * 0.55 * f, -sz * 0.15);
+    if (cs[1]) ctx.fillText(cs[1], -sz * 0.55 * f, -sz * 0.15);
+    if (m.big) { if (cs[2]) ctx.fillText(cs[2], sz * 0.42 * f, sz * 0.3); if (cs[3]) ctx.fillText(cs[3], -sz * 0.42 * f, sz * 0.3); }
+    ctx.restore();
+  });
+  ctx.globalAlpha = 1;
+}
+function drawTurn() {
+  if (!S.turn) return;
+  const p = Math.min(1, S.turn.t / S.turn.dur), P = L.P;
+  ctx.save(); ctx.clip(L.edge);
+  if (RM) {
+    ctx.globalAlpha = 1 - Math.abs(p * 2 - 1); ctx.fillStyle = '#e2d2ae'; ctx.fillRect(P.x, P.y, P.w, P.h);
+  } else {
+    let a, b, edgeX, dir;
+    if (p < 0.5) { const q = ease(p * 2); a = P.x; b = P.x + P.w * q; edgeX = b; dir = 1; }
+    else { const q = ease((p - 0.5) * 2); a = P.x + P.w * q; b = P.x + P.w; edgeX = a; dir = -1; }
+    ctx.fillStyle = '#e2d2ae'; ctx.fillRect(a, P.y, b - a, P.h);
+    ctx.strokeStyle = 'rgba(160,60,35,0.12)'; ctx.lineWidth = 0.6;
+    for (let x = L.gx0; x <= L.gx1 + 0.5; x += L.s) if (x >= a && x <= b) { ctx.beginPath(); ctx.moveTo(x, L.gy0); ctx.lineTo(x, L.gy0 + L.gh); ctx.stroke(); }
+    const gw = Math.min(60, P.w * 0.08);
+    const g1 = ctx.createLinearGradient(edgeX, 0, edgeX + dir * gw, 0);
+    g1.addColorStop(0, 'rgba(40,25,10,0.35)'); g1.addColorStop(1, 'rgba(40,25,10,0)');
+    ctx.fillStyle = g1; ctx.fillRect(Math.min(edgeX, edgeX + dir * gw), P.y, gw, P.h);
+    const g2 = ctx.createLinearGradient(edgeX, 0, edgeX - dir * gw * 0.6, 0);
+    g2.addColorStop(0, 'rgba(255,248,230,0.5)'); g2.addColorStop(1, 'rgba(255,248,230,0)');
+    ctx.fillStyle = g2; ctx.fillRect(Math.min(edgeX, edgeX - dir * gw * 0.6), P.y, gw * 0.6, P.h);
+  }
+  ctx.restore(); ctx.globalAlpha = 1;
+}
+function draw() {
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  ctx.drawImage(deskC, 0, 0, W, H);
+  const P = L.P;
+  ctx.drawImage(backC, P.x, P.y, P.w, P.h);
+  const pa = S.reveal ? Math.max(0.1, 1 - S.reveal.t / 2.5) : 1;
+  ctx.globalAlpha = pa; ctx.drawImage(paperC, P.x, P.y, P.w, P.h); ctx.globalAlpha = 1;
+  const age = Math.min(0.28, S.pageAge / 1400);
+  if (age > 0.005) {
+    ctx.save(); ctx.clip(L.edge); ctx.globalCompositeOperation = 'multiply';
+    ctx.fillStyle = `rgba(214,160,80,${age.toFixed(3)})`; ctx.fillRect(P.x, P.y, P.w, P.h); ctx.restore();
+  }
+  drawMold(pa); drawCamphor(); drawGhost(); drawHint(); drawCrumbs(); drawWorm(); drawMoths(); drawTurn();
+}
+
+/* ================= 界面 ================= */
+let whisperTimer = 0;
+function whisper(msg, ms) {
+  const el = $('whisper'); el.textContent = msg; el.classList.add('on');
+  clearTimeout(whisperTimer); whisperTimer = setTimeout(() => el.classList.remove('on'), ms || 3000);
+}
+function renderGut() {
+  gutDirty = false;
+  const el = $('gutText'); if (!worm) return;
+  while (el.firstChild) el.removeChild(el.firstChild);
+  if (!worm.gut.length) { el.className = 'empty'; el.textContent = worm.gone ? '（它飞走了。腹中的字也一起飞走了。）' : '（空腹。它还没读过一个字。）'; return; }
+  el.className = '';
+  const maxN = Math.max(7, Math.floor((el.clientWidth || 300) / 17));
+  const items = worm.gut.slice(-maxN), start = worm.gut.length - items.length;
+  items.forEach((o, k) => {
+    if (k > 0 && (start + k) % 7 === 0) { const b = document.createElement('span'); b.className = 'br'; b.textContent = '／'; el.appendChild(b); }
+    const sp = document.createElement('span'); sp.textContent = o.ch;
+    if (o.m) sp.className = 'm'; else if (o.red) sp.className = 'r';
+    el.appendChild(sp);
+  });
+}
+function satWord() { const n = Math.round(clamp(worm.sat, 0, 1) * 5); return '嗞'.repeat(n) + '簌'.repeat(5 - n); }
+function updateUI() {
+  if (gutDirty) renderGut();
+  const el = $('stat'); if (!worm) return;
+  const hum = ['○', '◔', '◑', '◕', '●'][Math.min(4, Math.floor(S.hum * 4.99))];
+  let life;
+  if (worm.gone) life = '— 羽化 —';
+  else if (!worm.alive) life = '— 僵 —';
+  else life = `<b>${satWord()}</b>` + (worm.poison > 0.05 ? ` · 毒${'▮'.repeat(Math.max(1, Math.round(worm.poison * 5)))}` : '') + (worm.curl ? ' · 蜷' : '');
+  el.innerHTML = `${life} · 潮${hum} · 樟×${S.camphor} · 卷${cnNum(S.page)} · 第${S.gen}代 · 咀${worm.eaten} <i>&lt;canvas ${W}×${H}@${dpr.toFixed(1)}&gt;</i>`;
+  Snd.ambient(worm && worm.alive ? worm.speed / (L.s * 5.2) : 0, S.hum);
+}
+function updateTitle() {
+  if (!worm) return;
+  document.title = worm.gone ? '蠹鱼抄 · 羽化' : worm.alive ? `蠹鱼抄 · ${satWord()}` : '蠹鱼抄 · 僵';
+}
+function markFound() { if (S.found) $('h1').classList.add('found'); }
+function togglePanel(force) {
+  const p = $('panel'); const open = typeof force === 'boolean' ? force : !p.classList.contains('open');
+  p.classList.toggle('open', open); p.setAttribute('aria-hidden', open ? 'false' : 'true');
+  $('help').classList.remove('pulse');
+  if (open) renderArchive();
+}
+function toggleSound() {
+  const on = Snd.toggle(); const b = $('snd');
+  b.textContent = on ? '声·鸣' : '声·寂'; b.classList.toggle('on', !!on);
+  if (on) whisper('每个字被咀碎时，都会发出它自己的音。', 2600);
+}
+
+/* ================= 输入 ================= */
+const keys = new Set();
+const ptr = { x: 0, y: 0, down: false, drag: false, sx: 0, sy: 0, st: 0, lastMove: -1e9, type: 'mouse', lp: 0, longed: false };
+function poke() { S.idle = 0; }
+cv.addEventListener('pointerdown', e => {
+  e.preventDefault();
+  if (S.letterOpen) return;
+  try { cv.setPointerCapture(e.pointerId); } catch (err) { /* 静默 */ }
+  ptr.down = true; ptr.drag = false; ptr.sx = ptr.x = e.clientX; ptr.sy = ptr.y = e.clientY; ptr.st = performance.now(); ptr.type = e.pointerType || 'mouse'; ptr.longed = false;
+  clearTimeout(ptr.lp);
+  ptr.lp = setTimeout(() => { if (ptr.down && !ptr.drag) { ptr.longed = true; toggleCurl(); } }, 600);
+  poke();
+  if ($('panel').classList.contains('open') && W < 640) togglePanel(false);
+});
+cv.addEventListener('pointermove', e => {
+  ptr.x = e.clientX; ptr.y = e.clientY; ptr.lastMove = performance.now(); ptr.type = e.pointerType || ptr.type;
+  if (ptr.down && Math.hypot(ptr.x - ptr.sx, ptr.y - ptr.sy) > 8) { ptr.drag = true; clearTimeout(ptr.lp); }
+  poke();
+});
+function endPointer() {
+  clearTimeout(ptr.lp);
+  if (ptr.down && !ptr.drag && !ptr.longed && performance.now() - ptr.st < 400) camphorAt(ptr.x, ptr.y);
+  ptr.down = false; ptr.drag = false;
+}
+cv.addEventListener('pointerup', endPointer);
+cv.addEventListener('pointercancel', () => { clearTimeout(ptr.lp); ptr.down = false; ptr.drag = false; });
+cv.addEventListener('contextmenu', e => e.preventDefault());
+
+const MOVE_KEYS = ['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'w', 'a', 's', 'd'];
+window.addEventListener('keydown', e => {
+  const tag = (e.target && e.target.tagName) || '';
+  if (tag === 'INPUT' || tag === 'TEXTAREA') { if (e.key === 'Escape') e.target.blur(); return; }
+  if (S.letterOpen) { if (e.key === 'Enter' || e.key === 'Escape' || e.key === ' ') { e.preventDefault(); closeLetter(); } return; }
+  const k = (e.key || '').toLowerCase();
+  if (MOVE_KEYS.indexOf(k) >= 0) { keys.add(k); e.preventDefault(); poke(); return; }
+  if (tag === 'BUTTON' && (k === ' ' || k === 'enter')) return;
+  if (k === ' ') { e.preventDefault(); if (!e.repeat) toggleCurl(); }
+  else if (k === 'c' && worm && worm.alive) camphorAt(worm.x, worm.y);
+  else if (k === 'm') toggleSound();
+  else if (k === 'h' || k === '?') togglePanel();
+  else if (k === 'escape') togglePanel(false);
+  else if (k === 'n' || k === 'pagedown') startTurn('manual');
+  else if (k === '/') { e.preventDefault(); $('seed').focus(); $('seed').select(); }
+  poke();
+});
+window.addEventListener('keyup', e => { keys.delete((e.key || '').toLowerCase()); });
+window.addEventListener('blur', () => keys.clear());
+
+$('go').addEventListener('click', e => { applySeed($('seed').value); e.currentTarget.blur(); });
+$('seed').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); applySeed($('seed').value); $('seed').blur(); } });
+$('snd').addEventListener('click', e => { toggleSound(); e.currentTarget.blur(); });
+$('help').addEventListener('click', e => { togglePanel(); e.currentTarget.blur(); });
+$('turn').addEventListener('click', e => { startTurn('manual'); e.currentTarget.blur(); });
+$('closePanel').addEventListener('click', () => togglePanel(false));
+$('letterClose').addEventListener('click', closeLetter);
+$('letter').addEventListener('click', e => { if (e.target === $('letter')) closeLetter(); });
+$('forget').addEventListener('click', () => {
+  store.wipe('duyu.');
+  S.found = false; $('h1').classList.remove('found');
+  const keepVisits = S.visits; store.set('duyu.visits', keepVisits);
+  buildPage(); renderArchive();
+  whisper('档已焚。书忘了你，也忘了所有咀过它的蠹鱼。', 3500);
+});
+window.addEventListener('hashchange', () => { const h = readHash(); if (h && h !== S.seedText) applySeed(h); });
+
+let resizeT = 0, resized = false;
+window.addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTimeout(onResize, 140); });
+function onResize() {
+  const oldP = { x: L.P.x, y: L.P.y, w: L.P.w, h: L.P.h };
+  computeLayout(); renderDesk(); renderPaper(); renderBack(); makeMoldSprites(); checkIslands(true);
+  if (worm) {
+    const P = L.P, fx = v => P.x + (v - oldP.x) / oldP.w * P.w, fy = v => P.y + (v - oldP.y) / oldP.h * P.h;
+    worm.x = fx(worm.x); worm.y = fy(worm.y); worm.segs.forEach(g => { g.x = fx(g.x); g.y = fy(g.y); });
+  }
+  gutDirty = true;
+  if (S.started) whisper(`有人拉扯了我的边框。纸被重新裁过：${W}×${H}。字还是那些字，只是换了行。`, 3200);
+  resized = true;
+}
+document.addEventListener('visibilitychange', () => {
+  if (!Snd.ac) return;
+  try { if (document.hidden) Snd.ac.suspend(); else if (Snd.on) Snd.ac.resume(); } catch (e) { /* 静默 */ }
+});
+window.addEventListener('pagehide', () => { if (S.holesDirty) saveHoles(); });
+window.addEventListener('beforeunload', () => { if (S.holesDirty) saveHoles(); });
+
+/* ================= 主循环 ================= */
+function update(dt) {
+  T += dt;
+  if (!S.letterOpen) S.pageAge += dt;
+  S.idle += dt; S.hintT -= dt;
+  S.hum = clamp(0.5 + 0.35 * Math.sin(T * 0.045 + S.humPh) + 0.3 * (noise.n2(T * 0.05, 3.7) - 0.5), 0, 1);
+  S.moldT += dt; if (S.moldT > 0.35) { S.moldT = 0; if (!S.reveal && !S.letterOpen) moldTick(); }
+  for (let i = camFx.length - 1; i >= 0; i--) { camFx[i].t += dt; if (camFx[i].t > 26) camFx.splice(i, 1); }
+  if (worm) updateWorm(dt);
+  for (let i = moths.length - 1; i >= 0; i--) {
+    const m = moths[i]; m.t += dt;
+    const sp = L.s * (m.big ? 1.1 : 1.8) * (RM ? 0.6 : 1);
+    m.vx = Math.sin(m.t * 1.1 + m.ph) * L.s * 1.3 * (RM ? 0.4 : 1) + m.dir * L.s * 0.4;
+    m.vy = -sp * (0.6 + Math.min(1, m.t * 0.5));
+    m.x += m.vx * dt; m.y += m.vy * dt;
+    if (m.y < -m.sz * 3 || m.t > (m.big ? 22 : 14)) moths.splice(i, 1);
+  }
+  for (let i = crumbs.length - 1; i >= 0; i--) {
+    const c = crumbs[i]; c.t += dt; c.x += c.vx * dt; c.y += c.vy * dt; c.vx *= 0.9; c.vy *= 0.9;
+    if (c.t > c.life) crumbs.splice(i, 1);
+  }
+  if (S.pendReveal > 0) { S.pendReveal -= dt; if (S.pendReveal <= 0) startReveal(); }
+  if (S.turn) {
+    S.turn.t += dt;
+    const p = S.turn.t / S.turn.dur;
+    if (p >= 0.5 && !S.turn.swapped) { S.turn.swapped = true; swapPage(S.turn.cause); }
+    if (p >= 1) S.turn = null;
+  }
+  if (S.reveal) { S.reveal.t += dt; if (S.reveal.t > 2.6 && !S.reveal.shown) { S.reveal.shown = true; openLetter(); } }
+  if (S.ghost) { S.ghost.t += dt; if (S.ghost.t > 22) S.ghost = null; }
+  else if (!S.ghostShown && S.idle > 25 && worm && worm.alive && !S.turn && !S.reveal) summonGhost();
+  S.saveT += dt; if (S.saveT > 3) { S.saveT = 0; if (S.holesDirty) saveHoles(); }
+  S.uiT += dt; if (S.uiT > 0.25) { S.uiT = 0; updateUI(); }
+  S.titleT += dt; if (S.titleT > 2) { S.titleT = 0; updateTitle(); }
+}
+let last = 0;
+function frame(now) {
+  const dt = last ? Math.min(0.05, Math.max(0, (now - last) / 1000)) : 0.016;
+  last = now;
+  update(dt); draw();
+  requestAnimationFrame(frame);
+}
+
+/* ================= 开卷 ================= */
+function init() {
+  SRC = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+  SRC_LINES = SRC.split('\n').map(l => l.replace(/\t/g, '  ').replace(/\s+$/, ''));
+  if (!SRC_LINES.length) SRC_LINES = [''];
+  S.visits = (Number(store.get('duyu.visits', 0)) || 0) + 1; store.set('duyu.visits', S.visits);
+  S.found = !!store.get('duyu.found', false);
+  S.seedText = readHash() || randomSeed();
+  $('seed').value = S.seedText;
+  setHash();
+  computeLayout(); renderDesk(); makeMoldSprites();
+  buildPage(); newWorm();
+  markFound(); updateUI(); renderGut();
+  whisper(`你第 ${S.visits} 次翻开这本书。` + (S.ancestral ? `这一页上已有 ${S.ancestral} 个前世的孔。` : '一尾蠹鱼刚刚醒来。'), 4200);
+  S.started = true;
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(init);
+})();
+</script>
+</body>
+</html>

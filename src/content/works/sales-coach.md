@@ -7,11 +7,12 @@ status: "实验性"
 desc: "围绕销售练习，把表达词库、声学指标与虚拟客户对练放进同一个原型界面。"
 tags: ["AI","销售","工具"]
 year: 2026
-featured: 0
 credit: "AI 辅助创作"
 availability: "需要环境"
 preview: false
 note: "这是依赖本地环境的实验原型。离线转写需要本地模型与服务，录音需要麦克风授权，部分对练能力需要自行配置 API；本站只展示原型，不提供这些服务。"
+featured: true
+order: 2
 ---
 
 ## 从说什么，到怎么说

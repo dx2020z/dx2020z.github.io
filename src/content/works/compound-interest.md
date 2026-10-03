@@ -10,6 +10,8 @@ year: 2026
 credit: "个人实验"
 availability: "待核验"
 preview: true
+featured: false
+order: 106
 ---
 
 ## 把公式放回直觉里

@@ -1,0 +1,39 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { getCollection } from 'astro:content';
+import { site } from '../data/site';
+import { withBase } from '../lib/paths.mjs';
+const path = (href: string) => withBase(href, import.meta.env.BASE_URL);
+const works = await getCollection('works');
+const externalWorks = works.filter(work => work.data.type === 'external').length;
+const skills = [
+  { title: '定义需求与边界', text: '知道什么该做，也知道什么明确不做：只收事实、不做项目管理、先服务个人使用。', evidence: [{ href: '/cases/project-01/#decision-2', name: '事实库' }, { href: '/cases/project-02/#limits', name: '项目档案' }, { href: '/cases/project-03/#decision-1', name: '内容工厂' }] },
+  { title: '设计 AI 输出的质检机制', text: '收件箱、唯一写入者、回原文核对；工作方法加上 AI、机器、人工三道质检。', evidence: [{ href: '/cases/project-01/#iterations', name: '事实库 · 核验机制' }, { href: '/cases/project-01/#learning', name: '事实库 · 质检方法' }] },
+  { title: '用真实运行驱动迭代', text: '用前后数据与真实使用反馈检验修正：首跑核验率 33% → 85%，真实投递暴露信息遗漏。', evidence: [{ href: '/cases/project-01/#iterations', name: '事实库 · 首跑修正' }, { href: '/cases/project-02/#decision-4', name: '项目档案 · 真实投递' }] },
+];
+const projects = [
+  { title: '机器人产业链事实库', href: '/cases/project-01/', text: '提出并主导设计机器人产业链事实库：免费 AI 采集，脚本回原文核验后入库，覆盖 145 家公司，新采集记录核验率 87%（借助 Claude Code 实现）。' },
+  { title: '多 AI 项目档案', href: '/cases/project-02/', text: '提出并主导设计多 AI 项目档案，统一管理跨 8 个 AI 平台的项目与接力记录，AI 写入必须经过授权（借助 AI 编程工具实现）。' },
+  { title: '内容工厂', href: '/cases/project-03/', text: '提出并跑通内容工厂全流程：把一个想法拆解为选题、调研、素材和草稿的组件化流水线，可迁移到企业内容生产与 GEO 素材准备（借助 AI 编程工具实现）。' },
+];
+const certifications = ['Prompt 工程师证书','AI Coding 工程师证书','人工智能训练高级证书','AI 大模型微调工程师认证'];
+---
+<Layout title="简历 · 段骁" description="段骁的简历：AI 实践、写作、作品与读书社群经历。">
+  <article class="resume-page" aria-labelledby="resume-title">
+    <header class="resume-header">
+      <div><span class="eyebrow">DUAN XIAO / RESUME · 2026</span><h1 id="resume-title">段骁</h1><p>写 / 做 / 聚：与 AI 协作，把想法变成作品，把知识写成书，把人聚在一起读书。</p></div>
+      <div class="resume-contact"><span>深圳 · 可远程</span><a href={'mailto:' + site.email}>{site.email}</a><a href={site.github} target="_blank" rel="noopener noreferrer">github.com/dx2020z</a><span>微信 {site.wechat}</span></div>
+    </header>
+    <section class="resume-section resume-intention"><h2>求职意向</h2><p>开放全职机会与项目合作 · 深圳 / 可远程</p><small>可开始时间：随时</small></section>
+    <section class="resume-section"><h2>核心能力</h2><div class="resume-skills">{skills.map((skill, index) => <article><span class="resume-index">0{index + 1}</span><div><h3>{skill.title}</h3><p>{skill.text}</p></div><div class="resume-evidence"><span>你看：</span>{skill.evidence.map(item => <a href={path(item.href)}>{item.name} ↗</a>)}</div></article>)}</div></section>
+    <section class="resume-section"><h2>项目经历</h2><ol class="resume-project-experiences">{projects.map(project => <li><h3><a href={path(project.href)}>{project.title} <span aria-hidden="true">↗</span></a></h3><p>{project.text}</p></li>)}</ol></section>
+    <section class="resume-section"><h2>写作与社群</h2><div class="resume-other-practice"><p><a href={path('/cases/wanshan-wuzu/')}>《万山无阻》联合作者</a>（北京日报出版社，2026 年 6 月 18 日出版）。</p><p>作品库收录 {works.length} 件作品，其中包含 {externalWorks} 个外部作品链接。</p><p>创建并运营读书群。</p></div></section>
+    <section class="resume-section"><h2>学习与培训</h2><p class="resume-certificates">{certifications.join(' · ')}</p><small>按提供的证书名称原样列示；不附带含旧姓名的证书扫描件。</small></section>
+    <section class="resume-section resume-education"><h2>教育</h2><p>广西培贤 · 金融 · 大专 · 2024 届</p></section>
+    <footer class="resume-footer"><span>最近更新：{site.updated}</span><button id="print-resume" type="button" class="button primary">下载简历 PDF <span aria-hidden="true">↓</span></button><small>点击后在打印窗口选择“另存为 PDF”。</small></footer>
+  </article>
+  <script>
+    document.querySelector<HTMLButtonElement>('#print-resume')?.addEventListener('click', () => window.print());
+    if (new URLSearchParams(location.search).get('print') === '1') window.addEventListener('load', () => window.print(), { once: true });
+  </script>
+</Layout>

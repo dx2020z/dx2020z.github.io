@@ -10,6 +10,8 @@ year: 2026
 url: "https://2z6572ale3ti4.ok.kimi.link/about.html"
 credit: "Kimi 辅助生成"
 availability: "待核验"
+featured: false
+order: 130
 ---
 
 ## 这件作品

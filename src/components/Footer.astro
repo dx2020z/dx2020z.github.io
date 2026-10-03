@@ -1,4 +1,4 @@
 ---
 import { site } from '../data/site';
 ---
-<footer class="site-footer"><span>© {new Date().getFullYear()} {site.name}</span><span>持续探索，慢慢成形。</span><a href="#top">回到顶部 <span aria-hidden="true">↑</span></a></footer>
+<footer class="site-footer"><span>© {new Date().getFullYear()} {site.name}</span><nav class="footer-articles" aria-label="文章与平台"><span>文章与平台</span>{site.articleProfiles.map(profile => <a href={profile.url} target="_blank" rel="noopener noreferrer">{profile.label}<span aria-hidden="true">↗</span></a>)}</nav><span>最近更新：{site.updated}</span><a href="#top">回到顶部 <span aria-hidden="true">↑</span></a></footer>

@@ -11,6 +11,8 @@ url: "https://60h5imceny65.manus.space/"
 credit: "Manus 辅助生成"
 availability: "待核验"
 note: "实验版本。本次检查停留在“连接服务器中”，创建和加入房间按钮不可用，联机尚未验证成功。可查看界面，暂不承诺多人游戏可用。"
+featured: false
+order: 118
 ---
 
 ## 这件作品

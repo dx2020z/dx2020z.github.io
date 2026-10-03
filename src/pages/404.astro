@@ -1,5 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import WorkIframe from '../components/WorkIframe.astro';
 import { withBase } from '../lib/paths.mjs';
 ---
-<Layout title="页面未找到 · 段骁"><section class="page-intro not-found"><span class="eyebrow">404 / OUTSIDE THE INDEX</span><h1>这页暂时不在这里。</h1><p>地址可能有误，或作品已经搬了位置。</p><a class="button primary" href={withBase('/works/',import.meta.env.BASE_URL)}>回到作品库 <span aria-hidden="true">↗</span></a></section></Layout>
+<Layout title="页面未找到 · 段骁"><section class="page-intro not-found"><span class="eyebrow">404 / OUTSIDE THE INDEX</span><h1>这页暂时不在这里。</h1><p>地址可能有误，或作品已经搬了位置。</p><a class="button primary" href={withBase('/works/',import.meta.env.BASE_URL)}>回到作品库 <span aria-hidden="true">↗</span></a><div class="not-found-game"><h2>顺路打开一个小作品</h2><p>星核远征 · 进入一个可直接玩的实验。</p><WorkIframe url={withBase('/demos/star-core-expedition/index.html',import.meta.env.BASE_URL)} title="星核远征" /></div></section></Layout>

@@ -7,11 +7,12 @@ status: "完成"
 desc: "一张可以航行的概念地图。拖动、连接，让词语之间的关系变得可以看见。"
 tags: ["交互","空间","概念"]
 year: 2026
-featured: 3
 credit: "AI 辅助创作"
 availability: "待核验"
 preview: true
 cover: "/covers/qian-space.webp"
+featured: false
+order: 133
 ---
 
 ## 在词语之间，寻找新的连接

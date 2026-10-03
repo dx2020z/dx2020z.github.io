@@ -7,11 +7,12 @@ status: "完成"
 desc: "一本关于颜色、记忆与故事的虚构随笔集。试着用文字解释：我们为什么喜欢某一种蓝。"
 tags: ["创意","写作"]
 year: 2026
-featured: 2
 credit: "AI 辅助创作"
 availability: "待核验"
 preview: true
 cover: "/covers/landelaiyuan.webp"
+featured: false
+order: 132
 ---
 
 ## 一种颜色，如何拥有故事

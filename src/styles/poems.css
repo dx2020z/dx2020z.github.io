@@ -1,0 +1,16 @@
+.site-shell.site-shell-immersive{width:100%;max-width:none;margin:0;padding:0}
+.site-shell-immersive main{width:100%;min-height:100svh}
+.poem-film{position:relative;min-height:100svh;background:#0b0d10;color:#f1eee8}
+.poem-film-video,.poem-film-poster{display:block;width:100%;height:100svh;object-fit:contain;background:#0b0d10}
+.poem-film-poster{display:none}
+.poem-back,.poem-sound{position:fixed;z-index:5;top:max(16px,env(safe-area-inset-top));min-height:44px;padding:8px 13px;border:1px solid #ffffff4a;background:#080b10db;color:#f1eee8;font-size:12px}
+.poem-back{left:var(--space)}
+.poem-sound{right:var(--space);cursor:pointer}
+.poem-ai-credit{position:fixed;z-index:4;right:var(--space);bottom:calc(60px + env(safe-area-inset-bottom));padding:4px 7px;background:#080b10c9;color:#f1eee8;font-size:10px;letter-spacing:.08em}
+.poem-sound[aria-pressed="true"],.poem-back:hover,.poem-sound:hover{border-color:#d9e9f2;color:#fff}
+.poem-film-missing{min-height:100svh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:90px 24px}
+.poem-film-missing h1{font:clamp(36px,6vw,64px)/1.4 var(--serif)}
+.poem-film-missing p{color:#cfe6f5}
+.poem-no-script{position:absolute;inset:45% 0 auto;text-align:center}
+@media(max-width:640px){.poem-back,.poem-sound{padding:6px 10px;font-size:11px}.poem-ai-credit{right:16px;font-size:9px}}
+@media(prefers-reduced-motion:reduce){.poem-film-video,.poem-sound{display:none}.poem-film-poster{display:block}}

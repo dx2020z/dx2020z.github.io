@@ -15,8 +15,11 @@ if (existsSync(schemaURL) && existsSync(pathsURL)) {
   test('local cards need six fields; optional presentation fields have defaults', () => {
     const card = workSchema.parse(valid);
     assert.deepEqual(card.tags, []);
-    assert.equal(card.featured, 0);
+    assert.equal(card.featured, false);
+    assert.equal(card.order, 999);
     assert.equal(card.year, undefined);
+    assert.equal(workSchema.parse({ ...valid, featured: true, order: 4 }).order, 4);
+    assert.equal(workSchema.safeParse({ ...valid, featured: 1 }).success, false);
   });
   test('external cards reject missing URL, javascript and credential-bearing URLs', () => {
     for (const url of [undefined, 'javascript:alert(1)', 'file:///secret', 'https://user:password@example.com/']) {

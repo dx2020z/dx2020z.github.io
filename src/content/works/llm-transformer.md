@@ -10,6 +10,8 @@ year: 2026
 url: "https://lepmpwud.manus.space/"
 credit: "Manus 辅助生成"
 availability: "待核验"
+featured: false
+order: 116
 ---
 
 ## 这件作品

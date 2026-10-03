@@ -7,11 +7,12 @@ status: "完成"
 desc: "把不同书目的拆解卡片放进同一个检索入口，从关键词与认知角度重新找到关联。"
 tags: ["AI","拆书","知识整理"]
 year: 2026
-featured: 0
 credit: "AI 辅助创作"
 availability: "待核验"
 preview: true
 cover: "/covers/100angles.webp"
+featured: false
+order: 135
 ---
 
 ## 让阅读资料重新连接

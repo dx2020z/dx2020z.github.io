@@ -7,10 +7,11 @@ status: "完成"
 desc: "把词语和粒子放进一片宇宙，观察聚集、碰撞与演化的视觉实验。"
 tags: ["语言","演示","交互"]
 year: 2026
-featured: 0
 credit: "AI 辅助创作"
 availability: "待核验"
 preview: true
+featured: false
+order: 115
 ---
 
 ## 如果语言是一片宇宙

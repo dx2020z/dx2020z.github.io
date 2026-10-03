@@ -1,0 +1,721 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
+<meta name="theme-color" content="#070913" />
+<title>光织局 · LUMEN LOOM</title>
+<style>
+  :root{
+    --bg:#070913; --ink:#f7f4ff; --muted:#aaa7bd; --panel:rgba(12,14,28,.72);
+    --line:rgba(255,255,255,.12); --accent:#8cf6ff; --accent2:#ff83d6; --gold:#ffd36f;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);
+    font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+  body{touch-action:none}
+  canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+  #vignette{
+    position:fixed;inset:0;pointer-events:none;
+    background:
+      radial-gradient(circle at 50% 35%, transparent 0 30%, rgba(0,0,0,.12) 65%, rgba(0,0,0,.55) 110%),
+      linear-gradient(to bottom, rgba(255,255,255,.015), rgba(0,0,0,.16));
+    mix-blend-mode:normal;
+  }
+  #hud{
+    position:fixed;left:18px;right:18px;top:14px;display:flex;align-items:flex-start;justify-content:space-between;
+    pointer-events:none;z-index:5;opacity:0;transition:opacity .25s ease;
+  }
+  #hud.show{opacity:1}
+  .hudBlock{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .pill{
+    min-width:92px;padding:9px 12px;border:1px solid var(--line);border-radius:999px;
+    background:rgba(9,10,22,.46);backdrop-filter:blur(16px);box-shadow:0 10px 30px rgba(0,0,0,.18)
+  }
+  .pill b{display:block;font-size:14px;letter-spacing:.02em}
+  .pill small{display:block;color:var(--muted);font-size:10px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:2px}
+  .meter{
+    width:150px;height:7px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:5px;
+    border:1px solid rgba(255,255,255,.08)
+  }
+  .meter>i{display:block;height:100%;width:50%;border-radius:inherit;background:linear-gradient(90deg,var(--accent),var(--accent2));box-shadow:0 0 18px var(--accent)}
+  #toast{
+    position:fixed;left:50%;top:22%;transform:translate(-50%,-8px);z-index:9;
+    padding:10px 15px;border:1px solid rgba(255,255,255,.12);border-radius:999px;
+    background:rgba(7,8,18,.58);backdrop-filter:blur(14px);font-weight:700;letter-spacing:.08em;
+    opacity:0;transition:.2s ease;pointer-events:none;white-space:nowrap
+  }
+  #toast.show{opacity:1;transform:translate(-50%,0)}
+  .screen{
+    position:fixed;inset:0;z-index:10;display:grid;place-items:center;padding:24px;
+    transition:opacity .28s ease,visibility .28s ease;
+  }
+  .screen.hidden{opacity:0;visibility:hidden;pointer-events:none}
+  .card{
+    width:min(690px,94vw);border:1px solid rgba(255,255,255,.12);border-radius:30px;
+    background:linear-gradient(145deg,rgba(18,18,37,.78),rgba(8,9,20,.62));
+    backdrop-filter:blur(24px);box-shadow:0 28px 80px rgba(0,0,0,.45);padding:28px;position:relative;overflow:hidden
+  }
+  .card:before{
+    content:"";position:absolute;width:300px;height:300px;border-radius:50%;right:-110px;top:-150px;
+    background:radial-gradient(circle,var(--accent) 0,transparent 68%);filter:blur(35px);opacity:.13;pointer-events:none
+  }
+  .eyebrow{font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--accent);font-weight:800}
+  h1{font-size:clamp(42px,8vw,86px);line-height:.88;margin:12px 0 8px;letter-spacing:-.07em}
+  h1 span{display:block;font-size:.34em;letter-spacing:.32em;color:var(--muted);margin-left:.25em;margin-top:.55em}
+  .lead{color:#cbc7da;line-height:1.65;max-width:600px;font-size:14px}
+  .features{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:20px 0}
+  .feature{border:1px solid var(--line);border-radius:18px;padding:13px;background:rgba(255,255,255,.025)}
+  .feature strong{display:block;font-size:13px;margin-bottom:5px}.feature span{font-size:11px;color:var(--muted);line-height:1.45}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  button{
+    appearance:none;border:0;border-radius:999px;padding:12px 18px;font:inherit;font-weight:800;cursor:pointer;
+    color:#091015;background:linear-gradient(90deg,var(--accent),#d2fbff);box-shadow:0 8px 30px rgba(93,240,255,.18);
+    transition:transform .15s ease,filter .15s ease,opacity .15s ease
+  }
+  button:hover{transform:translateY(-1px);filter:brightness(1.06)}
+  button:active{transform:translateY(1px) scale(.99)}
+  button.secondary{color:var(--ink);background:rgba(255,255,255,.06);box-shadow:none;border:1px solid var(--line)}
+  button.ghost{color:var(--muted);background:transparent;box-shadow:none;border:1px solid rgba(255,255,255,.08)}
+  .mini{font-size:11px;color:var(--muted);margin-top:13px;line-height:1.6}
+  #dailyTag{padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid var(--line);font-size:11px;color:#d9d5e7}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:17px 0}
+  .stat{border:1px solid var(--line);border-radius:18px;padding:14px;background:rgba(255,255,255,.025)}
+  .stat b{font-size:22px;display:block}.stat small{color:var(--muted);font-size:10px;letter-spacing:.12em;text-transform:uppercase}
+  #upgradeScreen .card{width:min(760px,95vw)}
+  .upgrades{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:18px}
+  .upgrade{
+    position:relative;text-align:left;border:1px solid rgba(255,255,255,.12);border-radius:22px;padding:18px;
+    background:linear-gradient(160deg,rgba(255,255,255,.055),rgba(255,255,255,.015));cursor:pointer;min-height:170px;
+    transition:.18s ease
+  }
+  .upgrade:hover{transform:translateY(-4px);border-color:rgba(255,255,255,.28);background:rgba(255,255,255,.075)}
+  .upgrade em{font-style:normal;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+  .upgrade h3{font-size:17px;margin:12px 0 7px}.upgrade p{font-size:12px;color:var(--muted);line-height:1.55;margin:0}
+  #bottomHint{
+    position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:5;pointer-events:none;
+    color:rgba(255,255,255,.46);font-size:11px;letter-spacing:.04em;text-align:center;opacity:0;transition:.25s
+  }
+  #bottomHint.show{opacity:1}
+  #cornerBtns{position:fixed;right:16px;bottom:16px;z-index:7;display:flex;gap:8px}
+  #cornerBtns button{width:40px;height:40px;padding:0;display:grid;place-items:center;color:var(--ink);background:rgba(10,11,24,.55);border:1px solid var(--line);box-shadow:none}
+  .kbd{padding:2px 6px;border:1px solid rgba(255,255,255,.15);border-bottom-color:rgba(255,255,255,.25);border-radius:6px;background:rgba(255,255,255,.05)}
+  @media (max-width:650px){
+    .card{padding:22px;border-radius:24px}.features,.upgrades{grid-template-columns:1fr}.features .feature:nth-child(3){display:none}
+    #hud{left:10px;right:10px;top:10px}.pill{min-width:auto;padding:8px 10px}.pill.hideMobile{display:none}
+    .meter{width:118px}.upgrades{max-height:65vh;overflow:auto}.upgrade{min-height:125px}
+    .stats{grid-template-columns:repeat(3,1fr)} .stat b{font-size:18px}
+  }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="vignette"></div>
+
+<div id="hud">
+  <div class="hudBlock">
+    <div class="pill"><small>Score</small><b id="score">0</b></div>
+    <div class="pill hideMobile"><small>Chain</small><b id="chain">×1.0</b></div>
+    <div class="pill"><small>Focus</small><div class="meter"><i id="focusBar"></i></div></div>
+  </div>
+  <div class="hudBlock">
+    <div class="pill hideMobile"><small>Bloom</small><div class="meter"><i id="bloomBar"></i></div></div>
+    <div class="pill"><small>Integrity</small><b id="hp">◆ ◆ ◆</b></div>
+  </div>
+</div>
+<div id="toast"></div>
+<div id="bottomHint"></div>
+
+<div id="cornerBtns">
+  <button id="soundBtn" title="声音">♪</button>
+  <button id="pauseBtn" title="暂停">Ⅱ</button>
+</div>
+
+<section id="menu" class="screen">
+  <div class="card">
+    <div class="eyebrow">A tiny arcade ritual about drawing light</div>
+    <h1>光织局<span>LUMEN LOOM</span></h1>
+    <p class="lead">宇宙里漂着还没成形的“灵感碎片”。按住并移动，织出一条会发光的线；绕一圈回到起点，把碎片封进你的星纹里。圈得越险、配色越妙，分越高。</p>
+    <div class="features">
+      <div class="feature"><strong>闭环，不是射击</strong><span>你画的形状本身就是武器。小圈精准，大圈贪心，各有代价。</span></div>
+      <div class="feature"><strong>颜色会“和声”</strong><span>单色、三色谱、稀有棱镜都有不同奖励，追求漂亮组合而不是只追数量。</span></div>
+      <div class="feature"><strong>每局会长歪</strong><span>升级会改变规则。跑得更快、专吃危险、养成棱镜流，玩法会分叉。</span></div>
+    </div>
+    <div class="row">
+      <button id="playBtn">开始织星</button>
+      <button class="secondary" id="themeBtn">主题：极夜</button>
+      <span id="dailyTag">DAILY SEED · ----</span>
+    </div>
+    <p class="mini">鼠标 / 触屏：按住并拖动织线，回到起点闭环。键盘：方向键 / WASD 移动，按住 <span class="kbd">Space</span> 织线。<br>危险的黑色裂片会割断光线；你也可以故意把它们圈进去，换取更高的“险织”倍率。</p>
+  </div>
+</section>
+
+<section id="upgradeScreen" class="screen hidden">
+  <div class="card">
+    <div class="eyebrow">WEAVE MUTATION</div>
+    <h2 style="margin:8px 0 0;font-size:28px">你的织法发生了偏转</h2>
+    <p class="lead" style="margin-top:6px">选一个本局规则。选择之后，时间继续。</p>
+    <div class="upgrades" id="upgradeChoices"></div>
+  </div>
+</section>
+
+<section id="gameover" class="screen hidden">
+  <div class="card">
+    <div class="eyebrow">THE THREAD SNAPPED</div>
+    <h2 style="font-size:38px;margin:10px 0 0">这一张星纹完成了。</h2>
+    <div class="stats">
+      <div class="stat"><b id="finalScore">0</b><small>Score</small></div>
+      <div class="stat"><b id="finalBest">0</b><small>Best</small></div>
+      <div class="stat"><b id="finalDust">+0</b><small>Stardust</small></div>
+    </div>
+    <p id="finalLine" class="lead"></p>
+    <div class="row">
+      <button id="againBtn">再织一局</button>
+      <button class="secondary" id="menuBtn">回到封面</button>
+    </div>
+    <p class="mini">星尘会永久保存，用来解锁视觉主题。这个原型也预留了每日种子、主题包、挑战规则和排行榜接口的位置，但没有广告与付费墙。</p>
+  </div>
+</section>
+
+<script>
+/*
+  光织局 / LUMEN LOOM
+  单文件 HTML5 街机原型。核心玩法：按住移动留下“光线”，回到起点形成闭环，
+  圈住漂浮碎片得分；颜色组合、闭环面积、危险裂片会共同决定倍率。
+  商业化扩展钩子：每日种子、主题包、挑战修饰符、排行榜 payload，均未接入真实付费或广告。
+*/
+(() => {
+'use strict';
+
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d', {alpha:false});
+const $ = s => document.querySelector(s);
+const scoreEl=$('#score'), chainEl=$('#chain'), focusBar=$('#focusBar'), bloomBar=$('#bloomBar'), hpEl=$('#hp');
+const toastEl=$('#toast'), bottomHint=$('#bottomHint'), hud=$('#hud');
+const menu=$('#menu'), gameover=$('#gameover'), upgradeScreen=$('#upgradeScreen');
+
+let W=innerWidth,H=innerHeight,DPR=Math.min(devicePixelRatio||1,2), t=0,last=0;
+let state='menu', paused=false, shake=0, flash=0, bloomFlash=0;
+let entities=[], particles=[], sparks=[], rings=[], floatTexts=[], stars=[], wisps=[];
+let weave=[], weaving=false, keyboardWeave=false, pointerDown=false, closedThisPress=false;
+let score=0, chain=1, chainTimer=0, focus=100, bloom=0, bloomTime=0, hp=3, elapsed=0, spawnClock=0, hazardClock=0, weaveCount=0, level=1;
+let dustEarned=0, nearMiss=0, invuln=0, tutStep=0, tutTimer=0;
+let mods={focusMax:100, regen:18, drain:20, playerSpeed:760, loopBonus:1, hazardBonus:1, prism:0, shield:0, bloomGain:1, moteValue:1, magnet:0};
+let unlockedThemes=+localStorage.getItem('loomUnlockedThemes')||1;
+let lifetimeDust=+localStorage.getItem('loomDust')||0;
+let best=+localStorage.getItem('loomBest')||0;
+let soundOn=localStorage.getItem('loomSound')!=='0';
+
+const player={x:W/2,y:H*.6,tx:W/2,ty:H*.6,r:8,vx:0,vy:0};
+const keys={};
+const TAU=Math.PI*2;
+const themes=[
+  {name:'极夜',bg:'#060812',a:'#87f4ff',b:'#ff7dd8',c:'#ffd36a',fog:'42,52,92'},
+  {name:'蜜桃电台',bg:'#120b14',a:'#ffc39d',b:'#ff7fba',c:'#fff0a8',fog:'100,45,78'},
+  {name:'深海信号',bg:'#031012',a:'#71ffd8',b:'#6e9bff',c:'#d6ff7b',fog:'16,81,83'},
+  {name:'纸月',bg:'#11100e',a:'#f0e2bf',b:'#9db8ff',c:'#ffb887',fog:'87,80,65'}
+];
+let themeIndex=+(localStorage.getItem('loomTheme')||0);
+themeIndex=Math.min(themeIndex,unlockedThemes-1);
+
+const audio={
+  ctx:null, master:null,
+  init(){
+    if(this.ctx) return;
+    this.ctx=new (window.AudioContext||window.webkitAudioContext)();
+    this.master=this.ctx.createGain(); this.master.gain.value=.16; this.master.connect(this.ctx.destination);
+  },
+  tone(freq=440,d=.08,type='sine',gain=.15,slide=0){
+    if(!soundOn) return;
+    this.init(); if(this.ctx.state==='suspended') this.ctx.resume();
+    const o=this.ctx.createOscillator(), g=this.ctx.createGain();
+    o.type=type; o.frequency.setValueAtTime(freq,this.ctx.currentTime);
+    if(slide) o.frequency.exponentialRampToValueAtTime(Math.max(40,freq+slide),this.ctx.currentTime+d);
+    g.gain.setValueAtTime(gain,this.ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.0001,this.ctx.currentTime+d);
+    o.connect(g); g.connect(this.master); o.start(); o.stop(this.ctx.currentTime+d+.02);
+  },
+  chord(kind='good'){
+    const base=kind==='bad'?120:kind==='bloom'?320:220;
+    const ints=kind==='bad'?[1,1.07]:kind==='bloom'?[1,1.25,1.5,2]:[1,1.2,1.5];
+    ints.forEach((m,i)=>setTimeout(()=>this.tone(base*m,.22,'triangle',.09,base*.2),i*38));
+  }
+};
+
+function resize(){
+  W=innerWidth;H=innerHeight;DPR=Math.min(devicePixelRatio||1,2);
+  canvas.width=W*DPR;canvas.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);
+  if(state==='menu'){player.x=player.tx=W/2;player.y=player.ty=H*.62}
+  makeBackdrop();
+}
+addEventListener('resize',resize);
+
+function rand(a=1,b=0){return b+Math.random()*(a-b)}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+function lerp(a,b,n){return a+(b-a)*n}
+function dist(a,b,c,d){return Math.hypot(a-c,b-d)}
+function hsl(h,s,l,a=1){return `hsla(${h},${s}%,${l}%,${a})`}
+function theme(){return themes[themeIndex]}
+
+function seededHash(s){
+  let h=2166136261;
+  for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}
+  return (h>>>0).toString(36).toUpperCase().slice(0,5);
+}
+const dailySeed=seededHash(new Date().toISOString().slice(0,10));
+$('#dailyTag').textContent='DAILY SEED · '+dailySeed;
+
+function makeBackdrop(){
+  stars=Array.from({length:Math.floor(W*H/12000)},()=>({x:Math.random()*W,y:Math.random()*H,z:rand(1,.2),tw:rand(TAU)}));
+  wisps=Array.from({length:8},()=>({x:Math.random()*W,y:Math.random()*H,r:rand(260,100),p:rand(TAU),s:rand(.06,.02)}));
+}
+
+function setTheme(i){
+  themeIndex=(i+themes.length)%themes.length;
+  if(themeIndex>=unlockedThemes) themeIndex=0;
+  localStorage.setItem('loomTheme',themeIndex);
+  const th=theme();
+  document.documentElement.style.setProperty('--bg',th.bg);
+  document.documentElement.style.setProperty('--accent',th.a);
+  document.documentElement.style.setProperty('--accent2',th.b);
+  document.documentElement.style.setProperty('--gold',th.c);
+  $('#themeBtn').textContent='主题：'+th.name+(unlockedThemes<themes.length?' · '+unlockedThemes+'/'+themes.length:'');
+}
+
+function resetGame(){
+  entities=[];particles=[];sparks=[];rings=[];floatTexts=[];weave=[];
+  score=0;chain=1;chainTimer=0;focus=100;bloom=0;bloomTime=0;hp=3;elapsed=0;spawnClock=0;hazardClock=0;weaveCount=0;level=1;dustEarned=0;
+  nearMiss=0;invuln=0;tutStep=0;tutTimer=0;closedThisPress=false;weaving=false;keyboardWeave=false;pointerDown=false;
+  mods={focusMax:100,regen:18,drain:20,playerSpeed:760,loopBonus:1,hazardBonus:1,prism:0,shield:0,bloomGain:1,moteValue:1,magnet:0};
+  player.x=player.tx=W/2;player.y=player.ty=H*.62;player.vx=player.vy=0;
+  for(let i=0;i<10;i++) spawnMote(true);
+  updateHUD();
+}
+
+function startGame(){
+  audio.init();
+  resetGame(); state='play'; paused=false;
+  menu.classList.add('hidden');gameover.classList.add('hidden');upgradeScreen.classList.add('hidden');
+  hud.classList.add('show');bottomHint.classList.add('show');
+  bottomHint.innerHTML='按住并移动，<b>绕回起点</b>闭环';
+  setTimeout(()=>{if(state==='play') bottomHint.classList.remove('show')},4200);
+  toast('把光线绕回起点');
+}
+
+function endGame(){
+  state='over'; weaving=false; weave=[]; keyboardWeave=false; pointerDown=false;
+  hud.classList.remove('show');bottomHint.classList.remove('show');
+  best=Math.max(best,Math.floor(score));localStorage.setItem('loomBest',best);
+  dustEarned=Math.max(1,Math.floor(score/850));
+  lifetimeDust+=dustEarned;localStorage.setItem('loomDust',lifetimeDust);
+  const old=unlockedThemes;
+  unlockedThemes=Math.max(unlockedThemes, lifetimeDust>=35?4:lifetimeDust>=18?3:lifetimeDust>=7?2:1);
+  localStorage.setItem('loomUnlockedThemes',unlockedThemes);
+  $('#finalScore').textContent=Math.floor(score).toLocaleString();
+  $('#finalBest').textContent=best.toLocaleString();
+  $('#finalDust').textContent='+'+dustEarned;
+  let line=score<2000?'你还在试探线条。下一局尝试更小、更干净的闭环。':
+           score<7000?'你的织法开始有节奏了。三种颜色一起圈进来会触发“全谱”。':
+           score<15000?'你已经在主动制造危险：裂片倍率值得冒险，但别把整片天空都圈进去。':
+           '这一局已经像一张会呼吸的海报。下一步是追求更极端的流派。';
+  if(unlockedThemes>old) line+=' 新视觉主题已解锁。';
+  $('#finalLine').textContent=line;
+  gameover.classList.remove('hidden');
+  audio.chord('bad');
+}
+
+function toast(txt){
+  toastEl.textContent=txt;toastEl.classList.add('show');
+  clearTimeout(toast._t);toast._t=setTimeout(()=>toastEl.classList.remove('show'),900);
+}
+
+function spawnMote(initial=false){
+  const margin=50;
+  let side=Math.floor(rand(4)),x,y;
+  if(initial){x=rand(W-margin,margin);y=rand(H-margin,margin)}
+  else if(side===0){x=-20;y=rand(H)}
+  else if(side===1){x=W+20;y=rand(H)}
+  else if(side===2){x=rand(W);y=-20}
+  else{x=rand(W);y=H+20}
+  const roll=Math.random(), prismChance=.025+mods.prism;
+  const type=roll<prismChance?'prism':roll<.355?'cyan':roll<.685?'pink':'gold';
+  const ang=rand(TAU), sp=rand(34,13)*(1+elapsed/170);
+  entities.push({
+    kind:'mote',type,x,y,vx:Math.cos(ang)*sp,vy:Math.sin(ang)*sp,r:type==='prism'?8:6,
+    phase:rand(TAU),spin:rand(.9,-.9),life:0,seed:rand(999)
+  });
+}
+function spawnHazard(){
+  const edge=Math.floor(rand(4)), pad=25;let x,y;
+  if(edge===0){x=-pad;y=rand(H)}
+  if(edge===1){x=W+pad;y=rand(H)}
+  if(edge===2){x=rand(W);y=-pad}
+  if(edge===3){x=rand(W);y=H+pad}
+  const tx=W/2+rand(W*.45,-W*.45),ty=H/2+rand(H*.45,-H*.45),a=Math.atan2(ty-y,tx-x)+rand(.55,-.55);
+  const sp=rand(72,42)*(1+elapsed/150);
+  entities.push({kind:'hazard',x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,r:10,phase:rand(TAU),spin:rand(2,-2),life:0});
+}
+
+function beginWeave(){
+  if(state!=='play'||paused||focus<8||invuln>.2) return;
+  if(!weaving){
+    weaving=true;closedThisPress=false;
+    weave=[{x:player.x,y:player.y,t:performance.now()}];
+    audio.tone(180,.07,'sine',.07,45);
+  }
+}
+function endWeave(){
+  if(!weaving)return;
+  if(weave.length>8) tryCloseLoop(true);
+  if(!closedThisPress) cancelWeave(false);
+  weaving=false;weave=[];
+}
+function cancelWeave(hit=false){
+  if(hit){
+    burst(player.x,player.y,theme().b,18,130);
+    shake=Math.max(shake,10);audio.chord('bad');
+    takeDamage();
+  }
+  weave=[];weaving=false;keyboardWeave=false;closedThisPress=false;
+}
+function addWeavePoint(){
+  if(!weaving)return;
+  const last=weave[weave.length-1];
+  if(!last||dist(player.x,player.y,last.x,last.y)>5){
+    weave.push({x:player.x,y:player.y,t:performance.now()});
+    if(weave.length>260) weave.shift();
+    if(weave.length>18) tryCloseLoop(false);
+  }
+}
+function polygonArea(poly){
+  let a=0;for(let i=0,j=poly.length-1;i<poly.length;j=i++)a+=(poly[j].x+poly[i].x)*(poly[j].y-poly[i].y);
+  return Math.abs(a*.5);
+}
+function pointInPoly(x,y,poly){
+  let inside=false;
+  for(let i=0,j=poly.length-1;i<poly.length;j=i++){
+    const xi=poly[i].x,yi=poly[i].y,xj=poly[j].x,yj=poly[j].y;
+    const hit=((yi>y)!=(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi+1e-9)+xi);
+    if(hit)inside=!inside;
+  }
+  return inside;
+}
+function tryCloseLoop(onRelease){
+  if(weave.length<16)return false;
+  const start=weave[0], end=weave[weave.length-1];
+  const closeD=onRelease?38:26;
+  if(dist(start.x,start.y,end.x,end.y)>closeD)return false;
+  let length=0;
+  for(let i=1;i<weave.length;i++) length+=dist(weave[i-1].x,weave[i-1].y,weave[i].x,weave[i].y);
+  if(length<130)return false;
+  resolveLoop(weave.slice());
+  closedThisPress=true;weaving=false;weave=[];
+  return true;
+}
+
+function resolveLoop(poly){
+  const area=polygonArea(poly);
+  if(area<850){toast('闭环太小');audio.tone(110,.08,'triangle',.05,-20);return}
+  const inside=[];
+  entities.forEach((e,i)=>{if(pointInPoly(e.x,e.y,poly))inside.push({e,i})});
+  const motes=inside.filter(o=>o.e.kind==='mote');
+  const hazards=inside.filter(o=>o.e.kind==='hazard');
+  if(!motes.length&&!hazards.length){
+    chain=Math.max(1,chain-.3);toast('空织');ring(poly[0].x,poly[0].y,'rgba(255,255,255,.25)',70);
+    audio.tone(150,.12,'sine',.04,-35);return;
+  }
+
+  const counts={cyan:0,pink:0,gold:0,prism:0};
+  motes.forEach(o=>counts[o.e.type]++);
+  const colors=['cyan','pink','gold'].filter(k=>counts[k]>0).length;
+  let harmony=1,label='';
+  if(counts.prism){harmony*=1.8+counts.prism*.25;label='棱镜织'}
+  if(colors===3){harmony*=1.65;label=label?label+' · 全谱':'全谱'}
+  else if(colors===1 && motes.length>=3){harmony*=1.45;label=label?label+' · 单音':'单音'}
+  else if(colors===2 && motes.length>=4){harmony*=1.25;label=label?label+' · 二重奏':'二重奏'}
+  const danger=hazards.length;
+  const dangerMult=1+danger*.6*mods.hazardBonus;
+  if(danger) label=label?label+` · 险织×${danger}`:`险织 ×${danger}`;
+  const compact=clamp(1.22-Math.sqrt(area/(W*H))*.55,.78,1.2);
+  let points=(motes.length*110 + Math.pow(motes.length,1.55)*35 + danger*180)*harmony*dangerMult*compact*chain*mods.loopBonus*mods.moteValue;
+  if(!motes.length&&danger){points=120*danger*dangerMult*chain}
+  score+=points;
+  chain=clamp(chain+.12+motes.length*.035+danger*.12,1,6);
+  chainTimer=5.5;
+  bloom=clamp(bloom+(motes.length*5+counts.prism*15+danger*3)*mods.bloomGain,0,100);
+  focus=clamp(focus+Math.min(18,motes.length*2.5),0,mods.focusMax);
+  weaveCount++;
+
+  const cx=poly.reduce((s,p)=>s+p.x,0)/poly.length,cy=poly.reduce((s,p)=>s+p.y,0)/poly.length;
+  ring(cx,cy,theme().a,Math.sqrt(area/Math.PI));
+  burst(cx,cy,theme().a,8+motes.length*2,180);
+  floatText(cx,cy-18,'+'+Math.floor(points).toLocaleString(),theme().c,18);
+  if(label) floatText(cx,cy+7,label,'#fff',11);
+  audio.chord('good');shake=Math.min(14,3+motes.length*.45+danger*2);bloomFlash=.18;
+
+  const remove=new Set(inside.map(o=>o.i));
+  entities=entities.filter((e,i)=>!remove.has(i));
+  for(let i=0;i<motes.length+2;i++) spawnMote();
+  for(let i=0;i<Math.min(danger,2);i++) setTimeout(spawnHazard,150+i*100);
+
+  if(bloom>=100 && bloomTime<=0) triggerBloom();
+  const nextLevel=Math.floor(weaveCount/5)+1;
+  if(nextLevel>level){level=nextLevel;setTimeout(()=>showUpgrades(),220)}
+}
+function triggerBloom(){
+  bloom=0;bloomTime=7;toast('✦ BLOOM · 星纹盛放 ✦');audio.chord('bloom');flash=.25;bloomFlash=1;
+  burst(player.x,player.y,'#ffffff',36,260);
+}
+function takeDamage(){
+  if(invuln>0)return;
+  if(mods.shield>0){mods.shield--;toast('护线吸收了一次破裂');invuln=.8;return}
+  hp--;invuln=1.55;chain=1;chainTimer=0;focus=Math.max(focus,28);flash=.45;
+  updateHUD(); if(hp<=0)setTimeout(endGame,280);
+}
+
+const upgrades=[
+  {id:'lung',tag:'FLOW',name:'长呼吸',desc:'专注上限 +28%，回复速度 +18%。',apply(){mods.focusMax*=1.28;mods.regen*=1.18;focus=mods.focusMax}},
+  {id:'razor',tag:'RISK',name:'黑边美学',desc:'每圈进一个裂片，险织倍率额外 +55%。',apply(){mods.hazardBonus+=.55}},
+  {id:'prism',tag:'LUCK',name:'多一点不可能',desc:'棱镜碎片出现概率显著提升。',apply(){mods.prism+=.045}},
+  {id:'tempo',tag:'MOTION',name:'快手偏执',desc:'织梭速度 +22%，闭环总分 +8%。',apply(){mods.playerSpeed*=1.22;mods.loopBonus*=1.08}},
+  {id:'safe',tag:'DEFENSE',name:'备用线头',desc:'获得 1 层护线；它会替你承受一次破裂。',apply(){mods.shield++}},
+  {id:'bloom',tag:'BLOOM',name:'开花过敏',desc:'Bloom 充能 +45%，盛放时分数更凶。',apply(){mods.bloomGain*=1.45}},
+  {id:'value',tag:'SCORE',name:'高价灵感',desc:'普通碎片基础价值 +18%。',apply(){mods.moteValue*=1.18}},
+  {id:'magnet',tag:'CONTROL',name:'软引力',desc:'未织线时，附近碎片会慢慢向你靠拢。',apply(){mods.magnet+=28}},
+  {id:'regen',tag:'FLOW',name:'断句',desc:'停止织线后，专注恢复速度 +45%。',apply(){mods.regen*=1.45}}
+];
+function showUpgrades(){
+  if(state!=='play')return;
+  paused=true;upgradeScreen.classList.remove('hidden');
+  const pool=[...upgrades].sort(()=>Math.random()-.5).slice(0,3), box=$('#upgradeChoices');box.innerHTML='';
+  pool.forEach(u=>{
+    const d=document.createElement('div');d.className='upgrade';
+    d.innerHTML=`<em>${u.tag}</em><h3>${u.name}</h3><p>${u.desc}</p>`;
+    d.onclick=()=>{u.apply();upgradeScreen.classList.add('hidden');paused=false;toast(u.name+' 已写进本局');audio.tone(420,.15,'triangle',.08,240)};
+    box.appendChild(d);
+  });
+}
+
+function burst(x,y,color,n=12,speed=120){
+  for(let i=0;i<n;i++){const a=rand(TAU),sp=rand(speed,speed*.18);particles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:rand(.85,.3),max:1,color,size:rand(4,1)})}
+}
+function ring(x,y,color,r=40){rings.push({x,y,r:r*.45,to:r*1.35,life:.7,color})}
+function floatText(x,y,text,color='#fff',size=14){floatTexts.push({x,y,text,color,size,life:1,vy:-22})}
+
+function update(dt){
+  if(state!=='play'||paused)return;
+  elapsed+=dt;t+=dt;if(invuln>0)invuln-=dt;if(flash>0)flash-=dt;if(bloomFlash>0)bloomFlash-=dt;
+  if(bloomTime>0){bloomTime-=dt;score+=dt*25*chain}
+
+  // keyboard movement
+  let kx=(keys.ArrowRight||keys.KeyD?1:0)-(keys.ArrowLeft||keys.KeyA?1:0);
+  let ky=(keys.ArrowDown||keys.KeyS?1:0)-(keys.ArrowUp||keys.KeyW?1:0);
+  if(kx||ky){
+    const m=Math.hypot(kx,ky)||1;
+    player.tx=clamp(player.tx+kx/m*mods.playerSpeed*dt,20,W-20);
+    player.ty=clamp(player.ty+ky/m*mods.playerSpeed*dt,20,H-20);
+  }
+  if(keys.Space){keyboardWeave=true;beginWeave()} else if(keyboardWeave){keyboardWeave=false;endWeave()}
+
+  // smooth pursuit
+  const dx=player.tx-player.x,dy=player.ty-player.y;
+  const responsiveness=1-Math.pow(.0002,dt);
+  player.vx=lerp(player.vx,dx/dt*0.55,responsiveness*.38);
+  player.vy=lerp(player.vy,dy/dt*0.55,responsiveness*.38);
+  const maxv=mods.playerSpeed, vm=Math.hypot(player.vx,player.vy);
+  if(vm>maxv){player.vx*=maxv/vm;player.vy*=maxv/vm}
+  player.x=clamp(player.x+player.vx*dt,12,W-12);player.y=clamp(player.y+player.vy*dt,12,H-12);
+
+  if(weaving){
+    focus-=mods.drain*dt*(bloomTime>0?.68:1);
+    addWeavePoint();
+    if(focus<=0){focus=0;toast('专注耗尽');cancelWeave(false)}
+  }else focus=Math.min(mods.focusMax,focus+mods.regen*dt);
+
+  spawnClock-=dt;hazardClock-=dt;
+  const moteTarget=Math.min(30,11+Math.floor(elapsed/13));
+  if(spawnClock<=0 && entities.filter(e=>e.kind==='mote').length<moteTarget){spawnMote();spawnClock=rand(.75,.28)}
+  if(hazardClock<=0 && elapsed>6){spawnHazard();hazardClock=Math.max(1.2,5.2-elapsed*.025)+rand(1.3)}
+
+  entities.forEach(e=>{
+    const slow=bloomTime>0&&e.kind==='hazard'?.46:1;
+    e.x+=e.vx*dt*slow;e.y+=e.vy*dt*slow;e.life+=dt;e.phase+=e.spin*dt;
+    if(e.kind==='mote'){
+      e.vx+=Math.sin(e.phase*.7+e.seed)*dt*3;e.vy+=Math.cos(e.phase*.6+e.seed)*dt*3;
+      const edge=70;
+      if(e.x<-edge)e.x=W+edge;if(e.x>W+edge)e.x=-edge;if(e.y<-edge)e.y=H+edge;if(e.y>H+edge)e.y=-edge;
+      if(mods.magnet>0&&!weaving){
+        const d=dist(e.x,e.y,player.x,player.y);
+        if(d<190){const a=Math.atan2(player.y-e.y,player.x-e.x);e.vx+=Math.cos(a)*mods.magnet*dt;e.vy+=Math.sin(a)*mods.magnet*dt}
+      }
+    }else{
+      if(e.x<-80||e.x>W+80||e.y<-80||e.y>H+80)e.dead=true;
+      const d=dist(e.x,e.y,player.x,player.y);
+      if(d<e.r+player.r+5 && invuln<=0){e.dead=true;burst(e.x,e.y,theme().b,14,150);takeDamage()}
+      if(weaving && weave.length>5){
+        for(let i=Math.max(0,weave.length-34);i<weave.length;i+=3){
+          const p=weave[i];
+          if(dist(e.x,e.y,p.x,p.y)<e.r+3){e.dead=true;cancelWeave(true);break}
+        }
+      }
+    }
+  });
+  entities=entities.filter(e=>!e.dead);
+
+  if(chainTimer>0){chainTimer-=dt;if(chainTimer<=0)chain=Math.max(1,chain-.35)}
+  updateFX(dt);updateHUD();
+}
+function updateFX(dt){
+  particles.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=Math.pow(.03,dt);p.vy*=Math.pow(.03,dt);p.life-=dt});
+  particles=particles.filter(p=>p.life>0);
+  rings.forEach(r=>{r.r=lerp(r.r,r.to,1-Math.pow(.02,dt));r.life-=dt});rings=rings.filter(r=>r.life>0);
+  floatTexts.forEach(f=>{f.y+=f.vy*dt;f.vy*=Math.pow(.2,dt);f.life-=dt});floatTexts=floatTexts.filter(f=>f.life>0);
+  shake*=Math.pow(.015,dt);
+}
+function updateHUD(){
+  scoreEl.textContent=Math.floor(score).toLocaleString();
+  chainEl.textContent='×'+chain.toFixed(1)+(bloomTime>0?' ✦':'');
+  focusBar.style.width=(focus/mods.focusMax*100)+'%';
+  bloomBar.style.width=(bloomTime>0?100:bloom)+'%';
+  hpEl.textContent='◆ '.repeat(Math.max(0,hp)).trim()+(' ◇'.repeat(Math.max(0,mods.shield)));
+}
+
+function drawBackground(){
+  const th=theme();
+  ctx.fillStyle=th.bg;ctx.fillRect(0,0,W,H);
+  const g=ctx.createRadialGradient(W*.5,H*.38,20,W*.5,H*.38,Math.max(W,H)*.72);
+  g.addColorStop(0,`rgba(${th.fog},${bloomTime>0?.26:.13})`);g.addColorStop(.6,`rgba(${th.fog},.035)`);g.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  wisps.forEach(w=>{
+    w.p+=w.s*.008;
+    const x=w.x+Math.sin(t*w.s+w.p)*80,y=w.y+Math.cos(t*w.s*.7+w.p)*55;
+    const gr=ctx.createRadialGradient(x,y,0,x,y,w.r);
+    gr.addColorStop(0,`rgba(${th.fog},.035)`);gr.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=gr;ctx.beginPath();ctx.arc(x,y,w.r,0,TAU);ctx.fill();
+  });
+  ctx.restore();
+  stars.forEach(s=>{
+    const a=.18+.32*(.5+.5*Math.sin(t*(.35+s.z)+s.tw));
+    ctx.fillStyle=`rgba(255,255,255,${a})`;ctx.fillRect(s.x,s.y,s.z*1.5,s.z*1.5);
+  });
+}
+function drawEntities(){
+  const th=theme();
+  entities.forEach(e=>{
+    ctx.save();ctx.translate(e.x,e.y);ctx.rotate(e.phase);
+    if(e.kind==='mote'){
+      let col=e.type==='cyan'?th.a:e.type==='pink'?th.b:e.type==='gold'?th.c:'#fff';
+      ctx.globalCompositeOperation='lighter';
+      ctx.shadowBlur=e.type==='prism'?26:18;ctx.shadowColor=col;
+      ctx.strokeStyle=col;ctx.lineWidth=e.type==='prism'?1.8:1.4;
+      const r=e.r*(1+.09*Math.sin(e.life*3+e.seed));
+      ctx.beginPath();
+      if(e.type==='cyan'){ctx.moveTo(0,-r*1.25);ctx.lineTo(r,0);ctx.lineTo(0,r*1.25);ctx.lineTo(-r,0);ctx.closePath()}
+      else if(e.type==='pink'){for(let i=0;i<5;i++){const a=i/5*TAU-Math.PI/2,rr=i%2?r*.7:r*1.2;const x=Math.cos(a)*rr,y=Math.sin(a)*rr;i?ctx.lineTo(x,y):ctx.moveTo(x,y)}ctx.closePath()}
+      else if(e.type==='gold'){ctx.arc(0,0,r,0,TAU);ctx.moveTo(-r*1.5,0);ctx.lineTo(r*1.5,0)}
+      else {for(let i=0;i<6;i++){const a=i/6*TAU;ctx.lineTo(Math.cos(a)*r*(i%2?1.35:.7),Math.sin(a)*r*(i%2?1.35:.7))}ctx.closePath()}
+      ctx.stroke();
+      ctx.globalAlpha=.42;ctx.fillStyle=col;ctx.fill();
+    }else{
+      ctx.globalCompositeOperation='lighter';ctx.shadowBlur=15;ctx.shadowColor=th.b;
+      ctx.strokeStyle='rgba(255,118,195,.86)';ctx.lineWidth=1.2;
+      const r=e.r;
+      ctx.beginPath();ctx.moveTo(0,-r*1.5);ctx.lineTo(r*.9,r*.8);ctx.lineTo(-r*.55,r*.45);ctx.closePath();ctx.stroke();
+      ctx.beginPath();ctx.moveTo(-r*1.3,0);ctx.lineTo(r*1.4,0);ctx.strokeStyle='rgba(255,255,255,.18)';ctx.stroke();
+    }
+    ctx.restore();
+  });
+}
+function drawWeave(){
+  if(!weave.length)return;
+  const th=theme();
+  ctx.save();ctx.globalCompositeOperation='lighter';ctx.lineCap='round';ctx.lineJoin='round';
+  for(let pass=0;pass<3;pass++){
+    ctx.beginPath();ctx.moveTo(weave[0].x,weave[0].y);
+    for(let i=1;i<weave.length;i++)ctx.lineTo(weave[i].x,weave[i].y);
+    ctx.strokeStyle=pass===0?`rgba(122,238,255,.10)`:pass===1?`rgba(255,132,220,.23)`:'rgba(245,252,255,.94)';
+    ctx.lineWidth=pass===0?11:pass===1?4:1.15;ctx.shadowBlur=pass===2?15:0;ctx.shadowColor=th.a;ctx.stroke();
+  }
+  const s=weave[0],d=dist(player.x,player.y,s.x,s.y),ready=weave.length>16&&d<42;
+  ctx.beginPath();ctx.arc(s.x,s.y,ready?17:10,0,TAU);
+  ctx.strokeStyle=ready?'rgba(255,255,255,.9)':'rgba(255,255,255,.22)';ctx.lineWidth=ready?2:1;ctx.stroke();
+  ctx.restore();
+}
+function drawPlayer(){
+  const th=theme(), pulse=1+.12*Math.sin(t*5);
+  ctx.save();ctx.translate(player.x,player.y);
+  if(invuln>0 && Math.floor(invuln*12)%2===0)ctx.globalAlpha=.35;
+  ctx.globalCompositeOperation='lighter';ctx.shadowBlur=20;ctx.shadowColor=th.a;
+  ctx.strokeStyle='#fff';ctx.lineWidth=1.6;
+  ctx.beginPath();ctx.arc(0,0,player.r*pulse,0,TAU);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(-14,0);ctx.lineTo(-6,0);ctx.moveTo(6,0);ctx.lineTo(14,0);ctx.strokeStyle=th.a;ctx.stroke();
+  ctx.rotate(t*.8);ctx.strokeStyle='rgba(255,255,255,.24)';ctx.beginPath();ctx.arc(0,0,13,-.4,.55);ctx.stroke();
+  ctx.restore();
+}
+function drawFX(){
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  particles.forEach(p=>{ctx.globalAlpha=clamp(p.life/.7,0,1);ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,p.size,0,TAU);ctx.fill()});
+  rings.forEach(r=>{ctx.globalAlpha=clamp(r.life/.7,0,1)*.6;ctx.strokeStyle=r.color;ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(r.x,r.y,r.r,0,TAU);ctx.stroke()});
+  ctx.restore();
+  floatTexts.forEach(f=>{ctx.save();ctx.globalAlpha=clamp(f.life,0,1);ctx.textAlign='center';ctx.font=`700 ${f.size}px system-ui`;ctx.fillStyle=f.color;ctx.shadowBlur=14;ctx.shadowColor=f.color;ctx.fillText(f.text,f.x,f.y);ctx.restore()});
+}
+function draw(){
+  drawBackground();
+  ctx.save();
+  if(shake>.2)ctx.translate(rand(shake,-shake),rand(shake,-shake));
+  drawEntities();drawWeave();drawPlayer();drawFX();
+  ctx.restore();
+  if(bloomTime>0){
+    ctx.fillStyle=`rgba(255,255,255,${.018+.016*Math.sin(t*8)})`;ctx.fillRect(0,0,W,H);
+  }
+  if(flash>0){ctx.fillStyle=`rgba(255,90,170,${flash*.17})`;ctx.fillRect(0,0,W,H)}
+  if(bloomFlash>0){ctx.fillStyle=`rgba(160,245,255,${bloomFlash*.1})`;ctx.fillRect(0,0,W,H)}
+}
+function loop(now){
+  const dt=Math.min(.033,(now-last)/1000||.016);last=now;
+  update(dt);draw();requestAnimationFrame(loop);
+}
+
+canvas.addEventListener('pointerdown',e=>{
+  if(state!=='play'||paused)return;
+  pointerDown=true;player.tx=e.clientX;player.ty=e.clientY;beginWeave();
+  try{canvas.setPointerCapture(e.pointerId)}catch(_){}
+});
+canvas.addEventListener('pointermove',e=>{
+  if(state!=='play')return;player.tx=e.clientX;player.ty=e.clientY;
+  if(pointerDown&&!weaving)beginWeave();
+});
+canvas.addEventListener('pointerup',e=>{pointerDown=false;if(weaving)endWeave()});
+canvas.addEventListener('pointercancel',()=>{pointerDown=false;if(weaving)endWeave()});
+addEventListener('keydown',e=>{
+  keys[e.code]=true;
+  if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();
+  if(e.code==='Escape'&&state==='play')togglePause();
+});
+addEventListener('keyup',e=>{keys[e.code]=false});
+
+function togglePause(){
+  if(state!=='play')return;
+  paused=!paused;toast(paused?'已暂停':'继续织星');$('#pauseBtn').textContent=paused?'▶':'Ⅱ';
+}
+$('#playBtn').onclick=startGame;
+$('#againBtn').onclick=startGame;
+$('#menuBtn').onclick=()=>{state='menu';gameover.classList.add('hidden');menu.classList.remove('hidden');setTheme(themeIndex)};
+$('#pauseBtn').onclick=togglePause;
+$('#soundBtn').onclick=()=>{
+  soundOn=!soundOn;localStorage.setItem('loomSound',soundOn?'1':'0');$('#soundBtn').textContent=soundOn?'♪':'×';
+  if(soundOn)audio.tone(330,.08,'sine',.06,80);
+};
+$('#themeBtn').onclick=()=>setTheme((themeIndex+1)%Math.max(1,unlockedThemes));
+
+setTheme(themeIndex);makeBackdrop();resize();requestAnimationFrame(loop);
+
+// 可选：产品化接口占位。接排行榜/活动系统时可直接读取这个 payload。
+window.LumenLoom = {
+  getChallengePayload:()=>({score:Math.floor(score),dailySeed,theme:theme().name,level,weaves:weaveCount,version:'1.0-prototype'})
+};
+})();
+</script>
+</body>
+</html>

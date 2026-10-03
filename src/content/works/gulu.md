@@ -10,6 +10,8 @@ year: 2026
 credit: "个人实验"
 availability: "待核验"
 preview: true
+featured: false
+order: 111
 ---
 
 ## 先观察一颗水珠

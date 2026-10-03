@@ -7,10 +7,11 @@ status: "完成"
 desc: "把多智能体协作想象成一个指挥中枢，用可视化界面展示任务与角色的组织方式。"
 tags: ["AI","演示"]
 year: 2026
-featured: 0
 credit: "AI 辅助创作"
 availability: "待核验"
 preview: true
+featured: true
+order: 5
 ---
 
 ## 把协作过程变成一幅画面

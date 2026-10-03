@@ -1,0 +1,69 @@
+---
+import { getCollection, render } from 'astro:content';
+import Layout from '../../layouts/Layout.astro';
+import { withBase } from '../../lib/paths.mjs';
+import { site } from '../../data/site';
+import RoleTag from '../../components/RoleTag.astro';
+import RoleLegend from '../../components/RoleLegend.astro';
+
+export async function getStaticPaths() {
+  return (await getCollection('cases')).map((entry) => ({ params: { slug: entry.data.slug }, props: { entry } }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+const path = (href: string) => withBase(href, import.meta.env.BASE_URL);
+const roleKinds = { '我提出': 'me', 'AI 实现': 'ai', '共同': 'both' } as const;
+---
+<Layout title={`${entry.data.title} · ${entry.data.type === 'book' ? '出版信息' : '案例'} · 段骁`} description={entry.data.summary}>
+  <article class:list={['case-study', entry.data.type === 'book' ? 'case-book' : '']}>
+    <a class="case-back" href={path(entry.data.type === 'project' ? '/cases/' : entry.data.type === 'work' ? '/works/' : '/resume/')}>← {entry.data.type === 'project' ? '返回项目' : entry.data.type === 'work' ? '返回作品' : '返回简历'}</a>
+    {entry.data.type !== 'book' && <RoleLegend prefix={entry.data.slug + '-legend'} />}
+    <header class="case-header">
+      <span class="eyebrow">{entry.data.eyebrow}</span>
+      <h1>{entry.data.title}</h1>
+      <p>{entry.data.oneLine || entry.data.summary}</p>
+      {entry.data.type === 'book' ? <dl class="case-meta">
+        <div><dt>出版社</dt><dd>{site.publisher}</dd></div>
+        <div><dt>出版日期</dt><dd>2026 年 6 月 18 日</dd></div>
+        <div><dt>身份</dt><dd>联合作者</dd></div>
+      </dl> : entry.data.type === 'project' ? <dl class="case-meta">
+        <div><dt>我的角色</dt><dd>提出需求、方向与取舍</dd></div>
+        <div><dt>代码实现</dt><dd>AI 编程工具</dd></div>
+        <div><dt>规模 / 流程</dt><dd>{entry.data.scale}</dd></div>
+        <div><dt>状态</dt><dd>{entry.data.status}</dd></div>
+      </dl> : <dl class="case-meta">
+        <div><dt>角色 / 周期</dt><dd>[待补：实际分工] / [待补：周期]</dd></div>
+        <div><dt>工具</dt><dd>[待补：实际使用工具]</dd></div>
+        <div><dt>规模</dt><dd>{entry.data.scale}</dd></div>
+        <div><dt>状态</dt><dd>{entry.data.status}</dd></div>
+      </dl>}
+    </header>
+    {entry.data.cover && <figure class="case-visual">
+      <img src={path(entry.data.cover || '')} alt={`${entry.data.title}案例主视觉`} width="1200" height="750" />
+    </figure>}
+    {entry.data.type === 'project' ? <div class="project-detail project-narrative">
+      <section id="origin"><span class="eyebrow">ORIGIN</span><h2>起因</h2><p>{entry.data.origin}</p></section>
+      <section id="usage"><span class="eyebrow">CONTEXT</span><h2>使用场景</h2><p>{entry.data.usage}</p></section>
+      {entry.data.judgment && <section id="judgment"><span class="eyebrow">MY JUDGMENT</span><h2>我的判断</h2><p>{entry.data.judgment}</p></section>}
+      <section id="decisions"><span class="eyebrow">DECISIONS</span><h2>关键决策</h2><ol class="project-decisions">{entry.data.decisions.map((decision, index) => <li id={'decision-' + (index + 1)}><span class="decision-number">0{index + 1}</span><div><RoleTag kind={roleKinds[decision.label]} id={`${entry.data.slug}-decision-${index + 1}-role`} /><p>{decision.text}</p></div></li>)}</ol></section>
+      {entry.data.iterations.length > 0 && <section id="iterations"><span class="eyebrow">REAL RUNS</span><h2>迭代过程</h2><ol class="iteration-list">{entry.data.iterations.map(item => <li><strong>{item.stage}</strong><p>{item.text}</p></li>)}</ol></section>}
+      <section id="results"><span class="eyebrow">RESULTS</span><h2>结果</h2><p>{entry.data.result}</p></section>
+      {entry.data.limits && <section id="limits" class="project-boundaries"><span class="eyebrow">BOUNDARIES</span><h2>{entry.data.limitsTitle}</h2><p>{entry.data.limits}</p></section>}
+      <section id="technology"><span class="eyebrow">TECHNOLOGY</span><h2>技术</h2><p>{entry.data.technology}</p><p>{entry.data.implementation}</p>{entry.data.tests && <p class="project-test-count">{entry.data.tests} {entry.data.testLabel}</p>}</section>
+      <section id="showcase"><span class="eyebrow">SHOWCASE</span><h2>展示</h2><div class="showcase-pending"><strong>{entry.data.slug === 'project-01' ? '录屏待接入' : entry.data.slug === 'project-03' ? '截图待接入' : '录屏与截图待接入'}</strong><p>以下是展示计划，演示素材尚未上传。</p></div><p>{entry.data.showcase}</p></section>
+      <section id="capabilities"><span class="eyebrow">CAPABILITIES</span><h2>能体现的能力</h2><ul class="project-capabilities">{entry.data.capabilities.map(capability => <li>{capability}</li>)}</ul></section>
+      <section id="learning"><span class="eyebrow">WHAT I LEARNED</span><h2>我学到的</h2><p>{entry.data.learning}</p>{entry.data.slug === 'project-01' && <small class="method-qualification">这里的“三道质检”描述我的工作方法，系统功能以本页的技术与结果部分为准。</small>}</section>
+      {entry.data.transfer && <section id="transfer"><span class="eyebrow">OTHER CONTEXTS</span><h2>可迁移的场景</h2><p>{entry.data.transfer}</p><a class="text-link" href={path('/#contact')}>联系我 <span aria-hidden="true">→</span></a></section>}
+    </div> : entry.data.type === 'work' ? <div class="project-detail">
+      <section><span class="eyebrow">01 / ORIGIN</span><h2>起因</h2><p>{entry.data.origin || '[待补：起因]'}</p></section>
+      <section><span class="eyebrow">02 / CONTEXT</span><h2>使用场景</h2><p>{entry.data.usage || '[待补：使用场景]'}</p></section>
+      <section><span class="eyebrow">03 / DECISIONS</span><h2>关键决策</h2><div class="decision-grid">{entry.data.decisions.map((decision, index) => <article><RoleTag kind={roleKinds[decision.label]} id={`${entry.data.slug}-decision-${index + 1}-role`} /><p>{decision.text}</p></article>)}</div></section>
+      <section><span class="eyebrow">04 / ITERATIONS</span><h2>迭代过程</h2><ol class="iteration-list">{entry.data.iterations.map(item => <li><strong>{item.stage}</strong><p>{item.text}</p></li>)}</ol></section>
+      <section><span class="eyebrow">05 / EVIDENCE</span><h2>可验证结果</h2><p>{entry.data.result || '[待补：可验证结果]'}</p><p class="evidence-prompt">对外数据、用户原话或截图：[待补]</p></section>
+      <section class="project-detail-meta"><div><span class="eyebrow">TECH STACK</span><p>{entry.data.techStack.length ? entry.data.techStack.join(' · ') : '[待补：技术栈]'}</p></div><div><span class="eyebrow">SHOWCASE</span><p>{entry.data.showcase || '[待补：截图 / 录屏 / 演示]'}</p></div><div><span class="eyebrow">CAPABILITIES</span><p>{entry.data.capabilities.length ? entry.data.capabilities.join(' · ') : '[待补：体现的能力]'}</p></div></section>
+    </div> : <div class="case-body"><Content /></div>}
+    {entry.data.type !== 'book' && <nav class="case-next" aria-label="案例导航"><span>继续浏览案例</span><a href={path(entry.data.next)}>{entry.data.nextTitle} <span aria-hidden="true">→</span></a></nav>}
+    {entry.data.disclaimer && <p class="case-disclaimer">{entry.data.disclaimer}</p>}
+  </article>
+</Layout>

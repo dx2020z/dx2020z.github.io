@@ -1,0 +1,7 @@
+---
+import RoleTag from './RoleTag.astro';
+const { prefix = 'legend' } = Astro.props;
+const kinds = ['me', 'ai', 'both'] as const;
+---
+<div class="role-legend" aria-label="角色标签图例"><span>角色图例</span>{kinds.map(kind => <RoleTag kind={kind} id={`${prefix}-${kind}`} />)}<small>悬停或聚焦标签，查看分工说明。</small></div>
+<style>.role-legend{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:18px 0 24px;border-bottom:1px solid var(--line);margin-bottom:28px}.role-legend>span,.role-legend small{font-size:12px;color:var(--muted)}.role-legend small{margin-left:4px}.role-legend :global(.role-tag:last-of-type .role-tooltip){left:auto;right:0}</style>

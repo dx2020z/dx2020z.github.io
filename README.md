@@ -1,6 +1,6 @@
 # 段骁 · 个人作品网站
 
-六个可单独分享的个人空间、精选作品、互动小游戏作品库与微信联系。使用 Astro 静态生成，源码托管 GitHub，由 GitHub Actions 发布到 GitHub Pages。
+以“写 / 做 / 聚”为主线的个人介绍站：六个可单独分享的空间、独立项目案例、精选与完整作品库、两首诗的影像页面、打印友好的简历与四种联系入口。使用 Astro 静态生成，源码托管 GitHub，由 GitHub Actions 发布到 GitHub Pages。
 
 ## 看网站
 
@@ -27,6 +27,8 @@ slug: "my-new-work"
 type: "local"
 kind: "tool"
 status: "实验性"
+featured: false
+order: 999
 desc: "一句话说明用途或值得体验的部分"
 tags: ["AI", "工具"]
 ---
@@ -44,8 +46,9 @@ tags: ["AI", "工具"]
 - `slug` 只用小写字母、数字和连字符，保持唯一，与本地目录名一致。
 - `kind` 可选 `tool / visual / interactive / analysis / ebook / demo / course`。
 - `status` 可选 `完成 / 进行中 / 实验性 / 弃坑`。
-- 可选：`year: 2026`，`cover: "/covers/my-new-work.webp"`，`featured: 1`。
-- 精选按 featured 正整数从小到大排序，首页取前四件；其余作品仍在完整作品库中。
+- `featured` 为布尔值，只有 `true` 的作品默认出现在 `/works/`；`order` 为数字，越小越靠前。访问 `/works/?all=1` 可直接看到全部作品和分类筛选。
+- 可选：`year: 2026`，`cover: "/covers/my-new-work.webp"`。
+- 首页展示独立的项目案例，项目内容在 `src/content/cases/` 中维护；作品数量从内容集合自动计算。
 - `note` 为体验说明；`preview: false` 可关闭内嵌预览；`availability: "需要环境"` 用于依赖额外服务的本地原型。
 - 未填写封面时自动使用文字封面，不冒充作品截图。
 
@@ -54,12 +57,14 @@ tags: ["AI", "工具"]
 ## 修改个人介绍与风格
 
 - 六个空间的文案、顺序、链接：`src/data/spaces.ts`。每个空间由 `/spaces/英文短名/` 单独访问，首页会自动显示对应索引；空间页可以返回首页或走向相邻空间。
-- 第七个“未完待续”是首页索引里的未来入口提示，当前没有空白详情页。
-- 个人介绍：`src/content/about.md`。
+- 六个空间分别是档案、能力、作品、AI 协作、想法、生活；入口内容、各空间版式在 `src/components/SpacePage.astro`，顺序与简介在 `src/data/spaces.ts`。
+- 案例内容在 `src/content/cases/*.md`，项目索引在 `/cases/`，详情模板在 `src/pages/cases/[slug].astro`。可将 `[待补：...]` 替换为有证据且适合公开的信息。
+- 两首诗的正文与视频路径在 `src/data/poems.ts`，片段池在 `src/data/fragments.json`，视频与封面在 `public/videos/`；诗页为 `/poems/zichao/` 与 `/poems/rose/`。
+- 简历在 `src/pages/resume.astro`，支持浏览器打印并另存 PDF；没有预生成的 PDF 文件。
 - 首页文案与精选布局：`src/pages/index.astro`。
-- 姓名与微信：`src/data/site.ts`；修改微信时同步关于页中的公开联系方式。
+- 姓名、公开邮箱、微信、文章链接、图片路径与最近更新时间：`src/data/site.ts`。
 - 颜色、字体与公共布局：`src/styles/global.css`。
-- 首页、六入口索引、空间页与作品布局分别在 `home.css`、`chapter-index.css`、`spaces.css`、`works.css`。
+- 首页、六入口索引、空间页、作品、案例与简历布局分别在 `home.css`、`chapter-index.css`、`spaces.css`、`works.css`、`cases.css`、`resume.css`。
 - 组件在 `src/components/`；全站外壳在 `src/layouts/Layout.astro`。
 
 未来新增文章、专题、诗歌或小游戏等内容可继续增加独立内容集合和页面，复用现有布局。当前没有后台、账号、数据库或自动收集访客信息的服务。
@@ -72,7 +77,7 @@ tags: ["AI", "工具"]
 
 工作流根据 Pages 配置读取站点 origin 和 base path，支持个人主页和仓库子路径。若以后更换仓库或域名，应重新检查 Pages 设置与最终网址。
 
-源码公开时也会公开 `public/` 下的文件。不要放入私人资料、API 密钥、带密码的链接或不应公开的作品。原始 flomo 导出、附件和本机路径清单不进入本仓库。本地六空间预览在用户审阅前不推送。
+源码公开时也会公开 `public/` 下的文件。不要放入私人资料、API 密钥、带密码的链接或不应公开的作品。只把用户明确指定公开的个人照片、书籍宣传图、诗作、邮箱、微信与简历信息放入网站；原始笔记、证书扫描件与旧姓名不进入本仓库。案例中的未确认内容保留为待补，不公开虚构数据。
 
 ## 验证
 

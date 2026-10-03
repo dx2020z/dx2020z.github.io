@@ -7,13 +7,14 @@ import Contact from '../components/Contact.astro';
 import Footer from '../components/Footer.astro';
 import { site } from '../data/site';
 import { withBase } from '../lib/paths.mjs';
-interface Props { title?: string; description?: string; }
-const { title = site.title, description = site.description } = Astro.props;
+interface Props { title?: string; description?: string; immersive?: boolean; }
+const { title = site.title, description = site.description, immersive = false } = Astro.props;
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const isPublic = Astro.site && !['localhost', '127.0.0.1'].includes(Astro.site.hostname);
+const pageTheme = Astro.url.pathname.replace(/\/$/, '') === '/spaces/life' ? 'paper' : Astro.url.pathname.replace(/\/$/, '') === '/resume' ? 'resume' : 'dark';
 ---
 <!doctype html>
-<html lang="zh-CN" data-theme="dark">
+<html lang="zh-CN" data-theme={pageTheme}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -23,17 +24,22 @@ const isPublic = Astro.site && !['localhost', '127.0.0.1'].includes(Astro.site.h
     <meta property="og:locale" content="zh_CN" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
+    <meta property="og:image" content={new URL(withBase('/og-image.svg', import.meta.env.BASE_URL), Astro.site || Astro.url).href} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="段骁的个人网站：把想法，做成真的。写 / 做 / 聚。" />
     {isPublic && <><link rel="canonical" href={canonical} /><meta property="og:url" content={canonical} /></>}
     <link rel="icon" type="image/svg+xml" href={withBase('/favicon.svg', import.meta.env.BASE_URL)} />
     <title>{title}</title>
     <script is:inline>
-      try { const t = localStorage.getItem('dx-theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch {}
+      try { const t = localStorage.getItem('dx-theme'); if (!['paper','resume'].includes(document.documentElement.dataset.theme || '') && (t === 'light' || t === 'dark')) document.documentElement.dataset.theme = t; } catch {}
     </script>
   </head>
   <body id="top">
     <a class="skip-link" href="#main">跳转到内容</a>
-    <div class="site-shell"><Nav /><main id="main"><slot /></main><Contact /><Footer /></div>
+    <div class:list={['site-shell', { 'site-shell-immersive': immersive }]}>{!immersive && <Nav />}<main id="main"><slot /></main>{!immersive && <><Contact /><Footer /></>}</div>
     <script>
+      console.log('你好，欢迎来到段骁的个人网站。联系：duanx2748@qq.com');
       const toggle = document.querySelector<HTMLButtonElement>('[data-theme-toggle]');
       function syncLabel() {
         const dark = document.documentElement.dataset.theme === 'dark';
@@ -41,7 +47,7 @@ const isPublic = Astro.site && !['localhost', '127.0.0.1'].includes(Astro.site.h
         document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#0B0D10' : '#F4F3EF');
       }
       if (toggle) {
-        toggle.hidden = false;
+        toggle.hidden = ['paper','resume'].includes(document.documentElement.dataset.theme || '');
         syncLabel();
         toggle.addEventListener('click', () => {
           const theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
@@ -68,6 +74,15 @@ const isPublic = Astro.site && !['localhost', '127.0.0.1'].includes(Astro.site.h
           }
         });
       });
+    </script>
+    <script>
+      function repositionHashTarget() {
+        if (!location.hash) return;
+        let id = '';
+        try { id = decodeURIComponent(location.hash.slice(1)); } catch { id = location.hash.slice(1); }
+        document.getElementById(id)?.scrollIntoView({ block: 'start' });
+      }
+      window.addEventListener('load', () => requestAnimationFrame(repositionHashTarget), { once: true });
     </script>
   </body>
 </html>

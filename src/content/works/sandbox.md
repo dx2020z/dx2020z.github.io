@@ -10,6 +10,8 @@ year: 2026
 url: "https://ljrwdytp.manus.space/"
 credit: "Manus 辅助生成"
 availability: "待核验"
+featured: true
+order: 3
 ---
 
 ## 这件作品

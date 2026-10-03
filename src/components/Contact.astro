@@ -1,11 +1,17 @@
 ---
 import { site } from '../data/site';
+import { withBase } from '../lib/paths.mjs';
 ---
 <section class="contact-section" id="contact" aria-labelledby="contact-title">
   <div class="contact-heading"><span class="eyebrow">LET’S TALK</span><h2 id="contact-title">一个想法，<br/>也许从聊天开始。</h2></div>
   <div class="contact-copy">
-    <p>关于 AI 应用、一个正在酝酿的项目，<br class="desktop-break"/>或者，只是分享你最近做的东西。</p>
-    <div class="wechat-line"><span>加微信：</span><strong id="wechat-id">{site.wechat}</strong><button type="button" class="copy-button" data-copy={site.wechat} hidden aria-label="复制微信号 dx2020z">复制微信号 <span aria-hidden="true">↗</span></button></div>
+    <p>关于 AI 应用、内容与读书社群，<br class="desktop-break"/>或者，分享你最近做的东西。</p>
+    <div class="contact-methods" aria-label="联系段骁">
+      <div class="contact-method"><small>WECHAT</small><strong id="wechat-id">{site.wechat}</strong><button type="button" class="copy-button" data-copy={site.wechat} hidden aria-label="复制微信号 dx2020z">复制微信号 <span aria-hidden="true">↗</span></button></div>
+      <a class="contact-method" href={'mailto:' + site.email}><small>EMAIL</small><strong>{site.email}</strong><span>发邮件 ↗</span></a>
+      <a class="contact-method" href={site.github} target="_blank" rel="noopener noreferrer"><small>GITHUB</small><strong>dx2020z</strong><span>查看代码 ↗</span></a>
+      <a class="contact-method" href={withBase('/resume/?print=1', import.meta.env.BASE_URL)}><small>RESUME</small><strong>简历 PDF</strong><span>打印 / 另存 ↗</span></a>
+    </div>
     <p class="copy-feedback" role="status" aria-live="polite" data-copy-status></p>
   </div>
 </section>

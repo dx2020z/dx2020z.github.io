@@ -1,0 +1,13 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { withBase } from '../lib/paths.mjs';
+interface Props { entry: CollectionEntry<'cases'>; heading?: 'h2' | 'h3' }
+const { entry, heading = 'h3' } = Astro.props;
+const Heading = heading;
+---
+<a class="system-card" href={withBase('/cases/' + entry.data.slug + '/', import.meta.env.BASE_URL)}>
+  <Heading>{entry.data.title}</Heading>
+  <p>{entry.data.oneLine || entry.data.summary}</p>
+  {entry.data.homeMetrics.length > 0 && <dl class="system-metrics">{entry.data.homeMetrics.map(metric => <div><dd>{metric.value}</dd><dt>{metric.label}</dt></div>)}</dl>}
+  <span class="system-status">{entry.data.status}</span>
+</a>

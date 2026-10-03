@@ -1,84 +1,115 @@
 ---
+import { getCollection } from 'astro:content';
 import Layout from '../layouts/Layout.astro';
+import AIMethod from './AIMethod.astro';
 import { spaces, spacePath, type Space } from '../data/spaces';
+import { site } from '../data/site';
+import fragments from '../data/fragments.json';
 import { withBase } from '../lib/paths.mjs';
-
 interface Props { space: Space }
 const { space } = Astro.props;
 const path = (href: string) => withBase(href, import.meta.env.BASE_URL);
 const currentIndex = spaces.findIndex(item => item.slug === space.slug);
 const previous = spaces[(currentIndex + spaces.length - 1) % spaces.length];
 const next = spaces[(currentIndex + 1) % spaces.length];
-const gameLinks = [
-  { href: '/works/star-core-expedition/', title: '星核大合成：引力远征', note: '把规则变成一场带方向感的小游戏' },
-  { href: '/works/weight-of-dust/', title: '尘埃的重量', note: '一间可以被时间和风吹动的房间' },
-  { href: '/works/star-mail-cat/', title: '星邮喵', note: '给星星送信的轻量交互实验' },
-  { href: '/works/compound-interest/', title: '复利', note: '把一个抽象概念做成可拖动的解释器' },
+const allWorks = await getCollection('works');
+const completeSlugs = new Set(['ai-army','100angles','chayan','college-lost','compound-interest','format-convert','cyanotype','einstein','kouji','lang-bigbang','landelaiyuan','llm-transformer','model-civ','qian-space','wishtocode-table']);
+const completeWorks = allWorks.filter(work => completeSlugs.has(work.data.slug));
+const labWorks = allWorks.filter(work => !completeSlugs.has(work.data.slug));
+const poems = [
+  { title: '自嘲', slug: 'zichao', date: '2026.06.11', lines: ['好词配佳句，烂曲搭俗词','本无词曲梦，巧撞枯荣门','一半入歌赋，一瓣落名利','','凡受其重，皆受其辱','唯余叹半生，散于息满途','待到春来期盼时，遥指冬去绝望季'] },
+  { title: '玫瑰少年', slug: 'rose', date: '2022.10.01', lines: ['当微风拂过绿叶时','玫瑰也在轻微的摇摆','当艳阳洒下光芒时','玫瑰也在鲜艳的绽放','','太平盛世，风雨交加','少年带着荆棘走来','草长莺飞，阴晴交错','玫瑰携着青春盛开','','年轻会受到怀疑','美丽会受到妒忌','不被认可不该就此妥协','玫瑰少年不该就此熄灭','','喧哗的世界藏着多少冷语','少年你不需要抱歉','热闹的花园藏着多少恶意','玫瑰你请亮出荆棘','','纵使玫瑰失去了花瓣','少年失去了表达','在云边烧得最灿烂时','玫瑰少年闪烁在余晖中','比来自遥远的星光还耀眼'] },
 ];
-const featureWork = space.slug === 'life'
-  ? { href: '/works/landelaiyuan/', image: '/covers/landelaiyuan.webp', alt: '《蓝的来处》作品封面', label: '一部虚构随笔 · 蓝的来处' }
-  : space.slug === 'works'
-    ? { href: '/works/cyanotype/', image: '/covers/cyanotype.webp', alt: '蓝晒图谱生成艺术作品封面', label: '视觉实验 · 蓝晒图谱' }
-    : null;
-const related: Record<string, { href: string; title: string; note: string }[]> = {
-  about: [
-    { href: '/about/', title: '关于我', note: '更完整的自我介绍' },
-    { href: '/works/', title: '全部作品', note: '让做过的东西接着说' },
-  ],
-  life: [
-    { href: '/works/landelaiyuan/', title: '蓝的来处', note: '一部以颜色为线索的虚构随笔' },
-    { href: spacePath('notes'), title: '我的想法', note: '从文字继续往里走' },
-  ],
-  ai: [
-    { href: '/works/qian-space/', title: '《潜》空间', note: '一个可探索的概念地图' },
-    { href: '/works/model-civ/', title: '模型文明', note: '关于智能体的概念演示' },
-  ],
-  'can-do': [
-    { href: '/works/wishtocode-table/', title: '开发需求 ↔ 技术架构', note: '看需求怎样变成可比较的方案' },
-    { href: '/works/100angles/', title: '100 个维度拆书', note: '看分散资料怎样拥有检索入口' },
-  ],
-  works: [
-    { href: '/works/', title: '进入完整作品库', note: '工具、视觉、交互与文字' },
-    { href: '/works/landelaiyuan/', title: '蓝的来处', note: '从文字进入另一个现场' },
-  ],
-  notes: [
-    { href: '/works/qian-space/', title: '《潜》空间', note: '让概念关系变成可以探索的画面' },
-    { href: spacePath('life'), title: '生活里的我', note: '回到阅读与写诗的日常' },
-  ],
-};
+const books = ['百年孤独','遥远的救世主','人性的弱点'];
 ---
-<Layout title={`${space.title} · 段骁`} description={`${space.lead} 段骁个人网站中的${space.title}空间。`}>
-  <div class="folio-page">
-    <div class="folio-topline"><a href={path('/#spaces')}>六个入口</a><span aria-hidden="true">/</span><span>{space.number} — {space.title}</span></div>
-    <header class="folio-hero" aria-labelledby="folio-title">
-      <div class="folio-hero-copy"><span class="eyebrow">DUAN XIAO / FIELD NOTE {space.number}</span><h1 id="folio-title">{space.title}<span class="folio-period">。</span></h1><p>{space.lead}</p><a class="folio-scroll-link" href="#chapter-content">继续往里看 <span aria-hidden="true">↓</span></a></div>
-      <div class="folio-hero-feature">
-        {featureWork ? <a class="folio-image-feature" href={path(featureWork.href)}><img src={path(featureWork.image)} alt={featureWork.alt} width="1200" height="900" /><span>{featureWork.label}<b aria-hidden="true">↗</b></span></a> : space.slug === 'notes' ? <div class="folio-type-feature"><span>摘自个人笔记</span><p>读书不是学作者写了什么，<br/>是反推作者在写之前想了什么。</p><i aria-hidden="true">“</i></div> : space.slug === 'ai' ? <div class="folio-process-feature"><span>一段日常的工作关系</span><strong>提问 <i>→</i> 推演 <i>→</i> 检验 <i>→</i> 试做</strong><small>机器能提出可能，人要决定下一步。</small></div> : space.slug === 'can-do' ? <div class="folio-shift-feature"><span>从一句模糊的愿望</span><strong>“我想做个东西”</strong><span>到一个可以点开的初版 <b aria-hidden="true">↗</b></span></div> : <div class="folio-about-feature"><span>THINK</span><span>WRITE</span><span>MAKE</span><small>三条线索，交织成同一个人。</small></div>}
+<Layout title={space.title + ' · 段骁'} description={space.lead}>
+  <div class:list={['space-page', 'space-page-' + space.slug]}>
+    <div class="space-topline"><a href={path('/#spaces')}>← 六个入口</a><span>{space.level}</span></div>
+    {space.slug === 'about' && <section class="space-profile-layout" aria-labelledby="space-title">
+      <div class="space-profile-copy"><span class="eyebrow">L1 / PROFILE</span><h1 id="space-title">认识我<span>。</span></h1><p class="space-lead">{space.lead}</p><p>我关注真实的问题，愿意先动手做一个小版本，再用作品和反馈继续完善。</p><a class="button primary" href={path('/resume/')}>查看简历 <span aria-hidden="true">↗</span></a></div>
+      <article class="space-profile-card"><img src={path(site.profilePhoto)} alt="段骁的蓝晒色调半身照" width="1122" height="1402" /><div class="space-profile-card-body"><span class="eyebrow">PROFILE CARD / 2026</span><strong>段骁</strong><dl><div><dt>现在</dt><dd>开放机会</dd></div><div><dt>城市</dt><dd>深圳</dd></div><div><dt>寻找</dt><dd>全职机会与项目合作</dd></div><div><dt>可开始时间</dt><dd>随时</dd></div></dl></div></article>
+      <div class="space-profile-bottom"><span>写 / 做 / 聚</span><span>作品、长文与社群经历，组成这份正在更新的档案。</span></div>
+    </section>}
+
+    {space.slug === 'can-do' && <section class="capability-layout" id="capabilities" aria-labelledby="space-title">
+      <header class="space-heading"><span class="eyebrow">L2 / CAPABILITY × EVIDENCE</span><h1 id="space-title">我能做的事<span>。</span></h1><p>{space.lead}</p></header>
+      <div class="capability-columns">
+        <article class="capability-column capability-write"><span class="capability-letter">写</span><h2>把知识写成书，把想法写成文字。</h2><ul><li>《万山无阻》联合作者</li><li>撰写公众号长文</li><li>持续写诗与阅读笔记</li></ul><a href={path('/cases/wanshan-wuzu/')}><span>你看</span> 《万山无阻》出版信息 <b aria-hidden="true">↗</b></a><a href={site.longArticleUrl} target="_blank" rel="noopener noreferrer"><span>你看</span> 公众号长文 <b aria-hidden="true">↗</b></a></article>
+        <article class="capability-column capability-make"><span class="capability-letter">做</span><h2>把抽象问题做成可以打开的作品。</h2><ul><li>AI 辅助原型与交互</li><li>需求拆解与方案结构化</li><li>知识检索、工具和视觉实验</li></ul><a href={path('/cases/wish-to-code/')}><span>你看</span> 开发需求 ↔ 技术架构 <b aria-hidden="true">↗</b></a><a href={path('/cases/100angles/')}><span>你看</span> 100 个维度拆书 <b aria-hidden="true">↗</b></a></article>
+        <article class="capability-column capability-gather"><span class="capability-letter">聚</span><h2>围绕阅读，让人有机会一起交流。</h2><ul><li>创建并运营过读书群</li><li>把书、文字和读者连接起来</li><li>不公开群人数或群入口</li></ul><a href={path('/cases/wanshan-wuzu/')}><span>你看</span> 《万山无阻》出版信息 <b aria-hidden="true">↗</b></a></article>
       </div>
-    </header>
+      <p class="capability-note">每项能力都连接到作品、文章或经历；案例中尚未补充的结果会明确标为待补。</p>
+    </section>}
 
-    <div class="folio-layout" id="chapter-content">
-      <nav class="folio-rail" aria-label="切换认识我的入口"><span class="eyebrow">THE INDEX / 01—06</span>{spaces.map(item => <a href={path(spacePath(item.slug))} aria-current={item.slug === space.slug ? 'page' : undefined}><span>{item.number}</span>{item.title}</a>)}</nav>
-      <div class="folio-content">
-        <div class="folio-intro"><span class="eyebrow">{space.english}</span><p>{space.sideNote}</p></div>
-        <div class="folio-essays">{space.sections.map((section, index) => <section><span class="folio-section-num">0{index + 1} / 0{space.sections.length}</span><div><h2>{section.heading}</h2><p>{section.body}</p></div></section>)}</div>
+    {space.slug === 'works' && <section class="work-level-layout" aria-labelledby="space-title">
+      <header class="space-heading"><span class="eyebrow">L3 / PORTFOLIO LEVELS</span><h1 id="space-title">我做过的东西<span>。</span></h1><p>{space.lead}</p></header>
+      <section class="work-tier work-tier-featured" aria-labelledby="featured-tier"><div class="tier-heading"><span class="eyebrow">01 / CASE STUDIES</span><h2 id="featured-tier">代表作 <small>3</small></h2><p>三个案例，分别看写作、需求判断与知识整理。</p></div><div class="tier-cases">
+        <a href={path('/cases/wanshan-wuzu/')}><img src={path(site.bookPhoto)} alt="《万山无阻》新书宣传图" width="1200" height="1200" loading="lazy" /><span class="eyebrow">写 / 联合作者</span><strong>《万山无阻》</strong><small>北京日报出版社 · 2026.06.18</small><b>你看 ↗</b></a>
+        <a href={path('/cases/wish-to-code/')}><img src={path('/covers/wishtocode-table.webp')} alt="开发需求与技术架构对照表封面" width="1200" height="750" loading="lazy" /><span class="eyebrow">做 / 需求梳理</span><strong>开发需求 ↔ 技术架构</strong><small>从想法到实现方式的对照</small><b>你看 ↗</b></a>
+        <a href={path('/cases/100angles/')}><img src={path('/covers/100angles.webp')} alt="100 个维度拆书作品封面" width="1200" height="750" loading="lazy" /><span class="eyebrow">做 / 知识整理</span><strong>100 个维度拆书</strong><small>把阅读变成多角度的检索结构</small><b>你看 ↗</b></a>
+      </div></section>
+      <section class="work-tier work-tier-complete" aria-labelledby="complete-tier"><div class="tier-heading"><span class="eyebrow">02 / COMPLETE WORKS</span><h2 id="complete-tier">完整作品 <small>{completeWorks.length}</small></h2><p>已完成的工具、视觉、文字与交互项目。</p></div><div class="tier-list">{completeWorks.map((work, i) => <a href={path('/works/' + work.data.slug + '/')}><span class="tier-list-number">{String(i + 1).padStart(2,'0')}</span><strong>{work.data.title}</strong><small>{work.data.kind === 'tool' ? '工具' : work.data.kind === 'visual' ? '视觉' : work.data.kind === 'ebook' ? '文字' : '交互'} · {work.data.status}</small><b aria-hidden="true">↗</b></a>)}</div></section>
+      <section class="work-tier work-tier-lab" aria-labelledby="lab-tier"><div class="tier-heading"><span class="eyebrow">03 / EXPERIMENTS</span><h2 id="lab-tier">实验室 <small>{labWorks.length}</small></h2><p>小游戏、草稿与仍在探索的交互实验。</p></div><div class="lab-chips">{labWorks.map(work => <a href={path('/works/' + work.data.slug + '/')}><span>{work.data.title}</span><small>{work.data.status}</small></a>)}</div></section>
+    </section>}
 
-        {space.slug === 'life' && <div class="folio-special folio-reading"><span class="eyebrow">ON READING & WRITING</span><p>一本书，让我追问别人怎样想；一首诗，让我试着说出自己看见了什么。</p><a href={path(spacePath('notes'))}>走进我的想法 <span aria-hidden="true">↗</span></a></div>}
+    {space.slug === 'ai' && <AIMethod />}
 
-        {space.slug === 'ai' && <div class="folio-special folio-method"><span class="eyebrow">A SMALL LOOP</span><ol><li><b>01</b><span>把真正的问题说清楚</span></li><li><b>02</b><span>借 AI 打开不同的可能</span></li><li><b>03</b><span>检查它遗漏了什么</span></li><li><b>04</b><span>做一个能亲手试的版本</span></li></ol></div>}
+    {space.slug === 'notes' && <section class="essay-layout" aria-labelledby="space-title">
+      <header class="essay-masthead"><span class="eyebrow">L5 / NOTES & QUESTIONS</span><h1 id="space-title">我的想法</h1><p>{space.lead}</p><span class="essay-rule" aria-hidden="true">✳</span></header>
+      <article class="essay-feature"><div class="essay-meta"><span>公众号长文</span><span>段骁 / 阅读原文</span></div><h2>{site.longArticleTitle}</h2><p class="essay-summary">{site.longArticleSummary}</p><a class="button primary" href={site.longArticleUrl} target="_blank" rel="noopener noreferrer">阅读公众号原文 <span aria-hidden="true">↗</span></a></article>
+      <div class="essay-margin"><span class="eyebrow">IN THE MARGIN</span><blockquote>知道、理解、运用和做到，是四件不同的事。</blockquote><p>笔记是问题留下的线头。它们会继续通向作品、文字，也可能只停在这里，保持开放。</p></div>
+    </section>}
 
-        {space.slug === 'can-do' && <div class="folio-special folio-scenarios"><span class="eyebrow">WE CAN START HERE</span><div><span>你带来</span><p>一个真实场景、一堆难整理的资料，或一个还说不清的想法。</p></div><div><span>我们先做</span><p>问题和目标的梳理，再选一件最小的事，做成页面、检索入口或交互原型。</p></div><div><span>我想要</span><p>具体的使用反馈，以及愿意一起把第一版继续磨下去的人。</p></div></div>}
+    {space.slug === 'life' && <section class="life-layout" data-fragments={JSON.stringify(fragments)} aria-labelledby="space-title">
+      <header class="life-masthead"><span class="eyebrow">L6 / POEMS & BOOKS</span><h1 id="space-title">生活里的我</h1><p>{space.lead}</p><span class="life-sun" aria-hidden="true">✳</span></header>
+      <div class="life-poems"><figure class="life-poem-plate"><img src={path('/covers/cyanotype.webp')} alt="《蓝晒图谱》中的蓝色图版" width="1200" height="750" loading="lazy" /><figcaption>《蓝晒图谱》图版</figcaption></figure>{poems.map((poem, index) => <article class:list={['life-poem', 'life-poem-' + (index + 1)]}><div><span class="eyebrow">POEM / 0{index + 1}</span><time>{poem.date}</time></div><h2>{poem.title}</h2><p>{poem.lines.map(line => line ? <span>{line}<br/></span> : <br/>)}</p><a class="life-poem-link" href={path('/poems/' + poem.slug + '/')}>进入这首诗 <span aria-hidden="true">→</span></a></article>)}</div>
+      <div class="life-ripple" data-life-ripple aria-hidden="true"></div><p class="life-note-pop" data-life-note role="status" aria-live="polite" hidden><span data-note-text></span><small data-note-source></small></p>
+      <section class="life-books"><span class="eyebrow">THREE BOOKS I RETURN TO</span><h2>最喜欢的三本书。</h2><ol>{books.map((book, index) => <li><span>0{index + 1}</span><div><strong>{book}</strong><small>为什么反复读：[待补]</small></div></li>)}</ol><p>如果你也写诗，可以来找我。</p></section>
+    </section>}
 
-        {space.slug === 'works' && <div class="folio-special folio-work-pair"><a href={path('/works/qian-space/')}><img src={path('/covers/qian-space.webp')} alt="《潜》空间作品封面" width="1200" height="900" loading="lazy" /><span>《潜》空间 <b aria-hidden="true">↗</b></span></a><a href={path('/works/wishtocode-table/')}><img src={path('/covers/wishtocode-table.webp')} alt="开发需求与技术架构对照表封面" width="1200" height="900" loading="lazy" /><span>开发需求 ↔ 技术架构 <b aria-hidden="true">↗</b></span></a></div>}
-
-        {space.slug === 'works' && <section class="folio-special folio-game-index" aria-labelledby="game-index-title"><div class="folio-game-heading"><div><span class="eyebrow">PLAY / MAKE / REPEAT</span><h2 id="game-index-title">最近做的几个小游戏。</h2></div><p>它们还在持续打磨，但已经可以打开、可以玩，也可以直接告诉我哪里值得继续。</p></div><div class="folio-game-links">{gameLinks.map(game => <a href={path(game.href)}><span><strong>{game.title}</strong><small>{game.note}</small></span><b aria-hidden="true">↗</b></a>)}</div></section>}
-
-        {space.slug === 'notes' && <div class="folio-special folio-notes"><span class="eyebrow">TWO FRAGMENTS</span><blockquote><p>“读书不是学作者写了什么，是反推作者在写之前想了什么。”</p><cite>阅读笔记</cite></blockquote><blockquote><p>“写作才是自己思考的过程，直接 AI 写就是认知外包了。”</p><cite>写作笔记</cite></blockquote></div>}
-
-        <section class="folio-related" aria-labelledby="folio-related-title"><div class="section-label"><span class="number">→ /</span> FOLLOW THE THREAD</div><h2 id="folio-related-title">顺着这条线索，再走一步。</h2>{related[space.slug].map(item => <a href={path(item.href)}><span><strong>{item.title}</strong><small>{item.note}</small></span><b aria-hidden="true">↗</b></a>)}</section>
-      </div>
-    </div>
-
-    <nav class="folio-bottom-nav" aria-label="继续探索其他空间"><a href={path(spacePath(previous.slug))}><span>← 上一个空间</span><strong>{previous.title}</strong></a><a href={path('/#spaces')} class="folio-back">返回六个入口</a><a href={path(spacePath(next.slug))}><span>下一个空间 →</span><strong>{next.title}</strong></a></nav>
+    <nav class="space-switcher" aria-label="切换空间"><a href={path(spacePath(previous.slug))}><small>← 上一个</small><strong>{previous.title}</strong></a><a href={path('/#spaces')} class="space-switch-home">回到六个入口</a><a href={path(spacePath(next.slug))}><small>下一个 →</small><strong>{next.title}</strong></a></nav>
   </div>
 </Layout>
+<script>
+  const lifeSurface = document.querySelector<HTMLElement>('.life-layout[data-fragments]');
+  const lifeRipple = lifeSurface?.querySelector<HTMLElement>('[data-life-ripple]');
+  const lifeNote = lifeSurface?.querySelector<HTMLElement>('[data-life-note]');
+  const noteText = lifeNote?.querySelector<HTMLElement>('[data-note-text]');
+  const noteSource = lifeNote?.querySelector<HTMLElement>('[data-note-source]');
+  let lifePool: Array<{ type: string; text: string; source: string }> = [];
+  let previousLifeIndex = -1;
+  try { lifePool = (JSON.parse(lifeSurface?.dataset.fragments || '{}') as { pool?: typeof lifePool }).pool || []; } catch { lifePool = []; }
+  let lifeNoteTimer = 0;
+  lifeSurface?.addEventListener('click', event => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement) || target.closest('a, button')) return;
+    const rect = lifeSurface.getBoundingClientRect();
+    const x = Math.max(18, Math.min(rect.width - 18, event.clientX - rect.left));
+    const y = Math.max(18, Math.min(rect.height - 18, event.clientY - rect.top));
+    lifeRipple?.style.setProperty('--drop-x', `${x}px`);
+    lifeRipple?.style.setProperty('--drop-y', `${y}px`);
+    lifeRipple?.classList.remove('is-rippling');
+    if (lifeRipple) void lifeRipple.offsetWidth;
+    lifeRipple?.classList.add('is-rippling');
+    window.setTimeout(() => lifeRipple?.classList.remove('is-rippling'), 1000);
+    lifeNote?.style.setProperty('--note-x', `${Math.min(x + 16, rect.width - 230)}px`);
+    lifeNote?.style.setProperty('--note-y', `${Math.min(y + 18, rect.height - 105)}px`);
+    if (lifeNote && noteText && noteSource && lifePool.length) {
+      let index = Math.floor(Math.random() * lifePool.length);
+      if (lifePool.length > 1 && index === previousLifeIndex) index = (index + 1 + Math.floor(Math.random() * (lifePool.length - 1))) % lifePool.length;
+      previousLifeIndex = index;
+      const fragment = lifePool[index];
+      noteText.textContent = fragment.text;
+      noteSource.textContent = fragment.source;
+      lifeNote.classList.toggle('is-poem', fragment.type === 'poem');
+      window.clearTimeout(lifeNoteTimer);
+      lifeNote.hidden = false;
+      lifeNote.classList.remove('is-visible');
+      requestAnimationFrame(() => lifeNote.classList.add('is-visible'));
+      lifeNoteTimer = window.setTimeout(() => {
+        lifeNote.classList.remove('is-visible');
+        window.setTimeout(() => { if (lifeNote) lifeNote.hidden = true; }, 240);
+      }, 2500);
+    }
+  });
+</script>

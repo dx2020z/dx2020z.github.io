@@ -10,6 +10,8 @@ year: 2026
 url: "https://eaympopskbsno.ok.kimi.link/index.html"
 credit: "Kimi 辅助生成"
 availability: "待核验"
+featured: false
+order: 120
 ---
 
 ## 这件作品

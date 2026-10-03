@@ -5,7 +5,8 @@ import { kindLabels } from '../lib/model.mjs';
 interface Props { works: CollectionEntry<'works'>[]; }
 const { works } = Astro.props;
 const kinds = Object.entries(kindLabels).filter(([key]) => works.some(w => w.data.kind === key));
-const tags = [...new Set(works.flatMap(w => w.data.tags))].sort((a,b) => a.localeCompare(b,'zh'));
+const tagOrder = ['AI','工具','交互','视觉','知识整理','小游戏','写作','演示','需求','网页'];
+const tags = tagOrder.filter(tag => works.some(w => w.data.tags.includes(tag)));
 ---
 <section class="archive" aria-label="作品集合" data-work-grid>
   <div class="filter-bar" data-filters hidden>
@@ -18,9 +19,10 @@ const tags = [...new Set(works.flatMap(w => w.data.tags))].sort((a,b) => a.local
       <label>标签<select data-tag><option value="all">全部标签</option>{tags.map(tag => <option value={tag}>{tag}</option>)}</select></label>
     </div>
   </div>
-  <div class="archive-count"><span data-result-count role="status" aria-live="polite">{works.length} 件作品</span><span>TOOLS / STORIES / EXPERIMENTS</span></div>
-  <div class="works-grid">{works.map((work,index) => <WorkCard work={work} index={index} />)}</div>
+  <div class="archive-count"><span data-result-count role="status" aria-live="polite">{works.filter(w => w.data.featured).length} 件精选作品</span><span>TOOLS / STORIES / EXPERIMENTS</span></div>
+  <div class="works-grid">{works.map((work,index) => <WorkCard work={work} index={index} initiallyVisible={work.data.featured} />)}</div>
   <div class="empty-state" data-empty hidden><h2>这一组还没有作品。</h2><p>换个分类，或者回到全部作品看看。</p><button type="button" class="button" data-reset>显示全部作品</button></div>
+  <div class="archive-expand"><button type="button" class="button" data-toggle-all aria-expanded="false">查看全部 {works.length} 件 <span aria-hidden="true">↓</span></button></div>
 </section>
 <script>
   document.querySelectorAll<HTMLElement>('[data-work-grid]').forEach(grid => {
@@ -29,11 +31,21 @@ const tags = [...new Set(works.flatMap(w => w.data.tags))].sort((a,b) => a.local
     const source = grid.querySelector<HTMLSelectElement>('[data-source]');
     const tag = grid.querySelector<HTMLSelectElement>('[data-tag]');
     const filters = grid.querySelector<HTMLElement>('[data-filters]');
-    if (filters) filters.hidden = false;
+    const toggle = grid.querySelector<HTMLButtonElement>('[data-toggle-all]');
+    const cards = Array.from(grid.querySelectorAll<HTMLElement>('.work-card'));
+    const params = new URLSearchParams(location.search);
+    let showAll = params.get('all') === '1';
+    if (filters) filters.hidden = !showAll;
+    cards.forEach(card => { card.hidden = !showAll && card.dataset.featured !== 'true'; });
+    if (toggle) {
+      toggle.setAttribute('aria-expanded', String(showAll));
+      toggle.innerHTML = showAll ? '只看精选 ' + cards.filter(card => card.dataset.featured === 'true').length + ' 件 <span aria-hidden="true">↑</span>' : '查看全部 ' + cards.length + ' 件 <span aria-hidden="true">↓</span>';
+    }
     const apply = () => {
       let count = 0;
-      grid.querySelectorAll<HTMLElement>('.work-card').forEach(card => {
-        const matches = (kind === 'all' || card.dataset.kind === kind)
+      cards.forEach(card => {
+        const matches = (showAll || card.dataset.featured === 'true')
+          && (kind === 'all' || card.dataset.kind === kind)
           && (source?.value === 'all' || card.dataset.type === source?.value)
           && (tag?.value === 'all' || (JSON.parse(card.dataset.tags || '[]') as string[]).includes(tag?.value || ''));
         card.hidden = !matches;
@@ -41,10 +53,30 @@ const tags = [...new Set(works.flatMap(w => w.data.tags))].sort((a,b) => a.local
       });
       buttons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.filter === kind)));
       const countElement = grid.querySelector('[data-result-count]');
-      if (countElement) countElement.textContent = count + ' 件作品';
+      if (countElement) countElement.textContent = count + (showAll ? ' 件作品' : ' 件精选作品');
       const empty = grid.querySelector<HTMLElement>('[data-empty]');
       if (empty) empty.hidden = count !== 0;
     };
+    if (showAll) apply();
+    toggle?.addEventListener('click', () => {
+      showAll = !showAll;
+      if (!showAll) { kind = 'all'; if (source) source.value = 'all'; if (tag) tag.value = 'all'; }
+      const url = new URL(location.href);
+      if (showAll) url.searchParams.set('all', '1'); else url.searchParams.delete('all');
+      history.pushState({}, '', url);
+      if (filters) filters.hidden = !showAll;
+      if (toggle) {
+        toggle.setAttribute('aria-expanded', String(showAll));
+        toggle.innerHTML = showAll ? '只看精选 ' + cards.filter(card => card.dataset.featured === 'true').length + ' 件 <span aria-hidden="true">↑</span>' : '查看全部 ' + cards.length + ' 件 <span aria-hidden="true">↓</span>';
+      }
+      apply();
+    });
+    window.addEventListener('popstate', () => {
+      showAll = new URLSearchParams(location.search).get('all') === '1';
+      if (filters) filters.hidden = !showAll;
+      cards.forEach(card => { card.hidden = !showAll && card.dataset.featured !== 'true'; });
+      apply();
+    });
     buttons.forEach(button => button.addEventListener('click', () => { kind = button.dataset.filter || 'all'; apply(); }));
     source?.addEventListener('change', apply); tag?.addEventListener('change', apply);
     grid.querySelector('[data-reset]')?.addEventListener('click', () => { kind = 'all'; if (source) source.value = 'all'; if (tag) tag.value = 'all'; apply(); });

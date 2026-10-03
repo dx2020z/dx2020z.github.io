@@ -10,6 +10,8 @@ year: 2026
 url: "https://svzcnkqt.manus.space/"
 credit: "Manus 辅助生成"
 availability: "待核验"
+featured: false
+order: 105
 ---
 
 ## 这件作品

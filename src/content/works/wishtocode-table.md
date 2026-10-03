@@ -7,11 +7,12 @@ status: "完成"
 desc: "从“我想做什么”出发，把模糊的需求与实现方式、适用边界放在一张对照表里。"
 tags: ["需求","架构","参考"]
 year: 2026
-featured: 4
 credit: "AI 辅助创作"
 availability: "待核验"
 preview: true
 cover: "/covers/wishtocode-table.webp"
+featured: false
+order: 134
 ---
 
 ## 把需求说清楚，才有技术选择

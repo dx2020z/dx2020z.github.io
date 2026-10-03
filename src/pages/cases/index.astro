@@ -1,0 +1,14 @@
+---
+import { getCollection } from 'astro:content';
+import Layout from '../../layouts/Layout.astro';
+import ProjectCard from '../../components/ProjectCard.astro';
+const projects = (await getCollection('cases'))
+  .filter(entry => entry.data.type === 'project')
+  .sort((a, b) => a.data.order - b.data.order || a.data.title.localeCompare(b.data.title, 'zh-CN'));
+---
+<Layout title="项目案例 · 段骁" description="项目案例与能力证据。">
+  <header class="page-intro"><span class="eyebrow">PROJECTS / CASE STUDIES</span><h1>3 个我正在用的系统</h1><p>从需求、取舍到真实运行。方向和判断由我提出，代码由 AI 工具实现。</p></header>
+  <section class="project-index" aria-label="项目案例">
+    {projects.map(entry => <ProjectCard entry={entry} heading="h2" />)}
+  </section>
+</Layout>

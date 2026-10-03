@@ -1,0 +1,29 @@
+---
+import { withBase } from '../lib/paths.mjs';
+interface Step { n: string; title: string; text: string; href: string }
+interface Route { id: string; title: string; note: string; steps: Step[] }
+interface Props { routes: Route[] }
+const { routes } = Astro.props;
+const path = (href: string) => withBase(href, import.meta.env.BASE_URL);
+---
+<section class="path-selector" id="paths" aria-labelledby="path-title">
+  <div class="path-heading"><div><span class="eyebrow">START WHERE YOU ARE</span><h2 id="path-title">你是谁？<br/>我给你一条最短的路。</h2></div><p>不需要从头读起。告诉我你此刻最想了解什么。</p></div>
+  <div class="path-body">
+    <div class="path-tabs" role="group" aria-label="选择浏览路线">
+      {routes.map((route, index) => <button type="button" data-path-tab={route.id} aria-pressed={index === 0 ? 'true' : 'false'}>{route.title}<span aria-hidden="true">{index === 0 ? '01' : index === 1 ? '02' : '03'}</span></button>)}
+    </div>
+    {routes.map((route, index) => <div class="path-panel" data-path-panel={route.id} hidden={index !== 0}>
+      <div class="path-panel-heading"><span class="eyebrow">A SHORT ROUTE / 0{index + 1}</span><p>{route.note}</p></div>
+      <ol>{route.steps.map(step => <li><a href={path(step.href)}><span class="path-step-num">STEP {step.n}</span><strong>{step.title}</strong><small>{step.text}</small><b aria-hidden="true">↗</b></a></li>)}</ol>
+    </div>)}
+  </div>
+</section>
+<script>
+  const tabs = [...document.querySelectorAll<HTMLButtonElement>('[data-path-tab]')];
+  const panels = [...document.querySelectorAll<HTMLElement>('[data-path-panel]')];
+  tabs.forEach(tab => tab.addEventListener('click', () => {
+    const selected = tab.dataset.pathTab;
+    tabs.forEach(item => item.setAttribute('aria-pressed', String(item === tab)));
+    panels.forEach(panel => { panel.hidden = panel.dataset.pathPanel !== selected; });
+  }));
+</script>

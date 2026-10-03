@@ -7,10 +7,11 @@ status: "完成"
 desc: "在画布上创建节点、连接关系，用坐标和空间组织一组概念。"
 tags: ["工具","语义","知识整理"]
 year: 2026
-featured: 0
 credit: "AI 辅助创作"
 availability: "待核验"
 preview: true
+featured: false
+order: 124
 ---
 
 ## 用空间来整理关系

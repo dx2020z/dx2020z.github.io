@@ -4,6 +4,8 @@ slug: "my-work"
 type: "local"
 kind: "tool"
 status: "实验性"
+featured: false
+order: 999
 desc: "用一句话说明作品解决的问题或值得体验的部分。"
 tags: []
 ---

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#0B0D10"/>
+  <path d="M740 0h460v630H740z" fill="#102131"/>
+  <g fill="none" stroke="#38BDF8" opacity=".34">
+    <circle cx="985" cy="314" r="228" stroke-width="1"/><circle cx="985" cy="314" r="176" stroke-width="1"/>
+    <path d="M757 314c114-160 342-160 456 0-114 160-342 160-456 0Z" stroke-width="2"/>
+    <path d="M985 86c160 114 160 342 0 456-160-114-160-342 0-456Z" stroke-width="1.5"/>
+    <path d="M830 162c148 37 247 137 310 304M800 463c98-141 206-241 372-295" stroke-width="1"/>
+  </g>
+  <circle cx="985" cy="314" r="5" fill="#38BDF8"/>
+  <text x="82" y="120" fill="#A0A8B3" font-family="Arial,sans-serif" font-size="17" letter-spacing="7">DUAN XIAO / WRITE · MAKE · GATHER</text>
+  <text x="78" y="310" fill="#E6E8EB" font-family="Microsoft YaHei,Arial,sans-serif" font-size="82" font-weight="700">把想法，</text>
+  <text x="78" y="410" fill="#E6E8EB" font-family="Microsoft YaHei,Arial,sans-serif" font-size="82" font-weight="700">做成<tspan fill="#38BDF8">真的。</tspan></text>
+  <text x="84" y="490" fill="#A0A8B3" font-family="Microsoft YaHei,Arial,sans-serif" font-size="24">段骁 · 写 / 做 / 聚</text>
+  <text x="84" y="544" fill="#38BDF8" font-family="Arial,sans-serif" font-size="18" letter-spacing="2">dx2020z.github.io</text>
+</svg>
